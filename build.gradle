@@ -1,16 +1,23 @@
 plugins {
-    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
 }
 
 group 'com.cubearrow'
 version '1.0-SNAPSHOT'
 
+ext{
+    mainClassName = "com.cubearrow.cubelang.main.main"
+}
 repositories {
     mavenCentral()
 }
-
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-// https://mvnrepository.com/artifact/org.json/json
-    compile group: 'org.json', name: 'json', version: '20200518'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.cubearrow.cubelang.main.Main'
+    }
+    from { configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
 }

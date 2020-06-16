@@ -1,0 +1,3 @@
+<expression> ::= <int_literal>
+
+<new_variable_assignment> ::= <type> <identifier> <equals> <expression>
