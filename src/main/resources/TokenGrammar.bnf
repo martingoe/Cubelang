@@ -1,0 +1,28 @@
+//noinspection BnfUnusedRuleForFile
+<int_literal> ::= "[0-9]+"
+<double_literal> ::= "[0-9]*\.[0-9+]"
+
+<literal> ::= <int_literal> | <double_literal>
+<int> ::= "int"
+<brcktl> ::= "\("
+<brcktr> ::= "\)"
+<komma> ::= ","
+<equals> ::= "(?<!=)=(?!=)"
+<if> ::= "if"
+<return> ::= "return"
+<fun> ::= "fun"
+<while> ::= "while"
+<semicolon> ::= ";"
+<add> ::= "\+"
+<sub> ::= "-"
+<exp> ::= "\^"
+<div> ::= "\/"
+<mult> ::= "\*"
+<mod> ::= "\%"
+<eqeq> ::= "\=\="
+<excleq> ::= "\!\="
+<and_gate> ::= "\&\&"
+<or_gate> ::= "\|\|"
+
+<identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"
+<type> ::= <int>
