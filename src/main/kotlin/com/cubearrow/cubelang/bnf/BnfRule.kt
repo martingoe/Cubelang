@@ -2,31 +2,29 @@ package com.cubearrow.cubelang.bnf
 
 import java.util.*
 
-class BnfRule(ruleString: String, parser: BnfParser) : BnfTerm() {
+class BnfRule(ruleString: String, parser: BnfParser, additionalParser: BnfParser? = null) : BnfTerm() {
     var name: String
-    private var expression: List<List<BnfTerm?>>
+    var expression: List<List<BnfTerm?>>
     private fun parseName(line: String): String {
         val relevantSubString = line.split("::=").toTypedArray()[0]
         return relevantSubString.replace("<", "").replace(">", "").replace(" ", "")
     }
 
-    private fun parseExpression(line: String, parser: BnfParser): List<List<BnfTerm?>> {
+    private fun parseExpression(line: String, parser: BnfParser, additionalParser: BnfParser?): List<List<BnfTerm?>> {
         val options = line.split("::=")[1].split("/\\|(?![^\"]*\")/g")
         val result: MutableList<List<BnfTerm?>> = ArrayList()
         for (option in options) {
-            result.add(parseExpressionInOption(option, parser))
+            result.add(parseExpressionInOption(option, parser, additionalParser))
         }
         return result
     }
 
-    private fun parseExpressionInOption(option: String, parser: BnfParser): List<BnfTerm?> {
+    private fun parseExpressionInOption(option: String, parser: BnfParser, additionalParser: BnfParser?): List<BnfTerm?> {
         val result: MutableList<BnfTerm?> = ArrayList()
         var i = 0
         while (i < option.length) {
             if (option[i] == '<') {
-                val closingIndex = option.indexOf(">", i + 1)
-                result.add(parser.getRuleFromString(option.substring(i + 1, closingIndex)))
-                i = closingIndex
+                i = addOptionToResult(option, i, result, parser, additionalParser)
             }
             if (option[i] == '"') {
                 val closingIndex = option.indexOf("\"", i + 1)
@@ -36,6 +34,16 @@ class BnfRule(ruleString: String, parser: BnfParser) : BnfTerm() {
             i++
         }
         return result
+    }
+
+    private fun addOptionToResult(option: String, i: Int, result: MutableList<BnfTerm?>, parser: BnfParser, additionalParser: BnfParser?): Int {
+        val closingIndex = option.indexOf(">", i + 1)
+        var primaryRule = parser.getRuleFromString(option.substring(i + 1, closingIndex))
+        if(primaryRule == null){
+            primaryRule = additionalParser?.getRuleFromString(option.substring(i + 1, closingIndex))
+        }
+        result.add(primaryRule)
+        return closingIndex
     }
 
     public fun containsRuleOption(rule: BnfRule) : Boolean{
@@ -64,6 +72,6 @@ class BnfRule(ruleString: String, parser: BnfParser) : BnfTerm() {
 
     init {
         name = parseName(ruleString)
-        expression = parseExpression(ruleString, parser)
+        expression = parseExpression(ruleString, parser, additionalParser)
     }
 }
