@@ -1,23 +1,55 @@
 package com.cubearrow.cubelang.main
 
+import com.cubearrow.cubelang.bnf.BnfParser
 import com.cubearrow.cubelang.parsing.tokenization.TokenGrammar
 import com.cubearrow.cubelang.parsing.tokenization.TokenSequence
+import com.cubearrow.cubelang.utils.ConsoleColor
+import com.cubearrow.cubelang.utils.Singleton
 import java.io.File
-import java.io.IOException
+import kotlin.system.exitProcess
 
-object Main {
-    @Throws(IOException::class)
-    @JvmStatic
-    fun main(args: Array<String>) {
-//        File codeFile = new File("src/main/resources/test.cl");
-//        TokenGrammar tokenGrammar = new TokenGrammar(new File("src/main/resources/TokenGrammar.json"));
-//        TokenSequence tokenSequence = new TokenSequence(Files.readString(codeFile.toPath()), tokenGrammar);
-//        System.out.println(tokenSequence.getTokenSequence().toString());
-
-        val bnfFile = File(this.javaClass.classLoader.getResource("TokenGrammar.bnf")!!.file)
-        val sourceCode = this.javaClass.classLoader.getResource("test.cl")
-        val tokenSequence = TokenSequence(sourceCode!!.readText(), TokenGrammar(bnfFile)).tokenSequence
-        println(tokenSequence)
-        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
+fun main(args: Array<String>) {
+    if (args.size == 1) {
+        Main().compileFile(File(Main::class.java.classLoader.getResource(args[0])!!.file))
+    } else {
+        exitProcess(64)
     }
+}
+
+class Main {
+    companion object {
+        val syntaxParserSingleton: Singleton<BnfParser> = Singleton()
+        val tokenGrammarSingleton: Singleton<TokenGrammar> = Singleton()
+        var containsError: Boolean = false
+
+
+        fun error(line: Int, index: Int, fullLine: String, message: String) {
+            val indicator = " ".repeat(index - 1) + "^"
+            println("""
+                ${ConsoleColor.ANSI_RED.ansiCode}$fullLine
+                $indicator
+                Error [$line:$index]: $message 
+            """.trimIndent())
+            containsError = true
+        }
+    }
+
+    fun compileFile(sourceFile: File) {
+        val bnfFile = File(Main::class.java.classLoader.getResource("TokenGrammar.bnf")!!.file)
+        val sourceCode = sourceFile.readText()
+        val syntaxGrammarFile = File(Main::class.java.classLoader.getResource("SyntaxGrammar.bnf")!!.file)
+        tokenGrammarSingleton.instance = TokenGrammar(bnfFile)
+
+        syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
+        TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
+//        println(TokenSequence(sourceCode, tokenGrammarSingleton.instance!!).tokenSequence)
+//        println(Assignment(ArrayList()).getRule())
+//        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
+
+
+        if (containsError)
+            exitProcess(65)
+    }
+
+
 }
