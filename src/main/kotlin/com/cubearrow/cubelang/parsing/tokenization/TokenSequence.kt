@@ -1,15 +1,21 @@
 package com.cubearrow.cubelang.parsing.tokenization
 
+import com.cubearrow.cubelang.main.Main
+
 /**
  * This initiates a sequence of tokens from the content of a source file. This lexical analysis is used in the parser when creating the abstract syntax tree.
  * A [TokenGrammar] object is required for the appropriate grammar and the regex rules that must be matched.
  *
  *
- * The tokens are saved in a list if Maps each representing a line, the Map contains the original String and the [Token] which it represents.
- *
+ * The tokens are saved in a list if Maps each representing a line, the Map contains the original String and the [TokenType] which it represents.
  */
-class TokenSequence(fileContent: String, private var tokenGrammar: TokenGrammar) {
-    var tokenSequence: MutableList<Pair<Token, String>> = ArrayList()
+
+
+class TokenSequence(private val fileContent: String, private var tokenGrammar: TokenGrammar) {
+    private var lineIndex: Int = 0
+    var tokenSequence: MutableList<Token> = ArrayList()
+    private var line = 1
+
 
 
     /**
@@ -20,20 +26,31 @@ class TokenSequence(fileContent: String, private var tokenGrammar: TokenGrammar)
     private fun loadTokenSequence(fileContent: String) {
         var substringStartingIndex = 0
         for (i in fileContent.indices) {
+            lineIndex++
             val substring = fileContent.substring(substringStartingIndex, i)
             val stringAtIndex = fileContent[i].toString()
             if (tokenGrammar.isSeparator(stringAtIndex)) {
-                addTokenToResult(tokenSequence, substring)
-                addTokenToResult(tokenSequence, stringAtIndex)
+                addTokenToResult(substring)
+                addTokenToResult(stringAtIndex)
                 substringStartingIndex = i + 1
+            }
+            if (fileContent[i] == '\n') {
+                line++
+                lineIndex = 0
             }
         }
     }
 
-    private fun addTokenToResult(result: MutableList<Pair<Token, String>>, substring: String) {
-        val substringToken = Token.fromString(substring, tokenGrammar)
-        if (substringToken != Token.NOT_FOUND) {
-            result.add(Pair(substringToken, substring))
+    private fun addTokenToResult(substring: String) {
+        val substringToken = TokenType.fromString(substring, tokenGrammar)
+        if (substringToken == TokenType.NOT_FOUND) {
+            if (substring != " " && !substring.isBlank()) {
+                val fullLine = fileContent.split("\n")[line - 1]
+                val index = (lineIndex - substring.length)
+                Main.error(line, index, fullLine, "Unexpected token \"$substring\"")
+            }
+        } else {
+            tokenSequence.add(Token(substring, substringToken))
         }
     }
 
