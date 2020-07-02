@@ -1,3 +1,3 @@
-<expression> ::= <int_literal>
+<expression> ::= <assignment> | <literal>
 
-<new_variable_assignment> ::= <type> <identifier> <equals> <expression>
+<assignment> ::= <type> <identifier> <equals> <expression> <semicolon>

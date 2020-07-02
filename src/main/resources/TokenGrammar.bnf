@@ -1,8 +1,8 @@
 //noinspection BnfUnusedRuleForFile
-<int_literal> ::= "[0-9]+"
-<double_literal> ::= "[0-9]*\.[0-9+]"
+<number> ::= "[0-9]+"
+<double> ::= "[0-9]*\.[0-9+]"
 
-<literal> ::= <int_literal> | <double_literal>
+<literal> ::= <number> | <double>
 <int> ::= "int"
 <brcktl> ::= "\("
 <brcktr> ::= "\)"
