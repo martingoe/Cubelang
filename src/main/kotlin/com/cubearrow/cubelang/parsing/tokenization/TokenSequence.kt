@@ -43,14 +43,14 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
 
     private fun addTokenToResult(substring: String) {
         val substringToken = TokenType.fromString(substring, tokenGrammar)
+        val index = (lineIndex - substring.length)
         if (substringToken == TokenType.NOT_FOUND) {
             if (substring != " " && !substring.isBlank()) {
                 val fullLine = fileContent.split("\n")[line - 1]
-                val index = (lineIndex - substring.length)
                 Main.error(line, index, fullLine, "Unexpected token \"$substring\"")
             }
         } else {
-            tokenSequence.add(Token(substring, substringToken))
+            tokenSequence.add(Token(substring, substringToken, lineIndex, index))
         }
     }
 

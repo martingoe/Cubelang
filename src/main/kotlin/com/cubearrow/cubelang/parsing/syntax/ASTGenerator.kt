@@ -81,10 +81,18 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
 
     private fun expressionToParameters(expression: List<List<BnfTerm?>>?): String {
         var result = ""
+        var ruleCount = HashMap<BnfRule, Int>()
         expression?.get(0)?.forEach { term ->
             if (term is BnfRule && term.name != "semicolon") {
+                if(ruleCount.containsKey(term)){
+                    ruleCount[term] = ruleCount[term]!! + 1
+                }else{
+                    ruleCount[term] = 1
+                }
+
                 val type = syntaxGrammarParser.getRuleFromString(term.name)?.name?.capitalize() ?: "Token"
-                result += "var ${term.name}: ${type}, "
+                result += "var ${term.name}${ruleCount[term]}: ${type}, "
+
             }
         }
         return result.substring(0, result.length - 2)
