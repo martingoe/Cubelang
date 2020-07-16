@@ -6,17 +6,17 @@ import com.cubearrow.cubelang.parsing.tokenization.Token
  * This class is generated automatically by the [ASTGenerator]
  **/
 abstract class Expression {
-   class Assignment (var identifier1: Token, var equals1: Token, var expression1: Expression) : Expression() {
+   class Assignment (var identifier1: Token, var expression1: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }
     }
-   class Operation (var expression1: Expression, var expression2: Expression) : Expression() {
+   class Operation (var expression1: Expression, var operator1: Token, var expression2: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitOperation(this)
         }
     }
-   class Call (var identifier1: Token, var brcktl1: Token, var expression1: Expression, var brcktr1: Token) : Expression() {
+   class Call (var identifier1: Token, var expressionLst1: MutableList<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitCall(this)
         }
