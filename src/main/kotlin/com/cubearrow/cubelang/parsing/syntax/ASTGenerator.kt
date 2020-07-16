@@ -84,17 +84,28 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
         var ruleCount = HashMap<BnfRule, Int>()
         expression?.get(0)?.forEach { term ->
             if (term is BnfRule && term.name != "semicolon") {
-                if(ruleCount.containsKey(term)){
+                if (ruleCount.containsKey(term)) {
                     ruleCount[term] = ruleCount[term]!! + 1
-                }else{
+                } else {
                     ruleCount[term] = 1
                 }
-
-                val type = syntaxGrammarParser.getRuleFromString(term.name)?.name?.capitalize() ?: "Token"
-                result += "var ${term.name}${ruleCount[term]}: ${type}, "
-
+                result += getTypeFromTerm(term, ruleCount)
             }
         }
         return result.substring(0, result.length - 2)
+    }
+
+    private fun getTypeFromTerm(term: BnfRule, ruleCount: Map<BnfRule, Int>): String {
+        var ruleName: String
+        val type: String
+        if (term.name.indexOf("Lst") == term.name.length - 3) {
+            ruleName = term.name.substring(0, term.name.length - 3)
+            val rule = syntaxGrammarParser.getRuleFromString(ruleName)
+            type = "MutableList<${rule?.name?.capitalize() ?: "Token"}>"
+        } else {
+            val rule = syntaxGrammarParser.getRuleFromString(term.name)
+            type = rule?.name?.capitalize() ?: "Token"
+        }
+        return "var ${term.name}${ruleCount[term]}: ${type}, "
     }
 }
