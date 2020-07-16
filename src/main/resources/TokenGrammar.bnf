@@ -1,7 +1,6 @@
 //noinspection BnfUnusedRuleForFile
 <number> ::= "[0-9]+"
 
-<int> ::= "int"
 <brcktl> ::= "\("
 <brcktr> ::= "\)"
 <komma> ::= ","
@@ -11,16 +10,11 @@
 <fun> ::= "fun"
 <while> ::= "while"
 <semicolon> ::= ";"
-<add> ::= "\+"
-<sub> ::= "-"
-<exp> ::= "\^"
-<div> ::= "\/"
-<mult> ::= "\*"
-<mod> ::= "\%"
+<operator> ::= "-|\+|\^\/|\*|\%"
 <eqeq> ::= "\=\="
 <excleq> ::= "\!\="
 <and_gate> ::= "\&\&"
+<expressionLst> ::= "TODO"
 <or_gate> ::= "\|\|"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"
-<type> ::= <int>
