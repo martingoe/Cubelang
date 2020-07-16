@@ -1,6 +1,5 @@
 <expression> ::= <assignment> | <operation> | <call> | <literal>
-
-<assignment> ::= <identifier> <equals> <expression> <semicolon>
+<assignment> ::= <identifier> <expression>
 <operation> ::= <expression> <operator> <expression>
-<call> ::= <identifier> <brcktl> <expression> <brcktr>
+<call> ::= <identifier> <expressionLst>
 <literal> ::= <number>

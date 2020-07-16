@@ -43,7 +43,7 @@ class Main {
         fun compileFile(sourceFile: File) {
             val bnfFile = File(Main::class.java.classLoader.getResource("TokenGrammar.bnf")!!.file)
             val sourceCode = sourceFile.readText()
-            val syntaxGrammarFile = File(Main::class.java.classLoader.getResource("SyntaxGrammar.bnf")!!.file)
+            val syntaxGrammarFile = File(Main::class.java.classLoader.getResource("SyntaxGrammar.txt")!!.file)
             tokenGrammarSingleton.instance = TokenGrammar(bnfFile)
 
             syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
