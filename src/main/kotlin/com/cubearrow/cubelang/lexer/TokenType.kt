@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.parsing.tokenization
+package com.cubearrow.cubelang.lexer
 
 import com.cubearrow.cubelang.bnf.BnfRule
 
@@ -6,7 +6,7 @@ import com.cubearrow.cubelang.bnf.BnfRule
  * The separate tokens in enum form. The same ones can be found in the grammar file.
  */
 enum class TokenType {
-    IDENTIFIER, IF, RETURN, FUN, WHILE, BRCKTL, BRCKTR, SEMICOLON, OPERATOR, EQEQ, EXCLEQ, AND_GATE, OR_GATE, NUMBER, EQUALS, NOT_FOUND;
+    IDENTIFIER, LINE_COMMENT,IF, RETURN, FUN, WHILE, BRCKTL, BRCKTR, SEMICOLON, OPERATOR, EQEQ, EXCLEQ, AND_GATE, OR_GATE, NUMBER, EQUALS, NOT_FOUND, KOMMA;
 
     companion object {
         /**

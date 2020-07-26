@@ -1,4 +1,3 @@
-//noinspection BnfUnusedRuleForFile
 <number> ::= "[0-9]+"
 
 <brcktl> ::= "\("
@@ -16,5 +15,6 @@
 <and_gate> ::= "\&\&"
 <expressionLst> ::= "TODO"
 <or_gate> ::= "\|\|"
+<line_comment> ::= "#"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"
