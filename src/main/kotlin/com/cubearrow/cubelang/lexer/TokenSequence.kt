@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.parsing.tokenization
+package com.cubearrow.cubelang.lexer
 
 import com.cubearrow.cubelang.main.Main
 
@@ -15,7 +15,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     private var lineIndex: Int = 0
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
-
+    private var isComment = false
 
 
     /**
@@ -30,6 +30,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             val substring = fileContent.substring(substringStartingIndex, i)
             val stringAtIndex = fileContent[i].toString()
             if (tokenGrammar.isSeparator(stringAtIndex)) {
+                setCommentMode(stringAtIndex)
                 addTokenToResult(substring)
                 addTokenToResult(stringAtIndex)
                 substringStartingIndex = i + 1
@@ -37,20 +38,31 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             if (fileContent[i] == '\n') {
                 line++
                 lineIndex = 0
+                isComment = false
             }
         }
     }
 
+    private fun setCommentMode(stringAtIndex: String) {
+        isComment = stringAtIndex.matches(tokenGrammar.bnfParser.getRuleFromString("line_comment")!!.toRegex())
+    }
+
     private fun addTokenToResult(substring: String) {
-        val substringToken = TokenType.fromString(substring, tokenGrammar)
-        val index = (lineIndex - substring.length)
-        if (substringToken == TokenType.NOT_FOUND) {
-            if (substring != " " && !substring.isBlank()) {
-                val fullLine = fileContent.split("\n")[line - 1]
-                Main.error(line, index, fullLine, "Unexpected token \"$substring\"")
+        if(!isComment) {
+            val substringToken = TokenType.fromString(substring, tokenGrammar)
+            val index = (lineIndex - substring.length)
+            if (substringToken == TokenType.NOT_FOUND) {
+                catchTokenError(substring, index)
+            } else {
+                tokenSequence.add(Token(substring, substringToken, lineIndex, index))
             }
-        } else {
-            tokenSequence.add(Token(substring, substringToken, lineIndex, index))
+        }
+    }
+
+    private fun catchTokenError(substring: String, index: Int) {
+        if (substring != " " && !substring.isBlank()) {
+            val fullLine = fileContent.split("\n")[line - 1]
+            Main.error(line, index, fullLine, "Unexpected token \"$substring\"")
         }
     }
 
