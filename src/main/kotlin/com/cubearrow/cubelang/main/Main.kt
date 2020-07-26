@@ -1,9 +1,10 @@
 package com.cubearrow.cubelang.main
 
 import com.cubearrow.cubelang.bnf.BnfParser
-import com.cubearrow.cubelang.parsing.syntax.Parser
-import com.cubearrow.cubelang.parsing.tokenization.TokenGrammar
-import com.cubearrow.cubelang.parsing.tokenization.TokenSequence
+import com.cubearrow.cubelang.parser.Parser
+import com.cubearrow.cubelang.lexer.TokenGrammar
+import com.cubearrow.cubelang.lexer.TokenSequence
+import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.utils.ConsoleColor
 import com.cubearrow.cubelang.utils.Singleton
 import java.io.File
@@ -48,7 +49,7 @@ class Main {
 
             syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
             val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
-            Parser(tokenSequence.tokenSequence).parse()
+            Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
 //        println(TokenSequence(sourceCode, tokenGrammarSingleton.instance!!).tokenSequence)
 //        println(Assignment(ArrayList()).getRule())
 //        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
