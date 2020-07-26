@@ -1,6 +1,6 @@
-package com.cubearrow.cubelang.parsing.syntax
+package com.cubearrow.cubelang.parser
 
-import com.cubearrow.cubelang.parsing.tokenization.Token
+import com.cubearrow.cubelang.lexer.Token
 
 /**
  * This class is generated automatically by the [ASTGenerator]
@@ -26,11 +26,17 @@ abstract class Expression {
             return visitor.visitLiteral(this)
         }
     }
+   class VarCall (var identifier1: Token) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitVarCall(this)
+        }
+    }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitOperation(operation: Operation): R
         fun visitCall(call: Call): R
         fun visitLiteral(literal: Literal): R
+        fun visitVarCall(varCall: VarCall): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }

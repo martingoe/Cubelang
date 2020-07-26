@@ -3,3 +3,4 @@
 <operation> ::= <expression> <operator> <expression>
 <call> ::= <identifier> <expressionLst>
 <literal> ::= <number>
+<varCall> ::= <identifier>
