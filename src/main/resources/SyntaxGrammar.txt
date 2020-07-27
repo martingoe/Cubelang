@@ -4,3 +4,4 @@
 <call> ::= <identifier> <expressionLst>
 <literal> ::= <number>
 <varCall> ::= <identifier>
+<functionDefinition> ::= <identifier> <expressionLst> <expressionLst>

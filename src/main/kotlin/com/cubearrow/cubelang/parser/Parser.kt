@@ -6,7 +6,7 @@ import com.cubearrow.cubelang.lexer.TokenType
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
-        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER)
+        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.FUN)
     }
 
     private var current = -1
@@ -33,6 +33,11 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.KOMMA)
             return Expression.Call(previousToken, args)
+        } else if(currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN){
+            current++
+            val args = multipleExpressions(TokenType.BRCKTR, TokenType.KOMMA)
+            val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+            return Expression.FunctionDefinition(currentToken, args, body)
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
@@ -47,7 +52,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             if (expression != null) {
                 result.add(expression)
             }
-            if (currentToken.tokenType == endsAt) {
+            if (currentToken.tokenType == endsAt || argsParser.tokens[argsParser.current +1].tokenType == endsAt) {
                 break
             }
             if (currentToken.tokenType != delimiter) {
