@@ -2,30 +2,56 @@ package com.cubearrow.cubelang.bnf
 
 import java.util.*
 
-class BnfRule(ruleString: String, parser: BnfParser, additionalParser: BnfParser? = null) : BnfTerm() {
+/**
+ * Parser for a single bnf rule. When done parsing, it contains the name and the possible expressions
+ *
+ * While the name is a [String] the expression is a [List] of the possible options each saved as a [List] of [BnfTerm] of their own.
+ *
+ * @param ruleString The string to be parsed into the rule
+ * @param parser The primary [BnfParser] saving the rule
+ * @param additionalParser The additional parser that may contain rules accessed in the expression
+ */
+class BnfRule(ruleString: String, private var parser: BnfParser, private var additionalParser: BnfParser? = null) : BnfTerm() {
     var name: String
     var expression: List<List<BnfTerm?>>
+
+    /**
+     * Parses the name from the line by looking at the string before "::="
+     */
     private fun parseName(line: String): String {
         val relevantSubString = line.split("::=").toTypedArray()[0]
         return relevantSubString.replace("<", "").replace(">", "").replace(" ", "")
     }
 
-    private fun parseExpression(line: String, parser: BnfParser, additionalParser: BnfParser?): List<List<BnfTerm?>> {
-        val options = line.split("::=")[1].split("/\\|(?![^\"]*\")/g")
+    /**
+     * Parses the expression of the rule by splitting by "|"
+     */
+    private fun parseExpression(line: String): List<List<BnfTerm?>> {
+        val options = line.split("::=")[1].split("\\|")
         val result: MutableList<List<BnfTerm?>> = ArrayList()
         for (option in options) {
-            result.add(parseExpressionInOption(option, parser, additionalParser))
+            result.add(parseRuleInExpression(option))
         }
         return result
     }
 
-    private fun parseExpressionInOption(option: String, parser: BnfParser, additionalParser: BnfParser?): List<BnfTerm?> {
+    /**
+     * Parses a single option into a [List] of [BnfTerm]
+     *
+     * @param option The string representing the option
+     *
+     * @return Returns a [List] of [BnfTerm] representing the option
+     */
+    private fun parseRuleInExpression(option: String): List<BnfTerm?> {
         val result: MutableList<BnfTerm?> = ArrayList()
         var i = 0
+        // Iterate over the string in order to parse it properly
         while (i < option.length) {
+            // Parse a single rule if a "<" is found
             if (option[i] == '<') {
-                i = addOptionToResult(option, i, result, parser, additionalParser)
+                i = parseRuleInExpression(option, i, result)
             }
+            // Parse a string if a '"' is found
             if (option[i] == '"') {
                 val closingIndex = option.indexOf("\"", i + 1)
                 result.add(BnfStringLiteral(option.substring(i + 1, closingIndex)))
@@ -36,42 +62,44 @@ class BnfRule(ruleString: String, parser: BnfParser, additionalParser: BnfParser
         return result
     }
 
-    private fun addOptionToResult(option: String, i: Int, result: MutableList<BnfTerm?>, parser: BnfParser, additionalParser: BnfParser?): Int {
+    /**
+     * Parses a previously defined rule in the expression by looking for definitions in the parser
+     */
+    private fun parseRuleInExpression(option: String, i: Int, result: MutableList<BnfTerm?>): Int {
         val closingIndex = option.indexOf(">", i + 1)
         var primaryRule = parser.getRuleFromString(option.substring(i + 1, closingIndex))
-        if(primaryRule == null){
+        if (primaryRule == null) {
             primaryRule = additionalParser?.getRuleFromString(option.substring(i + 1, closingIndex))
         }
         result.add(primaryRule)
         return closingIndex
     }
 
-    public fun containsRuleOption(rule: BnfRule) : Boolean{
-        for (option in this.expression){
-            if (option.size == 1 && option[0] == rule){
-                return true
-            }
-        }
-        return false
-    }
 
+    /**
+     * Prints the rule in the usual bnf fashion
+     */
     override fun toString(): String {
         return "<$name> ::= $expression"
     }
 
+    /**
+     * Converts the rule to a [Regex] instance by chaining the options together
+     */
     override fun toRegex(): Regex {
         var result = "("
-        this.expression.forEach{ option ->
-            option.forEach{
+        this.expression.forEach { option ->
+            option.forEach {
                 result += it?.toRegex().toString()
             }
             result += ")|("
         }
+        // Remove the last ")|(" and add a ")"
         return Regex(result.substring(0, result.length - 3) + ")")
     }
 
     init {
         name = parseName(ruleString)
-        expression = parseExpression(ruleString, parser, additionalParser)
+        expression = parseExpression(ruleString)
     }
 }
