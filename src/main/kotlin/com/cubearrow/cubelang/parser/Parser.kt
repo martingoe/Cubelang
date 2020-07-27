@@ -3,6 +3,7 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
+import com.cubearrow.cubelang.utils.PrintVisitor
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
@@ -13,7 +14,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     fun parse() {
         while (current < tokens.size - 1) {
             val x = nextExpression(null)
-            println(x)
+            println(x?.accept(PrintVisitor()))
         }
     }
 
