@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.main
 
 import com.cubearrow.cubelang.bnf.BnfParser
+import com.cubearrow.cubelang.interpreter.Interpreter
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.lexer.TokenGrammar
 import com.cubearrow.cubelang.lexer.TokenSequence
@@ -14,6 +15,7 @@ fun main(args: Array<String>) {
     if (args.size == 1) {
         Main().compileFile(File(Main::class.java.classLoader.getResource(args[0])!!.file))
     } else {
+        println("No source file was provided")
         exitProcess(64)
     }
 }
@@ -32,11 +34,12 @@ class Main {
                 indicator = " ".repeat(index - 1) + "^"
             }
             println("""
-                ${ConsoleColor.ANSI_RED.ansiCode}${fullLine}
+                ${ConsoleColor.ANSI_RED}${fullLine}
                 $indicator
-                Error [$line:$index]: $message 
+                Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
             """.trimIndent())
             containsError = true
+            exitProcess(65)
         }
     }
 
@@ -49,7 +52,9 @@ class Main {
 
             syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
             val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
-            Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
+            val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
+            val accept = expressions[0].accept(Interpreter())
+            println(accept)
 //        println(TokenSequence(sourceCode, tokenGrammarSingleton.instance!!).tokenSequence)
 //        println(Assignment(ArrayList()).getRule())
 //        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
