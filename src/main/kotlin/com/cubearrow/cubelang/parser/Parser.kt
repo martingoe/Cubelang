@@ -3,7 +3,6 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
-import com.cubearrow.cubelang.utils.PrintVisitor
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
@@ -11,11 +10,13 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private var current = -1
-    fun parse() {
+    fun parse() : MutableList<Expression>{
+        val result = ArrayList<Expression>()
         while (current < tokens.size - 1) {
-            val x = nextExpression(null)
-            println(x?.accept(PrintVisitor()))
+            val expression = nextExpression(null)
+            expression?.let { result.add(it) }
         }
+        return result
     }
 
     private fun nextExpression(previousToken: Token?): Expression? {
@@ -32,11 +33,11 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         } else if (currentToken.tokenType == TokenType.EQUALS && tokens[current + 1].tokenType != TokenType.EQUALS && previousToken != null) {
             return Expression.Assignment(previousToken, nextExpression(null) as Expression)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
-            val args = multipleExpressions(TokenType.BRCKTR, TokenType.KOMMA)
+            val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
             return Expression.Call(previousToken, args)
         } else if(currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN){
             current++
-            val args = multipleExpressions(TokenType.BRCKTR, TokenType.KOMMA)
+            val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
             val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
             return Expression.FunctionDefinition(currentToken, args, body)
         }
