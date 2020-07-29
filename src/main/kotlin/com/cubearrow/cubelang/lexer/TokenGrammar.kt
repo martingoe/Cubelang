@@ -11,7 +11,7 @@ import java.io.File
 class TokenGrammar(private var grammarFile: File) {
     var bnfParser: BnfParser = BnfParser(this.grammarFile)
     private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"),
-            getRegex("KOMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
+            getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
             getRegex("OPERATOR"), getRegex("LINE_COMMENT"), Regex("\\s|\\t|\\z"))
 
 
