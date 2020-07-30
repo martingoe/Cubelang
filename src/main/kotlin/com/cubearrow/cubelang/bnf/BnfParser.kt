@@ -1,6 +1,5 @@
 package com.cubearrow.cubelang.bnf
 
-import java.io.File
 import java.util.*
 
 
@@ -9,10 +8,10 @@ import java.util.*
  *
  * The constructor initializes the rules from the provided source file
  *
- * @param file The file containing the rules in bnf format
+ * @param source The String containing the rules in bnf format
  * @param additionalParser The secondary parser that can be added
  */
-class BnfParser(file: File, additionalParser: BnfParser? = null) {
+class BnfParser(source: String, additionalParser: BnfParser? = null) {
     val rules: MutableList<BnfRule?> = ArrayList()
 
     /**
@@ -31,8 +30,7 @@ class BnfParser(file: File, additionalParser: BnfParser? = null) {
 
 
     init {
-        val lines = file.readLines()
-        for (line in lines) {
+        for (line in source.split("\n")) {
             if (!line.isBlank() && !line.startsWith("//")) {
                 rules.add(BnfRule(line, this, additionalParser))
             }
