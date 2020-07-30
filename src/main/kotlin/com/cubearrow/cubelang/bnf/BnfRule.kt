@@ -15,6 +15,7 @@ class BnfRule(ruleString: String, private var parser: BnfParser, private var add
     var name: String
     var expression: List<List<BnfTerm?>>
 
+
     /**
      * Parses the name from the line by looking at the string before "::="
      */
@@ -27,7 +28,7 @@ class BnfRule(ruleString: String, private var parser: BnfParser, private var add
      * Parses the expression of the rule by splitting by "|"
      */
     private fun parseExpression(line: String): List<List<BnfTerm?>> {
-        val options = line.split("::=")[1].split("\\|")
+        val options = line.split("::=")[1].split("/\\|(?![^\"]*\")/g")
         val result: MutableList<List<BnfTerm?>> = ArrayList()
         for (option in options) {
             result.add(parseRuleInExpression(option))
@@ -96,6 +97,24 @@ class BnfRule(ruleString: String, private var parser: BnfParser, private var add
         }
         // Remove the last ")|(" and add a ")"
         return Regex(result.substring(0, result.length - 3) + ")")
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as BnfRule
+
+        if (name != other.name) return false
+        if (expression != other.expression) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + expression.hashCode()
+        return result
     }
 
     init {
