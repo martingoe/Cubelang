@@ -40,8 +40,8 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
      * Initialize the class by creating the grammar objects and generating the actual class
      */
     init {
-        val tokenGrammar = TokenGrammar(File(tokenGrammarFile))
-        this.syntaxGrammarParser = BnfParser(File(syntaxGrammarFile), tokenGrammar.bnfParser)
+        val tokenGrammar = TokenGrammar(File(tokenGrammarFile).readText())
+        this.syntaxGrammarParser = BnfParser(File(syntaxGrammarFile).readText(), tokenGrammar.bnfParser)
 
         generateExpressionClass()
     }

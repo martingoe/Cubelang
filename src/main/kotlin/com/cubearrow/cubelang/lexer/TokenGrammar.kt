@@ -6,10 +6,10 @@ import java.io.File
 /**
  * Wrapper for [BnfParser] with specific functions for Tokens
  *
- * @param grammarFile The BNF file representing the token grammar
+ * @param source The source [String] representing the token grammar
  */
-class TokenGrammar(private var grammarFile: File) {
-    var bnfParser: BnfParser = BnfParser(this.grammarFile)
+class TokenGrammar(private var source: String) {
+    var bnfParser: BnfParser = BnfParser(this.source)
     private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"),
             getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
             getRegex("OPERATOR"), getRegex("LINE_COMMENT"), Regex("\\s|\\t|\\z"))
