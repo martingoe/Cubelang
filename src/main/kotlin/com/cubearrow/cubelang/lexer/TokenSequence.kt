@@ -31,7 +31,9 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             val stringAtIndex = fileContent[i].toString()
             if (tokenGrammar.isSeparator(stringAtIndex)) {
                 setCommentMode(stringAtIndex)
+                lineIndex--
                 addTokenToResult(substring)
+                lineIndex++
                 addTokenToResult(stringAtIndex)
                 substringStartingIndex = i + 1
             }
@@ -54,7 +56,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             if (substringToken == TokenType.NOT_FOUND) {
                 catchTokenError(substring, index)
             } else {
-                tokenSequence.add(Token(substring, substringToken, lineIndex, index))
+                tokenSequence.add(Token(substring, substringToken, line, index))
             }
         }
     }
