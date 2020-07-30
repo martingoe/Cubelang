@@ -47,14 +47,13 @@ class Main {
         fun compileFile(sourceFile: File) {
             val bnfFile = File(Main::class.java.classLoader.getResource("TokenGrammar.bnf")!!.file)
             val sourceCode = sourceFile.readText()
-            val syntaxGrammarFile = File(Main::class.java.classLoader.getResource("SyntaxGrammar.txt")!!.file)
-            tokenGrammarSingleton.instance = TokenGrammar(bnfFile)
+            val syntaxGrammarFile = File(Main::class.java.classLoader.getResource("SyntaxGrammar.txt")!!.file).readText()
+            tokenGrammarSingleton.instance = TokenGrammar(bnfFile.readText())
 
             syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
             val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
             val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
-            val accept = expressions[0].accept(Interpreter())
-            println(accept)
+            Interpreter(expressions)
 //        println(TokenSequence(sourceCode, tokenGrammarSingleton.instance!!).tokenSequence)
 //        println(Assignment(ArrayList()).getRule())
 //        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
