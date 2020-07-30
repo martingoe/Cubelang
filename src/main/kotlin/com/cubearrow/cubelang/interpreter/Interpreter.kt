@@ -3,9 +3,13 @@ package com.cubearrow.cubelang.interpreter
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
-class Interpreter : Expression.ExpressionVisitor<Any?> {
+class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage? = null) : Expression.ExpressionVisitor<Any?> {
+    private var variableStorage = VariableStorage()
+    private var functionStorage = FunctionStorage()
     override fun visitAssignment(assignment: Expression.Assignment): Any? {
-        TODO("Not yet implemented")
+        val value = assignment.expression1.accept(this)
+        variableStorage.addVariableToCurrentScope(assignment.identifier1.substring, value)
+        return value
     }
 
     override fun visitOperation(operation: Expression.Operation): Any? {
@@ -29,7 +33,21 @@ class Interpreter : Expression.ExpressionVisitor<Any?> {
     }
 
     override fun visitCall(call: Expression.Call): Any? {
-        TODO("Not yet implemented")
+        val function = functionStorage.getFunction(call.identifier1.substring, call.expressionLst1.size)
+        if (function != null) {
+            variableStorage.addScope()
+
+            //Add the argument variables to the variable stack
+            for (i in 0 until call.expressionLst1.size) {
+                val value = evaluate(call.expressionLst1[i]) as Double
+                variableStorage.addVariableToCurrentScope(function.args[i], value)
+            }
+            Interpreter(function.body, variableStorage)
+            variableStorage.popScope()
+        } else {
+            Main.error(call.identifier1.line, call.identifier1.index, null, "The called function is not defined")
+        }
+        return null
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
@@ -37,12 +55,21 @@ class Interpreter : Expression.ExpressionVisitor<Any?> {
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        TODO("Not yet implemented")
+        return variableStorage.getCurrentVariables()[varCall.identifier1.substring]
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): Any? {
-        TODO("Not yet implemented")
+        val args = functionDefinition.expressionLst1.map { (it as Expression.VarCall).identifier1.substring }
+        functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
+        return null
     }
 
-    private fun evaluate(expression: Expression) = expression.accept(this)
+    fun evaluate(expression: Expression) = expression.accept(this)
+
+    init {
+        variableStorage.addScope()
+        previousVariables?.let { this.variableStorage = it }
+        expressions.forEach { println(it.accept(this)) }
+    }
+
 }
