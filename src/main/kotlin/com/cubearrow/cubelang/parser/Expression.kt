@@ -42,6 +42,18 @@ abstract class Expression {
             return visitor.visitFunctionDefinition(this)
         }
     }
+
+    class Comparison (var expression1: Expression, var comparator1: Token, var expression2: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitComparison(this)
+        }
+    }
+
+    class IfStmnt (var expression1: Expression, var expressionLst1: MutableList<Expression>, var expressionLst2: MutableList<Expression>) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitIfStmnt(this)
+        }
+    }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitOperation(operation: Operation): R
@@ -49,6 +61,8 @@ abstract class Expression {
         fun visitLiteral(literal: Literal): R
         fun visitVarCall(varCall: VarCall): R
         fun visitFunctionDefinition(functionDefinition: FunctionDefinition): R
+        fun visitComparison(comparison: Comparison): R
+        fun visitIfStmnt(ifStmnt: IfStmnt): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }

@@ -5,3 +5,5 @@
 <literal> ::= <number>
 <varCall> ::= <identifier>
 <functionDefinition> ::= <identifier> <expressionLst> <expressionLst>
+<comparison> ::= <expression> <comparator> <expression>
+<ifStmnt> ::= <expression> <expressionLst> <expressionLst>
