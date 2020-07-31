@@ -54,9 +54,6 @@ class Main {
             val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
             val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
             Interpreter(expressions)
-//        println(TokenSequence(sourceCode, tokenGrammarSingleton.instance!!).tokenSequence)
-//        println(Assignment(ArrayList()).getRule())
-//        println(TokenGrammar(bnfFile).bnfParser.rules.joinToString("\n"))
 
 
             if (containsError)

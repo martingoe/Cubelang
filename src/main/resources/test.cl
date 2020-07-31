@@ -1,8 +1,10 @@
-c=1;
-fun add(a,b){
-a+b+c;
+
+fun test(a){
+a+1;
 }
-fun add(a){
-a+c;
+
+if(1 < 1){
+test(1);
+} else{
+test(10);
 }
-add(c);
