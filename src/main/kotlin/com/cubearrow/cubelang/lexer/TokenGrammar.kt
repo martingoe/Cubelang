@@ -12,7 +12,8 @@ class TokenGrammar(private var source: String) {
     var bnfParser: BnfParser = BnfParser(this.source)
     private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"),
             getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
-            getRegex("OPERATOR"), getRegex("LINE_COMMENT"), Regex("\\s|\\t|\\z"))
+            getRegex("OPERATOR"), getRegex("LINE_COMMENT"), getRegex("CURLYL"),
+            Regex("\\s|\\t|\\z"))
 
 
     /**
