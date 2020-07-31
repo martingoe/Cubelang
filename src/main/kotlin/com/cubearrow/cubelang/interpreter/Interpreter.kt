@@ -3,9 +3,9 @@ package com.cubearrow.cubelang.interpreter
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
-class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage? = null) : Expression.ExpressionVisitor<Any?> {
-    private var variableStorage = VariableStorage()
-    private var functionStorage = FunctionStorage()
+class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage = VariableStorage(), functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
+    private var variableStorage = previousVariables
+    private var functionStorage = functions
     override fun visitAssignment(assignment: Expression.Assignment): Any? {
         val value = assignment.expression1.accept(this)
         variableStorage.addVariableToCurrentScope(assignment.identifier1.substring, value)
@@ -32,7 +32,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         return null
     }
 
-    override fun visitCall(call: Expression.Call): Any? {
+    override fun visitCall(call: Expression.Call) {
         val function = functionStorage.getFunction(call.identifier1.substring, call.expressionLst1.size)
         if (function != null) {
             variableStorage.addScope()
@@ -42,12 +42,11 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 val value = evaluate(call.expressionLst1[i]) as Double
                 variableStorage.addVariableToCurrentScope(function.args[i], value)
             }
-            Interpreter(function.body, variableStorage)
+            Interpreter(function.body, variableStorage, functionStorage)
             variableStorage.popScope()
         } else {
             Main.error(call.identifier1.line, call.identifier1.index, null, "The called function is not defined")
         }
-        return null
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
@@ -64,12 +63,35 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         return null
     }
 
-    fun evaluate(expression: Expression) = expression.accept(this)
+    private fun evaluate(expression: Expression) = expression.accept(this)
 
     init {
         variableStorage.addScope()
-        previousVariables?.let { this.variableStorage = it }
+        previousVariables.let { this.variableStorage = it }
         expressions.forEach { println(it.accept(this)) }
     }
 
+    override fun visitComparison(comparison: Expression.Comparison): Boolean {
+        val left = evaluate(comparison.expression1)
+        val right = evaluate(comparison.expression2)
+        return when (comparison.comparator1.substring){
+            "==" -> left == right
+            "!=" -> left != right
+            "<" -> (left as Double) < right as Double
+            "<=" -> left as Double <= right as Double
+            ">" -> left as Double > right as Double
+            ">=" -> left as Double >= right as Double
+            // Unreachable
+            else -> return false
+        }
+    }
+
+    override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
+        val isTrue = evaluate(ifStmnt.expression1) as Boolean
+        if(isTrue){
+            Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage)
+        }else{
+            Interpreter(ifStmnt.expressionLst2, variableStorage, functionStorage)
+        }
+    }
 }
