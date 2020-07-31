@@ -26,23 +26,40 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     private fun loadTokenSequence(fileContent: String) {
         var substringStartingIndex = 0
         for (i in fileContent.indices) {
+            if(substringStartingIndex > i) continue
+
             lineIndex++
             val substring = fileContent.substring(substringStartingIndex, i)
             val stringAtIndex = fileContent[i].toString()
+
             if (tokenGrammar.isSeparator(stringAtIndex)) {
-                setCommentMode(stringAtIndex)
-                lineIndex--
-                addTokenToResult(substring)
-                lineIndex++
-                addTokenToResult(stringAtIndex)
-                substringStartingIndex = i + 1
+                substringStartingIndex = if(fileContent.length > i+1 && TokenType.fromString(stringAtIndex + fileContent[i+1], tokenGrammar) != TokenType.NOT_FOUND){
+                    addTwoTokens(substring, stringAtIndex + fileContent[i+1])
+                    i+2
+                }else {
+                    addTwoTokens(stringAtIndex, substring)
+                    i + 1
+                }
             }
-            if (fileContent[i] == '\n') {
-                line++
-                lineIndex = 0
-                isComment = false
-            }
+
+            adjustNewLine(fileContent, i)
         }
+    }
+
+    private fun adjustNewLine(fileContent: String, i: Int) {
+        if (fileContent[i] == '\n') {
+            line++
+            lineIndex = 0
+            isComment = false
+        }
+    }
+
+    private fun addTwoTokens(s1: String, s2: String) {
+        setCommentMode(s1)
+        lineIndex--
+        addTokenToResult(s2)
+        lineIndex++
+        addTokenToResult(s1)
     }
 
     private fun setCommentMode(stringAtIndex: String) {
