@@ -1,10 +1,5 @@
-
-fun test(a){
-a+1;
-}
-
-if(1 < 1){
-test(1);
-} else{
-test(10);
-}
+fun test() {
+    return 1;
+    println(2);
+};
+println(test());
