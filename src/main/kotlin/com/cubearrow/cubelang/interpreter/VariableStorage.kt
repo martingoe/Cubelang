@@ -19,7 +19,12 @@ class VariableStorage {
 
     fun addVariableToCurrentScope(name: String, value: Any?) {
         if (getCurrentVariables().containsKey(name)) {
-            variables.stream().filter { it.containsKey(name) }.findFirst().get()[name] = value
+            for (i in 0 until variables.size){
+                if(variables[i].containsKey(name)){
+                    variables[i][name] = value
+                    return
+                }
+            }
         } else {
             variables.peek()[name] = value
         }
