@@ -42,12 +42,12 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
                 }
             }
 
-            adjustNewLine(fileContent, i)
+            adjustNewLine(fileContent[i])
         }
     }
 
-    private fun adjustNewLine(fileContent: String, i: Int) {
-        if (fileContent[i] == '\n') {
+    private fun adjustNewLine(character: Char) {
+        if (character == '\n') {
             line++
             lineIndex = 0
             isComment = false
