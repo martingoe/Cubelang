@@ -3,16 +3,17 @@ package com.cubearrow.cubelang.interpreter
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
-class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage = VariableStorage(), functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
-    private var variableStorage = previousVariables
+class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage?, functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
+    private lateinit var variableStorage: VariableStorage
     private var functionStorage = functions
-    override fun visitAssignment(assignment: Expression.Assignment): Any? {
+    var returnedValue: Any? = null
+    class Return : RuntimeException()
+    override fun visitAssignment(assignment: Expression.Assignment) {
         val value = assignment.expression1.accept(this)
         variableStorage.addVariableToCurrentScope(assignment.identifier1.substring, value)
-        return value
     }
 
-    override fun visitOperation(operation: Expression.Operation): Any? {
+    override fun visitOperation(operation: Expression.Operation): Double? {
         val right = evaluate(operation.expression2)
         val left = evaluate(operation.expression1)
 
@@ -32,21 +33,24 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         return null
     }
 
-    override fun visitCall(call: Expression.Call) {
+    override fun visitCall(call: Expression.Call): Any? {
         val function = functionStorage.getFunction(call.identifier1.substring, call.expressionLst1.size)
-        if (function != null) {
-            variableStorage.addScope()
-
-            //Add the argument variables to the variable stack
-            for (i in 0 until call.expressionLst1.size) {
-                val value = evaluate(call.expressionLst1[i]) as Double
-                variableStorage.addVariableToCurrentScope(function.args[i], value)
-            }
-            Interpreter(function.body, variableStorage, functionStorage)
-            variableStorage.popScope()
-        } else {
+        if (function == null) {
             Main.error(call.identifier1.line, call.identifier1.index, null, "The called function is not defined")
+            return null
         }
+
+        variableStorage.addScope()
+
+        //Add the argument variables to the variable stack
+        for (i in 0 until call.expressionLst1.size) {
+            val value = evaluate(call.expressionLst1[i]) as Double
+            variableStorage.addVariableToCurrentScope(function.args[i], value)
+        }
+        val value = function.call(variableStorage, functionStorage)
+        variableStorage.popScope()
+
+        return value
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
@@ -57,24 +61,35 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         return variableStorage.getCurrentVariables()[varCall.identifier1.substring]
     }
 
-    override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): Any? {
+    override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
         val args = functionDefinition.expressionLst1.map { (it as Expression.VarCall).identifier1.substring }
         functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
-        return null
     }
 
     private fun evaluate(expression: Expression) = expression.accept(this)
 
     init {
-        variableStorage.addScope()
-        previousVariables.let { this.variableStorage = it }
-        expressions.forEach { println(it.accept(this)) }
+        initializeVariableStorage(previousVariables)
+        try {
+            expressions.forEach {
+                evaluate(it)
+            }
+        } catch (returnError: Return) {}
+    }
+
+    private fun initializeVariableStorage(previousVariables: VariableStorage?) {
+        if (previousVariables != null) {
+            variableStorage = previousVariables
+        } else {
+            variableStorage = VariableStorage()
+            variableStorage.addScope()
+        }
     }
 
     override fun visitComparison(comparison: Expression.Comparison): Boolean {
         val left = evaluate(comparison.expression1)
         val right = evaluate(comparison.expression2)
-        return when (comparison.comparator1.substring){
+        return when (comparison.comparator1.substring) {
             "==" -> left == right
             "!=" -> left != right
             "<" -> (left as Double) < right as Double
@@ -88,10 +103,15 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
         val isTrue = evaluate(ifStmnt.expression1) as Boolean
-        if(isTrue){
+        if (isTrue) {
             Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage)
-        }else{
+        } else {
             Interpreter(ifStmnt.expressionLst2, variableStorage, functionStorage)
         }
+    }
+
+    override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt): Any? {
+        this.returnedValue = evaluate(returnStmnt.expression1)
+        throw Return()
     }
 }
