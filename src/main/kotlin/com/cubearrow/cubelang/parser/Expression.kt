@@ -54,6 +54,12 @@ abstract class Expression {
             return visitor.visitIfStmnt(this)
         }
     }
+
+    class ReturnStmnt (var expression1: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitReturnStmnt(this)
+        }
+    }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitOperation(operation: Operation): R
@@ -63,6 +69,7 @@ abstract class Expression {
         fun visitFunctionDefinition(functionDefinition: FunctionDefinition): R
         fun visitComparison(comparison: Comparison): R
         fun visitIfStmnt(ifStmnt: IfStmnt): R
+        fun visitReturnStmnt(returnStmnt: ReturnStmnt): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }

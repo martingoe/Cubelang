@@ -74,9 +74,16 @@ class PrintVisitor : Expression.ExpressionVisitor<String> {
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt): String {
         return """If-Statement: {
-            |   "Condition": [${ifStmnt.expression1}],
+            |   "Condition": [${ifStmnt.expression1.accept(this)}],
             |   "Body": [${printExpressionList(ifStmnt.expressionLst1)}],
             |   "Else-body": [${printExpressionList(ifStmnt.expressionLst2)}]
+            |}
+        """.trimMargin()
+    }
+
+    override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt): String {
+        return """Return: {
+            |   "Value": ${returnStmnt.expression1.accept(this)}
             |}
         """.trimMargin()
     }
