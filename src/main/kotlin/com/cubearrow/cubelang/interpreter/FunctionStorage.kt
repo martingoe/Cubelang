@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.interpreter
 
 import com.cubearrow.cubelang.lexer.Token
+import com.cubearrow.cubelang.library.Library
 import com.cubearrow.cubelang.library.PrintingLibrary
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
@@ -24,6 +25,6 @@ class FunctionStorage {
     fun getFunction(name:String, argsSize: Int): Callable? = functions.stream().filter {it.name == name && it.args.size == argsSize}.findFirst().orElse(null)
 
     init{
-        functions.add(PrintingLibrary.Println())
+        functions.addAll(Library().classes)
     }
 }
