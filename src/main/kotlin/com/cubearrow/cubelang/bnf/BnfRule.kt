@@ -21,7 +21,7 @@ class BnfRule(ruleString: String, private var parser: BnfParser, private var add
      */
     private fun parseName(line: String): String {
         val relevantSubString = line.split("::=").toTypedArray()[0]
-        return relevantSubString.replace("<", "").replace(">", "").replace(" ", "")
+        return relevantSubString.substring(relevantSubString.indexOf("<") + 1, relevantSubString.indexOf(">"))
     }
 
     /**
