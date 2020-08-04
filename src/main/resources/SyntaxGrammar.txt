@@ -8,3 +8,4 @@
 <comparison> ::= <expression> <comparator> <expression>
 <ifStmnt> ::= <expression> <expressionLst> <expressionLst>
 <returnStmnt> ::= <expression>
+<whileStmnt> ::= <expression> <expressionLst>

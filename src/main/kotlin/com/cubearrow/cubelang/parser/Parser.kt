@@ -49,9 +49,20 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return parseIfStmnt()
         } else if(currentToken.tokenType == TokenType.RETURN){
             return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
+        } else if(currentToken.tokenType == TokenType.WHILE){
+            return parseWhileStatement()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseWhileStatement(): Expression? {
+        current++
+        val expression = nextExpression(null)
+        current++
+        if(tokens[current].tokenType != TokenType.CURLYR) current++
+        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        return expression?.let { Expression.WhileStmnt(it, body) }
     }
 
     private fun nextExpressionUntilEnd(): Expression? {

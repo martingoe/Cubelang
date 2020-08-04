@@ -87,4 +87,12 @@ class PrintVisitor : Expression.ExpressionVisitor<String> {
             |}
         """.trimMargin()
     }
+
+    override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt): String {
+        return """While-loop: {
+            |   "Condition": [${whileStmnt.expression1.accept(this)}],
+            |   "Body": [${printExpressionList(whileStmnt.expressionLst1)}],
+            |}
+        """.trimMargin()
+    }
 }

@@ -114,4 +114,23 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         this.returnedValue = evaluate(returnStmnt.expression1)
         throw Return()
     }
+
+    override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt): Any? {
+        var interpreter: Interpreter? = null
+        try {
+            while (evaluate(whileStmnt.expression1) as Boolean) {
+                variableStorage.addScope()
+                interpreter = Interpreter(whileStmnt.expressionLst1, variableStorage, functionStorage)
+                interpreter.variableStorage.popScope()
+                this.variableStorage = interpreter.variableStorage
+                this.functionStorage = interpreter.functionStorage
+            }
+        }
+        catch (error: TypeCastException){
+            Main.error(-1, -1, null, "The condition of the while statement is not a boolean.")
+        } catch(returnError: Return){
+            return interpreter!!.returnedValue
+        }
+        return null
+    }
 }
