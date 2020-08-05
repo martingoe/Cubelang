@@ -16,6 +16,8 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
     private var isComment = false
+    private var isString = false
+    private var stringResult = ""
 
 
     /**
@@ -26,17 +28,17 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     private fun loadTokenSequence(fileContent: String) {
         var substringStartingIndex = 0
         for (i in fileContent.indices) {
-            if(substringStartingIndex > i) continue
+            if (substringStartingIndex > i) continue
 
             lineIndex++
             val substring = fileContent.substring(substringStartingIndex, i)
             val stringAtIndex = fileContent[i].toString()
 
             if (tokenGrammar.isSeparator(stringAtIndex)) {
-                substringStartingIndex = if(fileContent.length > i+1 && TokenType.fromString(stringAtIndex + fileContent[i+1], tokenGrammar) != TokenType.NOT_FOUND){
-                    addTwoTokens(substring, stringAtIndex + fileContent[i+1])
-                    i+2
-                }else {
+                substringStartingIndex = if (fileContent.length > i + 1 && TokenType.fromString(stringAtIndex + fileContent[i + 1], tokenGrammar) != TokenType.NOT_FOUND) {
+                    addTwoTokens(substring, stringAtIndex + fileContent[i + 1])
+                    i + 2
+                } else {
                     addTwoTokens(stringAtIndex, substring)
                     i + 1
                 }
@@ -62,12 +64,28 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
         addTokenToResult(s1)
     }
 
+    private fun setStringMode(s1: String): Boolean {
+        this.isString = s1 == "\""
+        return isString
+    }
+
     private fun setCommentMode(stringAtIndex: String) {
         isComment = stringAtIndex.matches(tokenGrammar.bnfParser.getRuleFromString("line_comment")!!.toRegex())
     }
 
     private fun addTokenToResult(substring: String) {
-        if(!isComment) {
+        if (isString && substring == "\"") {
+            val index = (lineIndex - substring.length)
+            tokenSequence.add(Token(stringResult, TokenType.STRING, line, index))
+            isString = false
+            return
+        }else if(isString){
+            stringResult += substring
+        }else{
+            setStringMode(substring)
+        }
+
+        if (!isComment && !isString) {
             val substringToken = TokenType.fromString(substring, tokenGrammar)
             val index = (lineIndex - substring.length)
             if (substringToken == TokenType.NOT_FOUND) {

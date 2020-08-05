@@ -37,7 +37,7 @@ class PrintVisitor : Expression.ExpressionVisitor<String> {
 
     override fun visitLiteral(literal: Expression.Literal): String {
         return """Literal: {
-    "Value": "${literal.number1.substring}",
+    "Value": "${literal.any1}",
 }        """
     }
 

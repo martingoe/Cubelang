@@ -44,7 +44,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
         //Add the argument variables to the variable stack
         for (i in 0 until call.expressionLst1.size) {
-            val value = evaluate(call.expressionLst1[i]) as Double
+            val value = evaluate(call.expressionLst1[i])
             variableStorage.addVariableToCurrentScope(function.args[i], value)
         }
         val value = function.call(variableStorage, functionStorage)
@@ -54,7 +54,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
-        return literal.number1.substring.toDouble()
+        return literal.any1
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {

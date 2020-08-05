@@ -1,17 +1,17 @@
 package com.cubearrow.cubelang.parser
 
-import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
+import com.cubearrow.cubelang.main.Main
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
-        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.FUN)
+        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING, TokenType.FUN)
     }
 
     private var current = -1
     private var expressions = ArrayList<Expression>()
-    fun parse() : MutableList<Expression>{
+    fun parse(): MutableList<Expression> {
         while (current < tokens.size - 1) {
             val expression = nextExpression(null)
             expression?.let { expressions.add(it) }
@@ -23,7 +23,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         current++
         val currentToken = tokens[current]
         if (expressionSeparator.contains(currentToken.tokenType)) {
-            if(previousToken != null) {
+            if (previousToken != null) {
                 return parseExpressionFromSingleToken(previousToken)
             }
             return null
@@ -31,25 +31,25 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
         if (previousToken == null && unidentifiableTokenTypes.contains(currentToken.tokenType)) {
             return nextExpression(currentToken)
-        } else if (currentToken.tokenType == TokenType.OPERATOR ) {
-            if(previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
+        } else if (currentToken.tokenType == TokenType.OPERATOR) {
+            if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
             return parseOperation()
-        }  else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
+        } else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
             return Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
             current--
             return Expression.Call(previousToken, args)
-        } else if(currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN){
+        } else if (currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN) {
             return parseFunctionDefinition(currentToken)
-        } else if(currentToken.tokenType == TokenType.COMPARATOR){
-            if(previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
+        } else if (currentToken.tokenType == TokenType.COMPARATOR) {
+            if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
             return parseComparison()
-        } else if(currentToken.tokenType == TokenType.IF){
+        } else if (currentToken.tokenType == TokenType.IF) {
             return parseIfStmnt()
-        } else if(currentToken.tokenType == TokenType.RETURN){
+        } else if (currentToken.tokenType == TokenType.RETURN) {
             return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
-        } else if(currentToken.tokenType == TokenType.WHILE){
+        } else if (currentToken.tokenType == TokenType.WHILE) {
             return parseWhileStatement()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
@@ -60,7 +60,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         current++
         val expression = nextExpression(null)
         current++
-        if(tokens[current].tokenType != TokenType.CURLYR) current++
+        if (tokens[current].tokenType != TokenType.CURLYR) current++
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         return expression?.let { Expression.WhileStmnt(it, body) }
     }
@@ -68,7 +68,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun nextExpressionUntilEnd(): Expression? {
         var result: Expression? = nextExpression(null)
         var temp: Expression? = result
-        while(temp != null){
+        while (temp != null) {
             result = temp
             expressions.add(temp)
             temp = nextExpression(null)
@@ -88,35 +88,33 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         current++
         val expression = nextExpression(null)
         current++
-        if(tokens[current].tokenType != TokenType.CURLYR) current++
+        if (tokens[current].tokenType != TokenType.CURLYR) current++
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        val elseBody: List<Expression> = if(tokens[current].tokenType == TokenType.ELSE){
+        val elseBody: List<Expression> = if (tokens[current].tokenType == TokenType.ELSE) {
             current++
             multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        }
-        else{
+        } else {
             ArrayList()
         }
         return expression?.let { Expression.IfStmnt(it, body, elseBody as MutableList<Expression>) }
     }
 
-    private fun parseComparison() : Expression.Comparison?{
+    private fun parseComparison(): Expression.Comparison? {
         val (leftExpression, comparator, rightExpression) = parseExpressionsWithMiddleToken()
-        return if(rightExpression != null) {
+        return if (rightExpression != null) {
             Expression.Comparison(leftExpression, comparator, rightExpression)
-        }
-        else{
+        } else {
             Main.error(comparator.line, comparator.index, null, "Wrongly formatted comparison found.")
             // Unreachable
             null
         }
     }
-    private fun parseOperation() : Expression.Operation?{
+
+    private fun parseOperation(): Expression.Operation? {
         val (leftExpression, operator, rightExpression) = parseExpressionsWithMiddleToken()
-        return if(rightExpression != null) {
+        return if (rightExpression != null) {
             Expression.Operation(leftExpression, operator, rightExpression)
-        }
-        else{
+        } else {
             Main.error(operator.line, operator.index, null, "Wrongly formatted comparison found.")
             // Unreachable
             null
@@ -125,7 +123,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseExpressionsWithMiddleToken(): Triple<Expression, Token, Expression?> {
         val leftExpression = this.expressions.removeAt(this.expressions.size - 1)
-        if(tokens[current].tokenType != TokenType.OPERATOR)
+        if (tokens[current].tokenType != TokenType.OPERATOR)
             current++
         val comparator = tokens[current]
         current++
@@ -145,7 +143,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             argsParser.current++
             var currentToken = argsParser.tokens[argsParser.current]
             // Continue parsing if the expression is not finished
-            if(argsParser.tokens[argsParser.current].tokenType != delimiter && argsParser.tokens[argsParser.current].tokenType != endsAt){
+            if (argsParser.tokens[argsParser.current].tokenType != delimiter && argsParser.tokens[argsParser.current].tokenType != endsAt) {
                 argsParser.current--
                 expression = argsParser.nextExpression(null)
                 argsParser.current++
@@ -154,7 +152,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             if (expression != null && (currentToken.tokenType == delimiter || currentToken.tokenType == endsAt)) {
                 result.add(expression)
             }
-            if (currentToken.tokenType == endsAt || argsParser.tokens[argsParser.current+1].tokenType == endsAt) {
+            if (currentToken.tokenType == endsAt || argsParser.tokens[argsParser.current + 1].tokenType == endsAt) {
                 break
             }
             if (currentToken.tokenType != delimiter) {
@@ -168,11 +166,20 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseExpressionFromSingleToken(previousToken: Token?): Expression? {
         current--
-        if (previousToken?.tokenType == TokenType.NUMBER) {
+        if (previousToken?.tokenType == TokenType.NUMBER || previousToken?.tokenType == TokenType.STRING) {
+            return parseLiteral(previousToken.substring)
             return Expression.Literal(previousToken)
         } else if (previousToken?.tokenType == TokenType.IDENTIFIER) {
             return Expression.VarCall(previousToken)
         }
         return null
+    }
+
+    private fun parseLiteral(substring: String): Expression.Literal? {
+        try {
+            return Expression.Literal(substring.toDouble())
+        } catch (error: NumberFormatException) {
+        }
+        return Expression.Literal(substring)
     }
 }

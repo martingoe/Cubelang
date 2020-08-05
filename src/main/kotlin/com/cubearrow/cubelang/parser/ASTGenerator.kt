@@ -146,6 +146,8 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
             ruleName = term.name.substring(0, term.name.length - 3)
             val rule = syntaxGrammarParser.getRuleFromString(ruleName)
             type = "MutableList<${rule?.name?.capitalize() ?: "Token"}>"
+        } else if (term.name == "any") {
+            type = "Any?"
         } else {
             val rule = syntaxGrammarParser.getRuleFromString(term.name)
             type = rule?.name?.capitalize() ?: "Token"

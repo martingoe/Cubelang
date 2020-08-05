@@ -2,7 +2,7 @@
 <assignment> ::= <identifier> <expression>
 <operation> ::= <expression> <operator> <expression>
 <call> ::= <identifier> <expressionLst>
-<literal> ::= <number>
+<literal> ::= <any>
 <varCall> ::= <identifier>
 <functionDefinition> ::= <identifier> <expressionLst> <expressionLst>
 <comparison> ::= <expression> <comparator> <expression>

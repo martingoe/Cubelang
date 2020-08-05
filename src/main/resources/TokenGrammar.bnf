@@ -17,6 +17,7 @@
 <comparator> ::= "\=\=|\!\=|\<|\>|\<\=|\>\="
 <and_gate> ::= "\&\&"
 <expressionLst> ::= "TODO"
+<any> ::= "TODO"
 <line_comment> ::= "#"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

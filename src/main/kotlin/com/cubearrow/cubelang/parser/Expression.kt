@@ -25,7 +25,7 @@ abstract class Expression {
         }
     }
 
-    class Literal (var number1: Token) : Expression() {
+    class Literal (var any1: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLiteral(this)
         }
