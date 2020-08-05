@@ -6,8 +6,8 @@ fun main(args: Array<String>) {
     LibraryGenerator(args[0])
 }
 class LibraryGenerator(private var outputDir: String) {
-    var baseClasses = listOf(PrintingLibrary::class)
-    var resultClassSource = ""
+    private var baseClasses = listOf(PrintingLibrary::class)
+    private var resultClassSource = ""
     init{
         generateBaseClass()
     }
