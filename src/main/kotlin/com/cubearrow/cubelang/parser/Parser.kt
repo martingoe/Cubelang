@@ -51,9 +51,18 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
             return parseWhileStatement()
+        }else if(currentToken.tokenType == TokenType.FOR){
+            return parseForLoop()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseForLoop(): Expression? {
+        current++
+        val args = multipleExpressions(TokenType.BRCKTR, TokenType.SEMICOLON)
+        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        return Expression.ForStmnt(args, body)
     }
 
     private fun parseWhileStatement(): Expression? {
@@ -168,7 +177,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         current--
         if (previousToken?.tokenType == TokenType.NUMBER || previousToken?.tokenType == TokenType.STRING) {
             return parseLiteral(previousToken.substring)
-            return Expression.Literal(previousToken)
         } else if (previousToken?.tokenType == TokenType.IDENTIFIER) {
             return Expression.VarCall(previousToken)
         }

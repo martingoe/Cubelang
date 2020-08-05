@@ -12,6 +12,7 @@
 <return> ::= "return"
 <fun> ::= "fun"
 <while> ::= "while"
+<for> ::= "for"
 <semicolon> ::= ";"
 <operator> ::= "-|\+|\^|\/|\*|\%"
 <comparator> ::= "\=\=|\!\=|\<|\>|\<\=|\>\="

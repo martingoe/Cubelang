@@ -95,4 +95,12 @@ class PrintVisitor : Expression.ExpressionVisitor<String> {
             |}
         """.trimMargin()
     }
+
+    override fun visitForStmnt(forStmnt: Expression.ForStmnt): String {
+        return """For-loop: {
+            |   "Upper args": [${printExpressionList(forStmnt.expressionLst1)}],
+            |   "Body": [${printExpressionList(forStmnt.expressionLst2)}],
+            |}
+        """.trimMargin()
+    }
 }

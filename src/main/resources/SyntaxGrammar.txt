@@ -6,6 +6,8 @@
 <varCall> ::= <identifier>
 <functionDefinition> ::= <identifier> <expressionLst> <expressionLst>
 <comparison> ::= <expression> <comparator> <expression>
+
 <ifStmnt> ::= <expression> <expressionLst> <expressionLst>
 <returnStmnt> ::= <expression>
 <whileStmnt> ::= <expression> <expressionLst>
+<forStmnt> ::= <expressionLst> <expressionLst>

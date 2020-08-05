@@ -133,4 +133,17 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         }
         return null
     }
+
+    override fun visitForStmnt(forStmnt: Expression.ForStmnt) {
+        if(forStmnt.expressionLst1.size == 3) {
+            variableStorage.addScope()
+            evaluate(forStmnt.expressionLst1[0])
+            while(evaluate(forStmnt.expressionLst1[1]) as Boolean){
+                val interpreter = Interpreter(forStmnt.expressionLst2, variableStorage, functionStorage)
+                variableStorage = interpreter.variableStorage
+                evaluate(forStmnt.expressionLst1[2])
+            }
+            variableStorage.popScope()
+        }
+    }
 }

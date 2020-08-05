@@ -66,6 +66,12 @@ abstract class Expression {
             return visitor.visitWhileStmnt(this)
         }
     }
+
+    class ForStmnt (var expressionLst1: MutableList<Expression>, var expressionLst2: MutableList<Expression>) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitForStmnt(this)
+        }
+    }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitOperation(operation: Operation): R
@@ -77,6 +83,7 @@ abstract class Expression {
         fun visitIfStmnt(ifStmnt: IfStmnt): R
         fun visitReturnStmnt(returnStmnt: ReturnStmnt): R
         fun visitWhileStmnt(whileStmnt: WhileStmnt): R
+        fun visitForStmnt(forStmnt: ForStmnt): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }
