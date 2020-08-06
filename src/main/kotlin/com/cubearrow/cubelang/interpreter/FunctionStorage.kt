@@ -17,7 +17,7 @@ class FunctionStorage {
 
     fun addFunction(name: Token, args: List<String>, body: List<Expression>){
         if(functions.stream().anyMatch{it.name == name.substring && it.args == args}){
-            Main.error(name.line, name.index, null, "A function with the specified name and arguments already exists")
+            Main.error(name.line, name.index, null, "A function with the specified name and argument size already exists")
         } else{
             functions.add(Function(name.substring, args, body))
         }
