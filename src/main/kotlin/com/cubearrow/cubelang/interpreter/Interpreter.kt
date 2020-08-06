@@ -8,6 +8,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     private var functionStorage = functions
     var returnedValue: Any? = null
     class Return : RuntimeException()
+
     override fun visitAssignment(assignment: Expression.Assignment) {
         val value = assignment.expression1.accept(this)
         variableStorage.addVariableToCurrentScope(assignment.identifier1.substring, value)
@@ -58,7 +59,9 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return variableStorage.getCurrentVariables()[varCall.identifier1.substring]
+        return variableStorage.getCurrentVariables()[varCall.identifier1.substring] ?:
+        Main.error(varCall.identifier1.line, varCall.identifier1.index, null,
+                "The variable with the name \"${varCall.identifier1.substring}\" is either not defined or out of scope.")
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
@@ -89,15 +92,20 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitComparison(comparison: Expression.Comparison): Boolean {
         val left = evaluate(comparison.expression1)
         val right = evaluate(comparison.expression2)
-        return when (comparison.comparator1.substring) {
-            "==" -> left == right
-            "!=" -> left != right
-            "<" -> (left as Double) < right as Double
-            "<=" -> left as Double <= right as Double
-            ">" -> left as Double > right as Double
-            ">=" -> left as Double >= right as Double
-            // Unreachable
-            else -> return false
+        try {
+            return when (comparison.comparator1.substring) {
+                "==" -> left == right
+                "!=" -> left != right
+                "<" -> (left as Double) < right as Double
+                "<=" -> left as Double <= right as Double
+                ">" -> left as Double > right as Double
+                ">=" -> left as Double >= right as Double
+                // Unreachable
+                else -> return false
+            }
+        } catch (error: TypeCastException){
+            Main.error(comparison.comparator1.line, comparison.comparator1.index, null, "The comparator \"${comparison.comparator1.substring}\" can only be executed on numbers.")
+            return false
         }
     }
 
