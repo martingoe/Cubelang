@@ -28,16 +28,20 @@ class Main {
 
 
         fun error(line: Int, index: Int, fullLine: String?, message: String) {
-            var indicator = ""
-
             if (fullLine != null) {
-                indicator = " ".repeat(index - 1) + "^"
-            }
-            println("""
+                val indicator = " ".repeat(index - 1) + "^"
+                println("""
                 ${ConsoleColor.ANSI_RED}${fullLine}
                 $indicator
                 Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
             """.trimIndent())
+            }
+
+            else {
+                println("""
+                ${ConsoleColor.ANSI_RED}Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
+            """.trimIndent())
+            }
             containsError = true
             exitProcess(65)
         }
