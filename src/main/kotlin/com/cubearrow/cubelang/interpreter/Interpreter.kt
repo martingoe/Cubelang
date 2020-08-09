@@ -112,7 +112,8 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
         val isTrue = evaluate(ifStmnt.expression1) as Boolean
         if (isTrue) {
-            Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage)
+            this.returnedValue = Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage).returnedValue
+            if(this.returnedValue != null) throw Return()
         } else {
             Interpreter(ifStmnt.expressionLst2, variableStorage, functionStorage)
         }
