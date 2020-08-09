@@ -1,5 +1,6 @@
 # Cubelang
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c4c7b588ae7369fc8485/maintainability)](https://codeclimate.com/github/CubeArrow/Cubelang/maintainability)
 
 This is a very simple interpreted programming language. It is not type-safe since type checking has not been implemented yet.
 
@@ -13,8 +14,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 The applications you need to install the software and how to install them
 
-1. Gradle
-3. Java 11
+1. Java 11
 
 ### Installing
 
@@ -31,7 +31,7 @@ cd Cubelang
 Package the program in an executable JAR
 
 ```
-gradle jar
+./gradlew jar
 ```
 
 Run the program making sure you use `--enable-preview`
