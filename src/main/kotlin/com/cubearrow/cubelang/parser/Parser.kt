@@ -28,34 +28,32 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             }
             return null
         }
-        var result: Expression? = null
 
         if (previousToken == null && unidentifiableTokenTypes.contains(currentToken.tokenType)) {
-            result = nextExpression(currentToken)
+            return nextExpression(currentToken)
         } else if (currentToken.tokenType == TokenType.OPERATOR) {
             if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
-            result = parseOperation()
+            return parseOperation()
         } else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
-            result = Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
+            return Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
             current--
-            result = Expression.Call(previousToken, args)
+            return Expression.Call(previousToken, args)
         } else if (currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN) {
-            result = parseFunctionDefinition(currentToken)
+            return parseFunctionDefinition(currentToken)
         } else if (currentToken.tokenType == TokenType.COMPARATOR) {
             if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
-            result = parseComparison()
+            return parseComparison()
         } else if (currentToken.tokenType == TokenType.IF) {
-            result = parseIfStmnt()
+            return parseIfStmnt()
         } else if (currentToken.tokenType == TokenType.RETURN) {
-            result = nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
+            return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
-            result = parseWhileStatement()
-        } else if (currentToken.tokenType == TokenType.FOR) {
-            result = parseForLoop()
+            return parseWhileStatement()
+        }else if(currentToken.tokenType == TokenType.FOR){
+            return parseForLoop()
         }
-        result?.let { expressions.add(it);return it }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
     }
@@ -83,6 +81,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             result = temp
             expressions.add(temp)
             temp = nextExpression(null)
+            expressions.remove(result)
         }
         current--
         return result
@@ -147,19 +146,23 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
         val result = ArrayList<Expression>()
-        val parser = Parser(tokens.subList(current + 1, tokens.size), listOf(endsAt, delimiter))
+        val argsParser = Parser(tokens.subList(current + 1, tokens.size), listOf(endsAt, delimiter))
         while (true) {
-            var expression: Expression? = parser.nextExpression(null) ?: break
-            parser.current++
-
+            var expression: Expression? = argsParser.nextExpression(null) ?: break
+            expression?.let { argsParser.expressions.add(it) }
+            argsParser.current++
+            var currentToken = argsParser.tokens[argsParser.current]
             // Continue parsing if the expression is not finished
-            expression = continueUnfinishedExpression(parser, delimiter, endsAt, expression)
-
-            val currentToken = parser.tokens[parser.current]
+            if (argsParser.tokens[argsParser.current].tokenType != delimiter && argsParser.tokens[argsParser.current].tokenType != endsAt) {
+                argsParser.current--
+                expression = argsParser.nextExpression(null)
+                argsParser.current++
+                currentToken = argsParser.tokens[argsParser.current]
+            }
             if (expression != null && (currentToken.tokenType == delimiter || currentToken.tokenType == endsAt)) {
                 result.add(expression)
             }
-            if (currentToken.tokenType == endsAt || parser.tokens[parser.current + 1].tokenType == endsAt) {
+            if (currentToken.tokenType == endsAt || argsParser.tokens[argsParser.current + 1].tokenType == endsAt) {
                 break
             }
             if (currentToken.tokenType != delimiter) {
@@ -167,19 +170,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
                 break
             }
         }
-        current += parser.current + 2
+        current += argsParser.current + 2
         return result
-    }
-
-    private fun continueUnfinishedExpression(parser: Parser, delimiter: TokenType, endsAt: TokenType, expression: Expression?): Expression? {
-        var expression1 = expression
-        val currentToken = parser.tokens[parser.current]
-        if (currentToken.tokenType != delimiter && currentToken.tokenType != endsAt) {
-            parser.current--
-            expression1 = parser.nextExpression(null)
-            parser.current++
-        }
-        return expression1
     }
 
     private fun parseExpressionFromSingleToken(previousToken: Token?): Expression? {
