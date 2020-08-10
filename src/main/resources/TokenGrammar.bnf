@@ -20,5 +20,6 @@
 <expressionLst> ::= "TODO"
 <any> ::= "TODO"
 <line_comment> ::= "#"
+<var> ::= "var"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

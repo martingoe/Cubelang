@@ -13,6 +13,12 @@ abstract class Expression {
         }
     }
 
+    class VarInitialization (var identifier1: Token, var expression1: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitVarInitialization(this)
+        }
+    }
+
     class Operation (var expression1: Expression, var operator1: Token, var expression2: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitOperation(this)
@@ -74,6 +80,7 @@ abstract class Expression {
     }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
+        fun visitVarInitialization(varInitialization: VarInitialization): R
         fun visitOperation(operation: Operation): R
         fun visitCall(call: Call): R
         fun visitLiteral(literal: Literal): R
