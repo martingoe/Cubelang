@@ -18,11 +18,25 @@ class VariableStorage {
     }
 
     fun addVariableToCurrentScope(name: String, value: Any?) {
-            variables.peek()[name] = value
+        variables.peek()[name] = value
     }
 
     fun addScope() {
         variables.push(HashMap())
     }
 
+    fun updateVariable(name: String, value: Any?): Any? {
+        if (getCurrentVariables().containsKey(name)) {
+            for (i in 0 until variables.size) {
+                if (variables[i].containsKey(name)) {
+                    variables[i][name] = value
+                    return value
+                }
+            }
+        }
+        throw VariableNotFoundException()
+    }
+
 }
+
+class VariableNotFoundException : RuntimeException()

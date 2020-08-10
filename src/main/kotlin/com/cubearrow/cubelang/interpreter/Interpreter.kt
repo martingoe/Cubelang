@@ -11,7 +11,11 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitAssignment(assignment: Expression.Assignment) {
         val value = assignment.expression1.accept(this)
-        variableStorage.addVariableToCurrentScope(assignment.identifier1.substring, value)
+        try {
+            variableStorage.updateVariable(assignment.identifier1.substring, value)
+        } catch (error: VariableNotFoundException){
+            Main.error(assignment.identifier1.line, assignment.identifier1.index, null, "The variable with the name '${assignment.identifier1.substring}' has not been found")
+        }
     }
 
     override fun visitOperation(operation: Expression.Operation): Double? {
@@ -154,5 +158,9 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             }
             variableStorage.popScope()
         }
+    }
+
+    override fun visitVarInitialization(varInitialization: Expression.VarInitialization) {
+        variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, evaluate(varInitialization.expression1))
     }
 }

@@ -53,9 +53,25 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return parseWhileStatement()
         }else if(currentToken.tokenType == TokenType.FOR){
             return parseForLoop()
+        } else if(currentToken.tokenType == TokenType.VAR){
+            return parseVarInitialization()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseVarInitialization(): Expression? {
+        consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
+        val identifier = tokens[current]
+        consume(TokenType.EQUALS, "Expected '=' after in a variable initialization")
+        val expression = nextExpressionUntilEnd()
+        return expression?.let { Expression.VarInitialization(identifier, it) }
+    }
+    private fun consume(tokenType: TokenType, errorMessage: String){
+        current++
+        if(tokens[current].tokenType != tokenType){
+            Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
+        }
     }
 
     private fun parseForLoop(): Expression? {
