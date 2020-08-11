@@ -38,7 +38,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
-            current--
             return Expression.Call(previousToken, args)
         } else if (currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN) {
             return parseFunctionDefinition(currentToken)
@@ -61,33 +60,28 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun parseVarInitialization(): Expression? {
-        consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
-        val identifier = tokens[current]
+        val identifier = consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
         consume(TokenType.EQUALS, "Expected '=' after in a variable initialization")
         val expression = nextExpressionUntilEnd()
         return expression?.let { Expression.VarInitialization(identifier, it) }
     }
-    private fun consume(tokenType: TokenType, errorMessage: String){
-        current++
-        if(tokens[current].tokenType != tokenType){
-            Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
-        }
-    }
+
+
 
     private fun parseForLoop(): Expression? {
-        current++
+        consume(TokenType.BRCKTL, "Expected '(' after 'for'.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.SEMICOLON)
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         return Expression.ForStmnt(args, body)
     }
 
     private fun parseWhileStatement(): Expression? {
-        current++
-        val expression = nextExpression(null)
-        current++
-        if (tokens[current].tokenType != TokenType.CURLYR) current++
+        consume(TokenType.BRCKTL, "Expected '(' after 'while'.")
+        val condition = nextExpression(null)
+        consume(TokenType.BRCKTR, "Expected ')' after the condition of a while loop.")
+        consume(TokenType.CURLYL, "Expected '{' starting the body of a while loop.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        return expression?.let { Expression.WhileStmnt(it, body) }
+        return condition?.let { Expression.WhileStmnt(it, body) }
     }
 
     private fun nextExpressionUntilEnd(): Expression? {
@@ -103,30 +97,31 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         return result
     }
 
-    private fun parseFunctionDefinition(currentToken: Token): Expression.FunctionDefinition {
-        current++
+    private fun parseFunctionDefinition(name: Token): Expression.FunctionDefinition {
+        consume(TokenType.BRCKTL, "Expected '(' after a function name.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        return Expression.FunctionDefinition(currentToken, args, body)
+        return Expression.FunctionDefinition(name, args, body)
     }
 
     private fun parseIfStmnt(): Expression.IfStmnt? {
-        current++
-        val expression = nextExpression(null)
-        current++
-        if (tokens[current].tokenType != TokenType.CURLYR) current++
+        consume(TokenType.BRCKTL, "Expected '(' after 'if'.")
+        val condition = nextExpression(null)
+        consume(TokenType.BRCKTR, "Expected '(' after the condition of the if statement.")
+        consume(TokenType.CURLYL, "Expected '{' starting the body of the if statement.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         val elseBody: List<Expression> = if (tokens[current].tokenType == TokenType.ELSE) {
-            current++
+            consume(TokenType.CURLYL, "Expected '{' starting the else body of the if statement.")
             multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         } else {
             ArrayList()
         }
-        return expression?.let { Expression.IfStmnt(it, body, elseBody as MutableList<Expression>) }
+
+        return condition?.let { Expression.IfStmnt(it, body, elseBody as MutableList<Expression>) }
     }
 
     private fun parseComparison(): Expression.Comparison? {
-        val (leftExpression, comparator, rightExpression) = parseExpressionsWithMiddleToken()
+        val (leftExpression, comparator, rightExpression) = parseExpressionsWithMiddleToken(TokenType.COMPARATOR)
         return if (rightExpression != null) {
             Expression.Comparison(leftExpression, comparator, rightExpression)
         } else {
@@ -137,7 +132,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun parseOperation(): Expression.Operation? {
-        val (leftExpression, operator, rightExpression) = parseExpressionsWithMiddleToken()
+        val (leftExpression, operator, rightExpression) = parseExpressionsWithMiddleToken(TokenType.OPERATOR)
         return if (rightExpression != null) {
             Expression.Operation(leftExpression, operator, rightExpression)
         } else {
@@ -147,13 +142,10 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         }
     }
 
-    private fun parseExpressionsWithMiddleToken(): Triple<Expression, Token, Expression?> {
+    private fun parseExpressionsWithMiddleToken(middleToken: TokenType): Triple<Expression, Token, Expression?> {
         val leftExpression = this.expressions.removeAt(this.expressions.size - 1)
-        if (tokens[current].tokenType != TokenType.OPERATOR)
-            current++
-        val comparator = tokens[current]
-        current++
-        val parser = Parser(tokens.subList(current, tokens.size), listOf(TokenType.SEMICOLON, TokenType.BRCKTR, TokenType.CURLYR))
+        val comparator = consume(middleToken, "Expected a token in the middle which could not be found.")
+        val parser = Parser(tokens.subList(++current, tokens.size), listOf(TokenType.SEMICOLON, TokenType.BRCKTR, TokenType.CURLYR))
         val rightExpression = parser.nextExpression(null)
 
         current += parser.current
@@ -163,28 +155,21 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
         val result = ArrayList<Expression>()
         val argsParser = Parser(tokens.subList(current + 1, tokens.size), listOf(endsAt, delimiter))
-        while (true) {
-            var expression: Expression? = argsParser.nextExpression(null) ?: break
-            expression?.let { argsParser.expressions.add(it) }
-            argsParser.current++
-            var currentToken = argsParser.tokens[argsParser.current]
+        while (!argsParser.peek(endsAt)) {
+            var expression = argsParser.nextExpression(null) ?: break
+            argsParser.expressions.add(expression)
+
             // Continue parsing if the expression is not finished
-            if (argsParser.tokens[argsParser.current].tokenType != delimiter && argsParser.tokens[argsParser.current].tokenType != endsAt) {
-                argsParser.current--
-                expression = argsParser.nextExpression(null)
-                argsParser.current++
-                currentToken = argsParser.tokens[argsParser.current]
+            while (!argsParser.peek(delimiter) && !argsParser.peek(endsAt)) {
+                expression = argsParser.nextExpression(null) ?: expression
             }
-            if (expression != null && (currentToken.tokenType == delimiter || currentToken.tokenType == endsAt)) {
-                result.add(expression)
-            }
-            if (currentToken.tokenType == endsAt || argsParser.tokens[argsParser.current + 1].tokenType == endsAt) {
+            result.add(expression)
+
+            if(argsParser.peek(endsAt)) {
                 break
             }
-            if (currentToken.tokenType != delimiter) {
-                Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
-                break
-            }
+
+            argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
         current += argsParser.current + 2
         return result
@@ -206,5 +191,15 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         } catch (error: NumberFormatException) {
         }
         return Expression.Literal(substring)
+    }
+
+    private fun peek(tokenType: TokenType) : Boolean = tokens[current+1].tokenType == tokenType
+
+    private fun consume(tokenType: TokenType, errorMessage: String): Token{
+        this.current++
+        if(tokens[current].tokenType != tokenType){
+            Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
+        }
+        return tokens[current]
     }
 }
