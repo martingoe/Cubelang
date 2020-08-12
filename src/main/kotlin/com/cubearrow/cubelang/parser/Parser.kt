@@ -165,10 +165,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             }
             result.add(expression)
 
-            if(argsParser.peek(endsAt)) {
-                break
-            }
-
+            if(argsParser.peek(endsAt)) break
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
         current += argsParser.current + 2
