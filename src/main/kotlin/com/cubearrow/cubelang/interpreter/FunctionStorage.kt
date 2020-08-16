@@ -22,6 +22,14 @@ class FunctionStorage {
         }
     }
 
+    fun addFunction(callable: Callable){
+        if (functions.stream().anyMatch { it.name == callable.name && it.args == callable.args }) {
+            Main.error(-1, -1, null, "A function with the specified name and argument size already exists")
+        } else {
+            functions.add(callable)
+        }
+    }
+
     fun getFunction(name: String, argsSize: Int): Callable? = functions.stream().filter { it.name == name && it.args.size == argsSize }.findFirst().orElse(null)
 
     init {

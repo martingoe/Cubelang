@@ -3,6 +3,7 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
+import java.util.stream.Collectors
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
@@ -54,9 +55,19 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return parseForLoop()
         } else if(currentToken.tokenType == TokenType.VAR){
             return parseVarInitialization()
+        } else if(currentToken.tokenType == TokenType.CLASS){
+            return parseClass()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseClass(): Expression? {
+        val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
+
+        consume(TokenType.CURLYL, "Expected '{' after the class identifier")
+        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter {it is Expression.VarInitialization || it is Expression.FunctionDefinition}
+        return Expression.ClassDefinition(name, body as MutableList<Expression>)
     }
 
     private fun parseVarInitialization(): Expression? {
@@ -100,6 +111,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseFunctionDefinition(name: Token): Expression.FunctionDefinition {
         consume(TokenType.BRCKTL, "Expected '(' after a function name.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
+
+        consume(TokenType.CURLYL, "Expected '{' after the function args.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         return Expression.FunctionDefinition(name, args, body)
     }

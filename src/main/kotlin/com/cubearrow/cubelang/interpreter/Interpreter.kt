@@ -73,7 +73,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
     }
 
-    private fun evaluate(expression: Expression) = expression.accept(this)
+    fun evaluate(expression: Expression) = expression.accept(this)
 
     init {
         initializeVariableStorage(previousVariables)
@@ -162,5 +162,9 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitVarInitialization(varInitialization: Expression.VarInitialization) {
         variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, evaluate(varInitialization.expression1))
+    }
+
+    override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
+        functionStorage.addFunction(Klass(classDefinition.identifier1.substring, classDefinition.expressionLst1, this))
     }
 }

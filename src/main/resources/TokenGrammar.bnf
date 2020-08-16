@@ -21,5 +21,6 @@
 <any> ::= "TODO"
 <line_comment> ::= "#"
 <var> ::= "var"
+<class> ::= "class"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

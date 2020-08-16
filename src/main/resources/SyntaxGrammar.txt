@@ -12,3 +12,4 @@
 <returnStmnt> ::= <expression>
 <whileStmnt> ::= <expression> <expressionLst>
 <forStmnt> ::= <expressionLst> <expressionLst>
+<classDefinition> ::= <identifier> <expressionLst>
