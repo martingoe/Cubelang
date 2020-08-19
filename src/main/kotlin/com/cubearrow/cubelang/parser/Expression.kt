@@ -84,6 +84,18 @@ abstract class Expression {
             return visitor.visitClassDefinition(this)
         }
     }
+
+    class InstanceGet (var expression1: Expression, var expression2: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitInstanceGet(this)
+        }
+    }
+
+    class InstanceSet (var expression1: Expression, var expression2: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitInstanceSet(this)
+        }
+    }
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitVarInitialization(varInitialization: VarInitialization): R
@@ -98,6 +110,8 @@ abstract class Expression {
         fun visitWhileStmnt(whileStmnt: WhileStmnt): R
         fun visitForStmnt(forStmnt: ForStmnt): R
         fun visitClassDefinition(classDefinition: ClassDefinition): R
+        fun visitInstanceGet(instanceGet: InstanceGet): R
+        fun visitInstanceSet(instanceSet: InstanceSet): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }

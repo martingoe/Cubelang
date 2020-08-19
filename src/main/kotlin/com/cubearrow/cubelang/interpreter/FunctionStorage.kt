@@ -12,7 +12,7 @@ class FunctionStorage {
         }
     }
 
-    private var functions = ArrayList<Callable>()
+    var functions = ArrayList<Callable>()
 
     fun addFunction(name: Token, args: List<String>, body: List<Expression>) {
         if (functions.stream().anyMatch { it.name == name.substring && it.args == args }) {
@@ -22,7 +22,7 @@ class FunctionStorage {
         }
     }
 
-    fun addFunction(callable: Callable){
+    fun addFunction(callable: Callable) {
         if (functions.stream().anyMatch { it.name == callable.name && it.args == callable.args }) {
             Main.error(-1, -1, null, "A function with the specified name and argument size already exists")
         } else {
@@ -31,6 +31,9 @@ class FunctionStorage {
     }
 
     fun getFunction(name: String, argsSize: Int): Callable? = functions.stream().filter { it.name == name && it.args.size == argsSize }.findFirst().orElse(null)
+    fun addFunctions(functions: java.util.ArrayList<Callable>) {
+        this.functions.addAll(functions)
+    }
 
     init {
         functions.addAll(Library().classes)

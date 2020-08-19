@@ -22,5 +22,6 @@
 <line_comment> ::= "#"
 <var> ::= "var"
 <class> ::= "class"
+<dot> ::= "\."
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

@@ -37,6 +37,10 @@ class VariableStorage {
         throw VariableNotFoundException()
     }
 
+    fun addVariablesToCurrentScope(map: Map<String, Any?>) {
+        variables.peek().putAll(map)
+    }
+
 }
 
 class VariableNotFoundException : RuntimeException()

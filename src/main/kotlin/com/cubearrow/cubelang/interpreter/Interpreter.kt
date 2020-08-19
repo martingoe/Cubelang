@@ -5,15 +5,16 @@ import com.cubearrow.cubelang.parser.Expression
 
 class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage?, functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
     private lateinit var variableStorage: VariableStorage
-    private var functionStorage = functions
+    var functionStorage = functions
     var returnedValue: Any? = null
+
     class Return : RuntimeException()
 
     override fun visitAssignment(assignment: Expression.Assignment) {
         val value = assignment.expression1.accept(this)
         try {
             variableStorage.updateVariable(assignment.identifier1.substring, value)
-        } catch (error: VariableNotFoundException){
+        } catch (error: VariableNotFoundException) {
             Main.error(assignment.identifier1.line, assignment.identifier1.index, null, "The variable with the name '${assignment.identifier1.substring}' has not been found")
         }
     }
@@ -63,9 +64,9 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return variableStorage.getCurrentVariables()[varCall.identifier1.substring] ?:
-        Main.error(varCall.identifier1.line, varCall.identifier1.index, null,
-                "The variable with the name \"${varCall.identifier1.substring}\" is either not defined or out of scope.")
+        return variableStorage.getCurrentVariables()[varCall.identifier1.substring]
+                ?: Main.error(varCall.identifier1.line, varCall.identifier1.index, null,
+                        "The variable with the name \"${varCall.identifier1.substring}\" is either not defined or out of scope.")
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
@@ -81,7 +82,8 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             expressions.forEach {
                 evaluate(it)
             }
-        } catch (returnError: Return) {}
+        } catch (returnError: Return) {
+        }
     }
 
     private fun initializeVariableStorage(previousVariables: VariableStorage?) {
@@ -107,7 +109,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 // Unreachable
                 else -> return false
             }
-        } catch (error: TypeCastException){
+        } catch (error: TypeCastException) {
             Main.error(comparison.comparator1.line, comparison.comparator1.index, null, "The comparator \"${comparison.comparator1.substring}\" can only be executed on numbers.")
             return false
         }
@@ -117,7 +119,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         val isTrue = evaluate(ifStmnt.expression1) as Boolean
         if (isTrue) {
             this.returnedValue = Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage).returnedValue
-            if(this.returnedValue != null) throw Return()
+            if (this.returnedValue != null) throw Return()
         } else {
             Interpreter(ifStmnt.expressionLst2, variableStorage, functionStorage)
         }
@@ -138,20 +140,19 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 this.variableStorage = interpreter.variableStorage
                 this.functionStorage = interpreter.functionStorage
             }
-        }
-        catch (error: TypeCastException){
+        } catch (error: TypeCastException) {
             Main.error(-1, -1, null, "The condition of the while statement is not a boolean.")
-        } catch(returnError: Return){
+        } catch (returnError: Return) {
             return interpreter!!.returnedValue
         }
         return null
     }
 
     override fun visitForStmnt(forStmnt: Expression.ForStmnt) {
-        if(forStmnt.expressionLst1.size == 3) {
+        if (forStmnt.expressionLst1.size == 3) {
             variableStorage.addScope()
             evaluate(forStmnt.expressionLst1[0])
-            while(evaluate(forStmnt.expressionLst1[1]) as Boolean){
+            while (evaluate(forStmnt.expressionLst1[1]) as Boolean) {
                 val interpreter = Interpreter(forStmnt.expressionLst2, variableStorage, functionStorage)
                 variableStorage = interpreter.variableStorage
                 evaluate(forStmnt.expressionLst1[2])
@@ -165,6 +166,27 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
-        functionStorage.addFunction(Klass(classDefinition.identifier1.substring, classDefinition.expressionLst1, this))
+        val klass = Klass(classDefinition.identifier1.substring, classDefinition.expressionLst1)
+        functionStorage.addFunction(klass)
+        klass.initializeVariables(this)
+    }
+
+    override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Any? {
+        val instance = evaluate(instanceGet.expression1) as ClassInstance
+        val expression = instanceGet.expression2
+        if(expression is Expression.VarCall){
+            return instance.variableStorage.getCurrentVariables()[expression.identifier1.substring]
+                    ?: Main.error(expression.identifier1.line, expression.identifier1.index, null,
+                            "The variable with the name \"${expression.identifier1.substring}\" is not defined in the instance.")
+        }
+        return null
+    }
+
+    override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {
+        val instance = evaluate(instanceSet.expression1) as ClassInstance
+        val expression = instanceSet.expression2
+        if(expression is Expression.Assignment){
+            instance.variableStorage.updateVariable(expression.identifier1.substring, evaluate(expression.expression1))
+        }
     }
 }

@@ -3,7 +3,6 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
-import java.util.stream.Collectors
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
@@ -51,22 +50,54 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
             return parseWhileStatement()
-        }else if(currentToken.tokenType == TokenType.FOR){
+        } else if (currentToken.tokenType == TokenType.FOR) {
             return parseForLoop()
-        } else if(currentToken.tokenType == TokenType.VAR){
+        } else if (currentToken.tokenType == TokenType.VAR) {
             return parseVarInitialization()
-        } else if(currentToken.tokenType == TokenType.CLASS){
+        } else if (currentToken.tokenType == TokenType.CLASS) {
             return parseClass()
+        } else if (currentToken.tokenType == TokenType.DOT) {
+            if (previousToken != null) {
+                parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
+                current++
+            }
+            return parseGetOrSet()
         }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseGetOrSet(): Expression? {
+        val previous = this.expressions.removeAt(this.expressions.size - 1)
+        val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON), TokenType.DOT)
+        expressions.add(0, previous)
+        val result: Expression
+        result = if(expressions[expressions.size - 1] is Expression.Assignment){
+            Expression.InstanceSet(expressions[expressions.size - 2], expressions[expressions.size - 1])
+        }else {
+            Expression.InstanceGet(expressions[expressions.size - 2], expressions[expressions.size-1])
+        }
+        var i = expressions.size - 3
+        while (i >= 0) {
+            if(result is Expression.InstanceGet) {
+                result.expression1 = Expression.InstanceGet(expressions[i], expressions[i + 1])
+            }
+            if(result is Expression.InstanceSet) {
+                result.expression1 = Expression.InstanceGet(expressions[i], expressions[i + 1])
+            }
+            i--
+
+        }
+        current--
+        return result
+
     }
 
     private fun parseClass(): Expression? {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
 
         consume(TokenType.CURLYL, "Expected '{' after the class identifier")
-        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter {it is Expression.VarInitialization || it is Expression.FunctionDefinition}
+        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter { it is Expression.VarInitialization || it is Expression.FunctionDefinition }
         return Expression.ClassDefinition(name, body as MutableList<Expression>)
     }
 
@@ -76,7 +107,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         val expression = nextExpressionUntilEnd()
         return expression?.let { Expression.VarInitialization(identifier, it) }
     }
-
 
 
     private fun parseForLoop(): Expression? {
@@ -166,8 +196,14 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
+        return multipleExpressions(listOf(endsAt), delimiter)
+    }
+    private fun multipleExpressions(endsAt: List<TokenType>, delimiter: TokenType): MutableList<Expression> {
         val result = ArrayList<Expression>()
-        val argsParser = Parser(tokens.subList(current + 1, tokens.size), listOf(endsAt, delimiter))
+        val all:MutableList<TokenType> = ArrayList()
+        all.addAll(endsAt)
+        all.add(delimiter)
+        val argsParser = Parser(tokens.subList(current + 1, tokens.size), all)
         while (!argsParser.peek(endsAt)) {
             var expression = argsParser.nextExpression(null) ?: break
             argsParser.expressions.add(expression)
@@ -178,7 +214,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             }
             result.add(expression)
 
-            if(argsParser.peek(endsAt)) break
+            if (argsParser.peek(endsAt)) break
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
         current += argsParser.current + 2
@@ -203,11 +239,13 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         return Expression.Literal(substring)
     }
 
-    private fun peek(tokenType: TokenType) : Boolean = tokens[current+1].tokenType == tokenType
+    private fun peek(tokenType: TokenType): Boolean = tokens[current + 1].tokenType == tokenType
 
-    private fun consume(tokenType: TokenType, errorMessage: String): Token{
+    private fun peek(tokenType: List<TokenType>): Boolean = tokenType.contains(tokens[current + 1].tokenType)
+
+    private fun consume(tokenType: TokenType, errorMessage: String): Token {
         this.current++
-        if(tokens[current].tokenType != tokenType){
+        if (tokens[current].tokenType != tokenType) {
             Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
         }
         return tokens[current]

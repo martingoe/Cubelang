@@ -6,7 +6,7 @@ import com.cubearrow.cubelang.bnf.BnfRule
  * The separate tokens in enum form. The same ones can be found in the grammar file.
  */
 enum class TokenType {
-    IDENTIFIER, CURLYR, CURLYL, LINE_COMMENT, IF, ELSE, RETURN, FUN, WHILE, BRCKTL, BRCKTR, SEMICOLON, OPERATOR, COMPARATOR, AND_GATE, OR_GATE, NUMBER, EQUALS, NOT_FOUND, COMMA, STRING, FOR, VAR, CLASS;
+    IDENTIFIER, CURLYR, CURLYL, LINE_COMMENT, IF, ELSE, RETURN, FUN, WHILE, BRCKTL, BRCKTR, SEMICOLON, OPERATOR, COMPARATOR, AND_GATE, OR_GATE, NUMBER, EQUALS, NOT_FOUND, COMMA, STRING, FOR, VAR, CLASS, DOT;
 
     companion object {
         /**

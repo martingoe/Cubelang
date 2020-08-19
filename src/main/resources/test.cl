@@ -1,11 +1,18 @@
-class Test {
-    var x = 10;
-    fun test(x){
-
-    }
+class Y {
+    var test = 10;
     fun init(){
 
     }
 }
-var x = Test();
-println(x);
+
+class X {
+    var test = 10;
+    var y = Y();
+
+    fun init(){
+    }
+}
+
+var x = X();
+x.y.test = 5;
+println(x.y.test);
