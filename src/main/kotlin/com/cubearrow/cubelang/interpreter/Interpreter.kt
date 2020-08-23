@@ -2,6 +2,7 @@ package com.cubearrow.cubelang.interpreter
 
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
+import kotlin.math.exp
 
 class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage?, functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
     private lateinit var variableStorage: VariableStorage
@@ -178,6 +179,9 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             return instance.variableStorage.getCurrentVariables()[expression.identifier1.substring]
                     ?: Main.error(expression.identifier1.line, expression.identifier1.index, null,
                             "The variable with the name \"${expression.identifier1.substring}\" is not defined in the instance.")
+        } else if(expression is Expression.Call){
+            val args = expression.expressionLst1.map{evaluate(it)}
+            return instance.functionStorage.getFunction(expression.identifier1.substring, expression.expressionLst1.size)?.let { instance.callFunction(it, args) }
         }
         return null
     }

@@ -31,8 +31,13 @@ class FunctionStorage {
     }
 
     fun getFunction(name: String, argsSize: Int): Callable? = functions.stream().filter { it.name == name && it.args.size == argsSize }.findFirst().orElse(null)
-    fun addFunctions(functions: java.util.ArrayList<Callable>) {
-        this.functions.addAll(functions)
+    fun addFunctions(functions: ArrayList<Callable>) {
+        val result = ArrayList<Callable>()
+
+        for(callable in functions){
+            this.functions.stream().filter { it.name != callable.name && it.args != callable.args }.forEach{result.add(callable)}
+        }
+        this.functions.addAll(result)
     }
 
     init {

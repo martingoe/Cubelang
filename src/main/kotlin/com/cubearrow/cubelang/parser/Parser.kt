@@ -32,7 +32,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         if (previousToken == null && unidentifiableTokenTypes.contains(currentToken.tokenType)) {
             return nextExpression(currentToken)
         } else if (currentToken.tokenType == TokenType.OPERATOR) {
-            if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
+            if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it);current++ }
+            current--
             return parseOperation()
         } else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
             return Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
@@ -69,9 +70,15 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseGetOrSet(): Expression? {
         val previous = this.expressions.removeAt(this.expressions.size - 1)
-        val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON), TokenType.DOT)
+        val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON, TokenType.OPERATOR, TokenType.EQUALS) as MutableList<TokenType>, TokenType.DOT)
         expressions.add(0, previous)
         val result: Expression
+        if(tokens[current].tokenType == TokenType.EQUALS){
+            current -= 2
+            expressions.removeLast()
+            nextExpression(null)?.let { expressions.add(it) }
+        }
+        if(expressions[expressions.size - 1] is Expression.VarCall) current--
         result = if(expressions[expressions.size - 1] is Expression.Assignment){
             Expression.InstanceSet(expressions[expressions.size - 2], expressions[expressions.size - 1])
         }else {
@@ -88,9 +95,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             i--
 
         }
-        current--
         return result
-
     }
 
     private fun parseClass(): Expression? {
@@ -144,6 +149,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
         consume(TokenType.CURLYL, "Expected '{' after the function args.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+
         return Expression.FunctionDefinition(name, args, body)
     }
 
@@ -196,9 +202,9 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
-        return multipleExpressions(listOf(endsAt), delimiter)
+        return multipleExpressions(listOf(endsAt) as MutableList<TokenType>, delimiter)
     }
-    private fun multipleExpressions(endsAt: List<TokenType>, delimiter: TokenType): MutableList<Expression> {
+    private fun multipleExpressions(endsAt: MutableList<TokenType>, delimiter: TokenType): MutableList<Expression> {
         val result = ArrayList<Expression>()
         val all:MutableList<TokenType> = ArrayList()
         all.addAll(endsAt)
@@ -217,6 +223,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             if (argsParser.peek(endsAt)) break
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
+        if(argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call) current--
         current += argsParser.current + 2
         return result
     }
