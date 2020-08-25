@@ -16,5 +16,5 @@ class X {
 }
 
 var x = X();
-println(x.test());
-println(x.y.test);
+println(x.test() / 2);
+println(x.y.test + 2);

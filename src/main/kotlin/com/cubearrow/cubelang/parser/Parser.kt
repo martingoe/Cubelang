@@ -29,42 +29,44 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return null
         }
 
+        var value: Expression? = null
         if (previousToken == null && unidentifiableTokenTypes.contains(currentToken.tokenType)) {
-            return nextExpression(currentToken)
+            value = nextExpression(currentToken)
         } else if (currentToken.tokenType == TokenType.OPERATOR) {
             if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it);current++ }
             current--
-            return parseOperation()
+            value = parseOperation()
         } else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
-            return Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
+            value = Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
-            return Expression.Call(previousToken, args)
+            value = Expression.Call(previousToken, args)
         } else if (currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN) {
-            return parseFunctionDefinition(currentToken)
+            value = parseFunctionDefinition(currentToken)
         } else if (currentToken.tokenType == TokenType.COMPARATOR) {
             if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
-            return parseComparison()
+            value = parseComparison()
         } else if (currentToken.tokenType == TokenType.IF) {
-            return parseIfStmnt()
+            value = parseIfStmnt()
         } else if (currentToken.tokenType == TokenType.RETURN) {
-            return nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
+            value = nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
-            return parseWhileStatement()
+            value = parseWhileStatement()
         } else if (currentToken.tokenType == TokenType.FOR) {
-            return parseForLoop()
+            value = parseForLoop()
         } else if (currentToken.tokenType == TokenType.VAR) {
-            return parseVarInitialization()
+            value = parseVarInitialization()
         } else if (currentToken.tokenType == TokenType.CLASS) {
-            return parseClass()
+            value = parseClass()
         } else if (currentToken.tokenType == TokenType.DOT) {
             if (previousToken != null) {
                 parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
                 current++
             }
-            return parseGetOrSet()
+            value = parseGetOrSet()
         }
-        Main.error(currentToken.line, currentToken.index, null, "Unexpected token \"${currentToken.substring}\"")
+        value?.let { return it }
+        Main.error(currentToken.line, currentToken.index, null, "Unexpected token: \"${currentToken.substring}\"")
         return null
     }
 
@@ -73,23 +75,25 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON, TokenType.OPERATOR, TokenType.EQUALS) as MutableList<TokenType>, TokenType.DOT)
         expressions.add(0, previous)
         val result: Expression
-        if(tokens[current].tokenType == TokenType.EQUALS){
+        if (tokens[current].tokenType == TokenType.EQUALS) {
             current -= 2
             expressions.removeLast()
             nextExpression(null)?.let { expressions.add(it) }
         }
-        if(expressions[expressions.size - 1] is Expression.VarCall) current--
-        result = if(expressions[expressions.size - 1] is Expression.Assignment){
+
+        if (expressions[expressions.size - 1] is Expression.VarCall) current--
+
+        result = if (expressions[expressions.size - 1] is Expression.Assignment) {
             Expression.InstanceSet(expressions[expressions.size - 2], expressions[expressions.size - 1])
-        }else {
-            Expression.InstanceGet(expressions[expressions.size - 2], expressions[expressions.size-1])
+        } else {
+            Expression.InstanceGet(expressions[expressions.size - 2], expressions[expressions.size - 1])
         }
         var i = expressions.size - 3
         while (i >= 0) {
-            if(result is Expression.InstanceGet) {
+            if (result is Expression.InstanceGet) {
                 result.expression1 = Expression.InstanceGet(expressions[i], expressions[i + 1])
             }
-            if(result is Expression.InstanceSet) {
+            if (result is Expression.InstanceSet) {
                 result.expression1 = Expression.InstanceGet(expressions[i], expressions[i + 1])
             }
             i--
@@ -204,9 +208,10 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
         return multipleExpressions(listOf(endsAt) as MutableList<TokenType>, delimiter)
     }
+
     private fun multipleExpressions(endsAt: MutableList<TokenType>, delimiter: TokenType): MutableList<Expression> {
         val result = ArrayList<Expression>()
-        val all:MutableList<TokenType> = ArrayList()
+        val all: MutableList<TokenType> = ArrayList()
         all.addAll(endsAt)
         all.add(delimiter)
         val argsParser = Parser(tokens.subList(current + 1, tokens.size), all)
@@ -223,7 +228,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             if (argsParser.peek(endsAt)) break
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
-        if(argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call) current--
+        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call) current--
         current += argsParser.current + 2
         return result
     }
