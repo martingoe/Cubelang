@@ -4,9 +4,9 @@ import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import kotlin.math.exp
 
-class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage?, functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
-    private lateinit var variableStorage: VariableStorage
-    var functionStorage = functions
+class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage = VariableStorage(), functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
+    private var variableStorage = previousVariables
+    private var functionStorage = functions
     var returnedValue: Any? = null
 
     class Return : RuntimeException()
@@ -47,17 +47,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             return null
         }
 
-        variableStorage.addScope()
-
-        //Add the argument variables to the variable stack
-        for (i in 0 until call.expressionLst1.size) {
-            val value = evaluate(call.expressionLst1[i])
-            variableStorage.addVariableToCurrentScope(function.args[i], value)
-        }
-        val value = function.call(variableStorage, functionStorage)
-        variableStorage.popScope()
-
-        return value
+        return function.call(call.expressionLst1.map(this::evaluate), variableStorage, functionStorage)
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
@@ -78,7 +68,6 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     fun evaluate(expression: Expression) = expression.accept(this)
 
     init {
-        initializeVariableStorage(previousVariables)
         try {
             expressions.forEach {
                 evaluate(it)
@@ -87,14 +76,6 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         }
     }
 
-    private fun initializeVariableStorage(previousVariables: VariableStorage?) {
-        if (previousVariables != null) {
-            variableStorage = previousVariables
-        } else {
-            variableStorage = VariableStorage()
-            variableStorage.addScope()
-        }
-    }
 
     override fun visitComparison(comparison: Expression.Comparison): Boolean {
         val left = evaluate(comparison.expression1)

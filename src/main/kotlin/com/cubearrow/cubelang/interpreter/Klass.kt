@@ -7,7 +7,12 @@ class Klass(override val name: String, var classBody: MutableList<Expression>) :
     private val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
     override var args: List<String> = listOf()
+
+    /**
+     * Initializes an instance of the Klass
+     */
     override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): ClassInstance {
+        //Initialize both the variable and the function storage of the instance
         val tempVariableStorage = VariableStorage()
         tempVariableStorage.addScope()
         tempVariableStorage.addVariablesToCurrentScope(variableStorage.getCurrentVariables())
@@ -26,6 +31,9 @@ class Klass(override val name: String, var classBody: MutableList<Expression>) :
                 .forEach() {this.args = it.expressionLst1.map { (it as Expression.VarCall).identifier1.substring}}
     }
 
+    /**
+     * Initialize the variables and function definitions defined in the instances of the class
+     */
     fun initializeVariables(interpreter: Interpreter) {
         variableStorage.addScope()
         for (expression in classBody) {
