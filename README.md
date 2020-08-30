@@ -45,6 +45,22 @@ java -jar build/libs/Cubelang-1.0-SNAPSHOT.jar
 * [Gradle](https://gradle.org/) - Dependency Management
 * [JUnit](https://junit.org/junit5/) - Testing framework
 
+## Examples
+### Hello World
+The following program writes "Hello World!" in the console
+```
+println("Hello World!");
+```
+### Fibonacci
+The following function recursively calculates the n-th fibonacci number 
+```
+fun fib(n){
+    if(n < 2) {
+        return n;
+    };
+    return fib(n - 1) + fib(n - 2);
+};
+```
 ## Resources
 
 These are very useful resources that I have used to get started with this project
