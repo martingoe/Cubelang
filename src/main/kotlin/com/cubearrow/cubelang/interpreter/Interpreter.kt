@@ -2,8 +2,14 @@ package com.cubearrow.cubelang.interpreter
 
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
-import kotlin.math.exp
+import com.cubearrow.cubelang.utils.ExpressionUtils
 
+/**
+ * The interpreter for the AST, it runs the program. Implements the [Expression.ExpressionVisitor]
+ * @param expressions The expressions to be run
+ * @param previousVariables Any previous variables if available, the default value is a new instance of [VariableStorage]
+ * @param functions Any previously defined functions if available, the default value is a new instance of [FunctionStorage]
+ */
 class Interpreter(expressions: List<Expression>, previousVariables: VariableStorage = VariableStorage(), functions: FunctionStorage = FunctionStorage()) : Expression.ExpressionVisitor<Any?> {
     private var variableStorage = previousVariables
     private var functionStorage = functions
@@ -172,7 +178,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {
         val instance = evaluate(instanceSet.expression1) as ClassInstance
         val expression = instanceSet.expression2
-        if(expression is Expression.Assignment){
+        if (expression is Expression.Assignment) {
             instance.variableStorage.updateVariable(expression.identifier1.substring, evaluate(expression.expression1))
         }
     }

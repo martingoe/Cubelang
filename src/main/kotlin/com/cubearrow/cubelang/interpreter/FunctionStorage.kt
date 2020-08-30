@@ -5,6 +5,9 @@ import com.cubearrow.cubelang.library.Library
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
+/**
+ * Stores the instances of [Callable] defined in a program
+ */
 class FunctionStorage {
     class Function(override val name: String, override var args: List<String>, private var body: List<Expression>) : Callable {
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Any? {

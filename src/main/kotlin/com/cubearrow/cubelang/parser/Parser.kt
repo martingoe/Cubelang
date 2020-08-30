@@ -228,8 +228,9 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             if (argsParser.peek(endsAt)) break
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
-        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call) current--
         current += argsParser.current + 2
+
+        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call && !endsAt.contains(tokens[current].tokenType)) current--
         return result
     }
 

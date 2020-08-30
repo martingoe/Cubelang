@@ -22,6 +22,10 @@ class VariableStorage {
      * Returns all of the variables in the current scope
      */
     fun getCurrentVariables() = getVariablesInScope(variables.size)
+
+    /**
+     * Pops a scope off of the variable [Stack]
+     */
     fun popScope() {
         variables.pop()
     }

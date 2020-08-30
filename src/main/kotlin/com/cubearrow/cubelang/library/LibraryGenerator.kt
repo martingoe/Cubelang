@@ -5,8 +5,11 @@ import java.io.File
 fun main(args: Array<String>) {
     LibraryGenerator(args[0])
 }
+
 class LibraryGenerator(private var outputDir: String) {
-    private var baseClasses = listOf(PrintingLibrary::class, UtilLibrary::class)
+    companion object {
+        private val BASE_CLASSES = listOf(PrintingLibrary::class, UtilLibrary::class)
+    }
     private var resultClassSource = ""
     init{
         generateBaseClass()
@@ -28,7 +31,7 @@ class LibraryGenerator(private var outputDir: String) {
 
     private fun generateInitialization(): String {
         var result = "    init {\n"
-        baseClasses.forEach {
+        BASE_CLASSES.forEach {
             it.nestedClasses.forEach { subClass ->
 
                 result += "        classes.add(${it.simpleName}.${subClass.simpleName}())\n"
