@@ -55,13 +55,11 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return variableStorage.getCurrentVariables()[varCall.identifier1.substring]
-                ?: Main.error(varCall.identifier1.line, varCall.identifier1.index, null,
-                        "The variable with the name \"${varCall.identifier1.substring}\" is either not defined or out of scope.")
+        return getVariableFromVariableStorage(variableStorage, varCall)
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
-        val args = functionDefinition.expressionLst1.map { (it as Expression.VarCall).identifier1.substring }
+        val args = ExpressionUtils.mapVarCallsToStrings(functionDefinition.expressionLst1)
         functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
     }
 
@@ -156,15 +154,19 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Any? {
         val instance = evaluate(instanceGet.expression1) as ClassInstance
         val expression = instanceGet.expression2
-        if(expression is Expression.VarCall){
-            return instance.variableStorage.getCurrentVariables()[expression.identifier1.substring]
-                    ?: Main.error(expression.identifier1.line, expression.identifier1.index, null,
-                            "The variable with the name \"${expression.identifier1.substring}\" is not defined in the instance.")
-        } else if(expression is Expression.Call){
-            val args = expression.expressionLst1.map{evaluate(it)}
+        if (expression is Expression.VarCall) {
+            return getVariableFromVariableStorage(instance.variableStorage, expression)
+        } else if (expression is Expression.Call) {
+            val args = expression.expressionLst1.map { evaluate(it) }
             return instance.functionStorage.getFunction(expression.identifier1.substring, expression.expressionLst1.size)?.let { instance.callFunction(it, args) }
         }
         return null
+    }
+
+    private fun getVariableFromVariableStorage(variables: VariableStorage, expression: Expression.VarCall): Any {
+        return (variables.getCurrentVariables()[expression.identifier1.substring]
+                ?: Main.error(expression.identifier1.line, expression.identifier1.index, null,
+                        "The variable with the name \"${expression.identifier1.substring}\" is not defined or out of scope."))
     }
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {
