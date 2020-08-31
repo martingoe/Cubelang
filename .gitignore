@@ -1,5 +1,4 @@
 .gradle
 out
-gradle
 ./gradlew.bat
 .idea

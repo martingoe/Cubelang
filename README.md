@@ -5,7 +5,6 @@
 This is a very simple interpreted programming language. It is not type-safe since type checking has not been implemented yet.
 
 
-
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
