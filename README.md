@@ -1,6 +1,6 @@
 # Cubelang
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Maintainability](https://api.codeclimate.com/v1/badges/c4c7b588ae7369fc8485/maintainability)](https://codeclimate.com/github/CubeArrow/Cubelang/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/b56516951e9c3a93a8b0/maintainability)](https://codeclimate.com/github/CubeArrow/Cubelang/maintainability)
 
 This is a very simple interpreted programming language. It is not type-safe since type checking has not been implemented yet.
 
