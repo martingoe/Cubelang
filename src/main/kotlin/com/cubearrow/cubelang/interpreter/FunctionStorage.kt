@@ -43,6 +43,10 @@ class FunctionStorage {
         this.functions.addAll(result)
     }
 
+    fun removeFunction(identifier1: Token, expressionArgs: List<String>) {
+        functions.remove(functions.firstOrNull { it.name == identifier1.substring && it.args == expressionArgs })
+    }
+
     init {
         functions.addAll(Library().classes)
     }
