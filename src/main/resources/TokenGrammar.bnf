@@ -23,5 +23,6 @@
 <var> ::= "var"
 <class> ::= "class"
 <dot> ::= "\."
+<colon> ::= "\:"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"
