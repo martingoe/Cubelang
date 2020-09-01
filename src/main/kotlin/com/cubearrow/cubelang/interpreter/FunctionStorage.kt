@@ -36,11 +36,14 @@ class FunctionStorage {
     fun getFunction(name: String, argsSize: Int): Callable? = functions.stream().filter { it.name == name && it.args.size == argsSize }.findFirst().orElse(null)
     fun addFunctions(functions: ArrayList<Callable>) {
         val result = ArrayList<Callable>()
+        result.addAll(functions)
 
         for(callable in functions){
-            this.functions.stream().filter { it.name != callable.name && it.args != callable.args }.forEach{result.add(callable)}
+            if(result.stream().allMatch { it.name != callable.name && it.args != callable.args }){
+                result.add(callable)
+            }
         }
-        this.functions.addAll(result)
+        this.functions = result
     }
 
     fun removeFunction(identifier1: Token, expressionArgs: List<String>) {
