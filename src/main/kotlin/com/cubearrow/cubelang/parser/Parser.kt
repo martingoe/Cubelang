@@ -104,10 +104,16 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseClass(): Expression? {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
-
+        var implements = Token("", TokenType.IDENTIFIER, -1, -1)
+        if (peek(TokenType.COLON)){
+            current++
+            implements = consume(TokenType.IDENTIFIER, "Expected an identifier after : in a class definition")
+        }
         consume(TokenType.CURLYL, "Expected '{' after the class identifier")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter { it is Expression.VarInitialization || it is Expression.FunctionDefinition }
-        return Expression.ClassDefinition(name, body as MutableList<Expression>)
+
+
+        return Expression.ClassDefinition(name, implements, body as MutableList<Expression>)
     }
 
     private fun parseVarInitialization(): Expression? {
@@ -215,6 +221,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         all.addAll(endsAt)
         all.add(delimiter)
         val argsParser = Parser(tokens.subList(current + 1, tokens.size), all)
+
         while (!argsParser.peek(endsAt)) {
             var expression = argsParser.nextExpression(null) ?: break
             argsParser.expressions.add(expression)
@@ -225,12 +232,15 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             }
             result.add(expression)
 
-            if (argsParser.peek(endsAt)) break
+            if (argsParser.peek(endsAt)) {
+                break
+            }
             argsParser.consume(delimiter, "Expected the delimiter between expressions.")
         }
         current += argsParser.current + 2
 
-        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call && !endsAt.contains(tokens[current].tokenType)) current--
+        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call)
+            current--
         return result
     }
 

@@ -4,8 +4,8 @@ import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
 
-class Klass(override val name: String, var classBody: MutableList<Expression>) : Callable {
-    private val functionStorage = FunctionStorage()
+class Klass(override val name: String, var inheritsFrom: Klass?, var classBody: MutableList<Expression>) : Callable {
+    val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
     override var args: List<String> = listOf()
 
@@ -37,9 +37,15 @@ class Klass(override val name: String, var classBody: MutableList<Expression>) :
      */
     fun initializeVariables(interpreter: Interpreter) {
         variableStorage.addScope()
+        if(inheritsFrom != null){
+            functionStorage.addFunctions(inheritsFrom!!.functionStorage.functions)
+            variableStorage.addVariablesToCurrentScope(inheritsFrom!!.variableStorage.getCurrentVariables())
+        }
+
         for (expression in classBody) {
             if (expression is Expression.FunctionDefinition) {
                 val expressionArgs = expression.expressionLst1.map { (it as Expression.VarCall).identifier1.substring }
+                this.functionStorage.removeFunction(expression.identifier1, expressionArgs)
                 this.functionStorage.addFunction(expression.identifier1, expressionArgs, expression.expressionLst2)
             }
             if (expression is Expression.VarInitialization) {

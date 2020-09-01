@@ -12,6 +12,6 @@
 <returnStmnt> ::= <expression>
 <whileStmnt> ::= <expression> <expressionLst>
 <forStmnt> ::= <expressionLst> <expressionLst>
-<classDefinition> ::= <identifier> <expressionLst>
+<classDefinition> ::= <identifier> <identifier> <expressionLst>
 <instanceGet> ::= <expression> <expression>
 <instanceSet> ::= <expression> <expression>

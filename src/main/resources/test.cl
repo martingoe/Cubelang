@@ -1,13 +1,12 @@
 class Y {
     var test = 10;
+    fun test(){
+        return 5;
+    };
 }
 
-class X {
-    var y = Y();
-
-    fun init(){
-        y.test = 5;
-    };
+class X : Y{
+    var test = 5;
     fun test(){
         return 10;
     };
@@ -16,5 +15,7 @@ class X {
 }
 
 var x = X();
-println(x.test() / 2);
-println(x.y.test + 2);
+var y = Y();
+println(x.test());
+println(x.test);
+println(y.test);
