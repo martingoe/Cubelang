@@ -24,5 +24,6 @@
 <class> ::= "class"
 <dot> ::= "\."
 <colon> ::= "\:"
+<nullValue> ::= "null"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

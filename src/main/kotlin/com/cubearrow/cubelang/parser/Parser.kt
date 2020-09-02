@@ -3,10 +3,11 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
+import com.cubearrow.cubelang.utils.NullValue
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
-        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING, TokenType.FUN)
+        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE)
     }
 
     private var current = -1
@@ -250,6 +251,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             return parseLiteral(previousToken.substring)
         } else if (previousToken?.tokenType == TokenType.IDENTIFIER) {
             return Expression.VarCall(previousToken)
+        } else if(previousToken?.tokenType == TokenType.NULLVALUE){
+            return Expression.Literal(NullValue())
         }
         return null
     }

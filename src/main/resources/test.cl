@@ -16,6 +16,8 @@ class X : Y{
 
 var x = X();
 var y = Y();
+var test = null;
 println(x.test());
 println(x.test);
 println(y.test);
+println(test);
