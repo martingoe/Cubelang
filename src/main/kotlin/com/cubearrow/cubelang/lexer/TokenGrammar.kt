@@ -19,7 +19,7 @@ class TokenGrammar(private var source: String) {
     /**
      * Returns if the given String matches the predefined rules of separators
      *
-     * @param string The string to check weather or not it's a separator
+     * @param string The string to check whether or not it's a separator
      */
     fun isSeparator(string: String): Boolean {
         return separators.stream().anyMatch { string.matches(it) }
@@ -31,7 +31,7 @@ class TokenGrammar(private var source: String) {
      * @param key The key to search for
      * @throws KotlinNullPointerException if the key does not exist
      */
-    private fun getRegex(key: String): Regex {
+    fun getRegex(key: String): Regex {
         return this.bnfParser.getRuleFromString(key.toLowerCase())!!.toRegex()
     }
 }

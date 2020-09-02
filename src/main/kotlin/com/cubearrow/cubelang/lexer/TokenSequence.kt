@@ -35,6 +35,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             val stringAtIndex = fileContent[i].toString()
 
             if (tokenGrammar.isSeparator(stringAtIndex)) {
+                if(stringAtIndex == "." && substring.matches(tokenGrammar.getRegex("DOUBLE"))) continue
                 substringStartingIndex = if (fileContent.length > i + 1 && TokenType.fromString(stringAtIndex + fileContent[i + 1], tokenGrammar) != TokenType.NOT_FOUND) {
                     addTwoTokens(substring, stringAtIndex + fileContent[i + 1])
                     i + 2

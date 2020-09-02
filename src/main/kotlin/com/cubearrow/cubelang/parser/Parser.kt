@@ -4,10 +4,11 @@ import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.utils.NullValue
+import kotlin.math.roundToInt
 
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
-        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE)
+        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.DOUBLE, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE)
     }
 
     private var current = -1
@@ -106,7 +107,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseClass(): Expression? {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
         var implements = Token("", TokenType.IDENTIFIER, -1, -1)
-        if (peek(TokenType.COLON)){
+        if (peek(TokenType.COLON)) {
             current++
             implements = consume(TokenType.IDENTIFIER, "Expected an identifier after : in a class definition")
         }
@@ -245,24 +246,27 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         return result
     }
 
-    private fun parseExpressionFromSingleToken(previousToken: Token?): Expression? {
+    private fun parseExpressionFromSingleToken(previousToken: Token): Expression? {
         current--
-        if (previousToken?.tokenType == TokenType.NUMBER || previousToken?.tokenType == TokenType.STRING) {
-            return parseLiteral(previousToken.substring)
-        } else if (previousToken?.tokenType == TokenType.IDENTIFIER) {
+        if (previousToken.tokenType == TokenType.IDENTIFIER) {
             return Expression.VarCall(previousToken)
-        } else if(previousToken?.tokenType == TokenType.NULLVALUE){
-            return Expression.Literal(NullValue())
         }
-        return null
+        return parseLiteral(previousToken)
     }
 
-    private fun parseLiteral(substring: String): Expression.Literal? {
-        try {
-            return Expression.Literal(substring.toDouble())
-        } catch (error: NumberFormatException) {
+    private fun parseLiteral(token: Token): Expression.Literal? {
+        if (token.tokenType == TokenType.DOUBLE) {
+            if (!token.substring.contains(".")) {
+                return Expression.Literal(token.substring.toInt())
+            }
+            return Expression.Literal(token.substring.toDouble())
         }
-        return Expression.Literal(substring)
+        return when (token.tokenType) {
+            TokenType.STRING -> Expression.Literal(token.substring)
+
+            TokenType.NULLVALUE -> Expression.Literal(NullValue())
+            else -> null
+        }
     }
 
     private fun peek(tokenType: TokenType): Boolean = tokens[current + 1].tokenType == tokenType

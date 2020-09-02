@@ -1,5 +1,5 @@
 class Y {
-    var test = 10;
+    var test = 10.0;
     fun test(){
         return 5;
     };
