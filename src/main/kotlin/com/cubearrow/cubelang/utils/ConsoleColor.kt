@@ -1,5 +1,8 @@
 package com.cubearrow.cubelang.utils
 
+/**
+ * A collection of ANSI codes allowing for colored console output.
+ */
 class ConsoleColor {
     companion object {
         const val ANSI_RESET = "\u001B[0m"

@@ -4,8 +4,13 @@ import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.utils.NullValue
-import kotlin.math.roundToInt
 
+/**
+ * The parser generates a [List] of [Expression] from tokens.
+ *
+ * @param tokens The tokens to be parsed into a [List] of [Expression]
+ * @param expressionSeparator A list of [TokenType] which represent the separators for the individual [Expression]s
+ */
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
         val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.DOUBLE, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE)
@@ -13,6 +18,10 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private var current = -1
     private var expressions = ArrayList<Expression>()
+
+    /**
+     * Parses the actual tokens to the needed [List] of [Expression] by moving a pointer along the tokens until the end.
+     */
     fun parse(): MutableList<Expression> {
         while (current < tokens.size - 1) {
             val expression = nextExpression(null)

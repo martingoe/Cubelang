@@ -4,8 +4,8 @@ import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
 
-class Klass(override val name: String, var inheritsFrom: Klass?, var classBody: MutableList<Expression>) : Callable {
-    val functionStorage = FunctionStorage()
+class Klass(override val name: String, private var inheritsFrom: Klass?, private var classBody: MutableList<Expression>) : Callable {
+    private val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
     override var args: List<String> = listOf()
 
