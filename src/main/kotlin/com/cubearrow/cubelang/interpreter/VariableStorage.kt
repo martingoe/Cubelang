@@ -7,13 +7,13 @@ import kotlin.collections.HashMap
  * The class storing the variables used. A [Stack] is used to save the variables in [MutableMap] form.
  */
 class VariableStorage {
-    private var variables = Stack<MutableMap<String, Any?>>()
+    private var variables = Stack<MutableMap<String, Variable>>()
 
     /**
      * Returns all of the variables up to a specific scope index
      */
-    private fun getVariablesInScope(scope: Int): HashMap<String, Any?> {
-        val result = HashMap<String, Any?>()
+    private fun getVariablesInScope(scope: Int): HashMap<String, Variable> {
+        val result = HashMap<String, Variable>()
         variables.subList(0, scope).forEach { result.putAll(it) }
         return result
     }
@@ -35,7 +35,15 @@ class VariableStorage {
      */
     fun addVariableToCurrentScope(name: String, value: Any?) {
         if(this.variables.empty()) addScope()
-        variables.peek()[name] = value
+        setValue(value, name, variables.size - 1)
+    }
+
+    private fun setValue(value: Any?, name: String, index: Int) {
+        if (value == null) {
+            variables[index][name] = Variable(name, null, VariableState.UNDEFINED)
+        } else {
+            variables[index][name] = Variable(name, value, VariableState.DEFINED)
+        }
     }
 
     /**
@@ -54,7 +62,7 @@ class VariableStorage {
         if (getCurrentVariables().containsKey(name)) {
             for (i in 0 until variables.size) {
                 if (variables[i].containsKey(name)) {
-                    variables[i][name] = value
+                    setValue(value, name, i)
                     return value
                 }
             }
@@ -65,7 +73,7 @@ class VariableStorage {
     /**
      * Adds multiple variables to the current scope, if there is no scope, one is added
      */
-    fun addVariablesToCurrentScope(map: Map<String, Any?>) {
+    fun addVariablesToCurrentScope(map: Map<String, Variable>) {
         if(this.variables.empty()) addScope()
         variables.peek().putAll(map)
     }

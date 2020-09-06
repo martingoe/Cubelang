@@ -26,7 +26,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         }
     }
 
-    override fun visitOperation(operation: Expression.Operation): Double? {
+    override fun visitOperation(operation: Expression.Operation): Any? {
         val right = evaluate(operation.expression2)
         val left = evaluate(operation.expression1)
 
@@ -41,6 +41,8 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 //Unreachable
                 else -> null
             }
+        } else if(right is String && left is String && operation.operator1.substring == "+") {
+            return left + right
         }
         Main.error(operation.operator1.line, operation.operator1.index, null, "Mathematical operations can only be performed on numbers")
         return null
@@ -61,7 +63,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return getVariableFromVariableStorage(variableStorage, varCall)
+        return getVariableFromVariableStorage(variableStorage, varCall).value
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
@@ -153,7 +155,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
         val klass = Klass(classDefinition.identifier1.substring,
-                functionStorage.functions.filter { it.name == classDefinition.identifier2.substring }.firstOrNull() as Klass?,
+                functionStorage.functions.firstOrNull { it.name == classDefinition.identifier2.substring } as Klass?,
                 classDefinition.expressionLst1)
         functionStorage.addFunction(klass)
         klass.initializeVariables(this)
@@ -163,7 +165,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         val instance = evaluate(instanceGet.expression1) as ClassInstance
         val expression = instanceGet.expression2
         if (expression is Expression.VarCall) {
-            return getVariableFromVariableStorage(instance.variableStorage, expression)
+            return getVariableFromVariableStorage(instance.variableStorage, expression).value
         } else if (expression is Expression.Call) {
             val args = expression.expressionLst1.map { evaluate(it) }
             return instance.functionStorage.getFunction(expression.identifier1.substring, expression.expressionLst1.size)?.let { instance.callFunction(it, args) }
@@ -171,10 +173,13 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         return null
     }
 
-    private fun getVariableFromVariableStorage(variables: VariableStorage, expression: Expression.VarCall): Any {
-        return (variables.getCurrentVariables()[expression.identifier1.substring]
-                ?: Main.error(expression.identifier1.line, expression.identifier1.index, null,
-                        "The variable with the name \"${expression.identifier1.substring}\" is not defined or out of scope."))
+    private fun getVariableFromVariableStorage(variables: VariableStorage, expression: Expression.VarCall): Variable {
+        val returnValue = variables.getCurrentVariables()[expression.identifier1.substring]
+        if (returnValue == null) {
+            Main.error(expression.identifier1.line, expression.identifier1.index, null,
+                    "The variable with the name \"${expression.identifier1.substring}\" is not defined or out of scope.")
+        }
+        return returnValue!!
     }
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {

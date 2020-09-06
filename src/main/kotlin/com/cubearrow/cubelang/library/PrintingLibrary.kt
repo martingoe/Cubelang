@@ -10,7 +10,7 @@ class PrintingLibrary {
         override val args = listOf("value")
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage) {
-            println(variableStorage.getCurrentVariables()["value"])
+            println(variableStorage.getCurrentVariables()["value"]?.value)
         }
     }
 }

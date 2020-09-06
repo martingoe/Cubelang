@@ -13,8 +13,8 @@ class UtilLibrary {
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Int {
             val any = variableStorage.getCurrentVariables()["string"]
-            if(any is String){
-                return any.length
+            if(any?.value is String){
+                return any.value.length
             }
             Main.error(-1, -1, null, "The function len() can only be called on strings.")
             return -1
@@ -27,8 +27,8 @@ class UtilLibrary {
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Double {
             val any = variableStorage.getCurrentVariables()["string"]
-            if(any is Double){
-                return any.absoluteValue
+            if(any?.value is Double){
+                return any.value.absoluteValue
             }
             Main.error(-1, -1, null, "The function abs() can only be called on numbers.")
             return -1.0

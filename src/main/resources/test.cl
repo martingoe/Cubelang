@@ -20,4 +20,3 @@ var test = null;
 println(x.test());
 println(x.test);
 println(y.test);
-println(test);
