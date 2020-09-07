@@ -19,6 +19,8 @@
 <comparator> ::= "\=\=|\!\=|\<|\>|\<\=|\>\="
 <and_gate> ::= "\&\&"
 <expressionLst> ::= "TODO"
+<identifierNull> ::= "TODO"
+<expressionNull> ::= "TODO"
 <any> ::= "TODO"
 <line_comment> ::= "#"
 <var> ::= "var"

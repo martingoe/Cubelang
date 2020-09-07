@@ -142,15 +142,24 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
         val ruleName: String
         val type: String
         // Handle the names that end with "Lst" to become a MutableList
-        if (term.name.indexOf("Lst") == term.name.length - 3) {
-            ruleName = term.name.substring(0, term.name.length - 3)
-            val rule = syntaxGrammarParser.getRuleFromString(ruleName)
-            type = "MutableList<${rule?.name?.capitalize() ?: "Token"}>"
-        } else if (term.name == "any") {
-            type = "Any?"
-        } else {
-            val rule = syntaxGrammarParser.getRuleFromString(term.name)
-            type = rule?.name?.capitalize() ?: "Token"
+        when {
+            term.name.indexOf("Lst") == term.name.length - 3 -> {
+                ruleName = term.name.substring(0, term.name.length - 3)
+                val rule = syntaxGrammarParser.getRuleFromString(ruleName)
+                type = "MutableList<${rule?.name?.capitalize() ?: "Token"}>"
+            }
+            term.name.endsWith("Null") -> {
+                ruleName = term.name.substring(0, term.name.length - 4)
+                val rule = syntaxGrammarParser.getRuleFromString(ruleName)
+                type = "${rule?.name?.capitalize() ?: "Token"}?"
+            }
+            term.name == "any" -> {
+                type = "Any?"
+            }
+            else -> {
+                val rule = syntaxGrammarParser.getRuleFromString(term.name)
+                type = rule?.name?.capitalize() ?: "Token"
+            }
         }
         return "var ${term.name}${ruleCount[term]}: ${type}, "
     }
