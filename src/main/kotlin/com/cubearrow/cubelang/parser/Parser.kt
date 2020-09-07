@@ -48,7 +48,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             current--
             value = parseOperation()
         } else if (currentToken.tokenType == TokenType.EQUALS && previousToken != null) {
-            value = Expression.Assignment(previousToken, nextExpressionUntilEnd() as Expression)
+            value = parseAssignment(previousToken)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
             value = Expression.Call(previousToken, args)
@@ -79,6 +79,10 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         value?.let { return it }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token: \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseAssignment(name: Token): Expression.Assignment {
+        return Expression.Assignment(name, nextExpressionUntilEnd() as Expression)
     }
 
     private fun parseGetOrSet(): Expression? {
@@ -129,9 +133,17 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseVarInitialization(): Expression? {
         val identifier = consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
-        consume(TokenType.EQUALS, "Expected '=' after in a variable initialization")
-        val expression = nextExpressionUntilEnd()
-        return expression?.let { Expression.VarInitialization(identifier, it) }
+        var type: Token? = null
+        if (peek(TokenType.COLON)) {
+            current++
+            type = consume(TokenType.IDENTIFIER, "Expected an identifier as the type")
+        }
+        var value: Expression? = null
+        if (peek(TokenType.EQUALS)) {
+            current++
+            value = nextExpressionUntilEnd()
+        }
+        return Expression.VarInitialization(identifier, type, value)
     }
 
 

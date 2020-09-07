@@ -1,6 +1,6 @@
 <expression> ::= <assignment> | <operation> | <call> | <literal>
 <assignment> ::= <identifier> <expression>
-<varInitialization> ::= <identifier> <expression>
+<varInitialization> ::= <identifier> <identifierNull> <expressionNull>
 <operation> ::= <expression> <operator> <expression>
 <call> ::= <identifier> <expressionLst>
 <literal> ::= <any>

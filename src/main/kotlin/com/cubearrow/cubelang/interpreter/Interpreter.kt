@@ -41,7 +41,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 //Unreachable
                 else -> null
             }
-        } else if(right is String && left is String && operation.operator1.substring == "+") {
+        } else if (right is String && left is String && operation.operator1.substring == "+") {
             return left + right
         }
         Main.error(operation.operator1.line, operation.operator1.index, null, "Mathematical operations can only be performed on numbers")
@@ -150,7 +150,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarInitialization(varInitialization: Expression.VarInitialization) {
-        variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, evaluate(varInitialization.expression1))
+        ExpressionUtils.computeVarInitialization(varInitialization, variableStorage, this)
     }
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {

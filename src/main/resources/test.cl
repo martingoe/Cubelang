@@ -14,9 +14,11 @@ class X : Y{
     var x = 10;
 }
 
-var x = X();
+var x: X = X();
 var y = Y();
-var test = null;
 println(x.test());
 println(x.test);
 println(y.test);
+x = 10;
+println(x);
+

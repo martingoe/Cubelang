@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.main.Main
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -33,16 +34,33 @@ class VariableStorage {
     /**
      * Adds a variable to the current scope, if there is no scope, one is added
      */
-    fun addVariableToCurrentScope(name: String, value: Any?) {
-        if(this.variables.empty()) addScope()
-        setValue(value, name, variables.size - 1)
+    fun addVariableToCurrentScope(name: String, type: String, value: Any?) {
+        if (this.variables.empty()) addScope()
+        setValue(value, name, type, variables.size - 1)
     }
 
-    private fun setValue(value: Any?, name: String, index: Int) {
+    private fun setValue(value: Any?, name: String, type: String, index: Int) {
         if (value == null) {
-            variables[index][name] = Variable(name, null, VariableState.UNDEFINED)
+            variables[index][name] = Variable(name, null, type, VariableState.UNDEFINED)
         } else {
-            variables[index][name] = Variable(name, value, VariableState.DEFINED)
+            val castedValue = castValue(value, type)
+            variables[index][name] = Variable(name, castedValue, type, VariableState.DEFINED)
+        }
+    }
+
+    private fun castValue(value: Any?, type: String): Any? {
+        return try {
+            when (type) {
+                "int" -> value as Int
+                "double" -> value as Double
+                "string" -> value as String
+                else -> {
+                    if (value is ClassInstance) value else throw ClassCastException()
+                }
+            }
+        } catch (e: ClassCastException) {
+            Main.error(-1, -1, null, "Could not cast $value to the type $type")
+            null
         }
     }
 
@@ -62,7 +80,7 @@ class VariableStorage {
         if (getCurrentVariables().containsKey(name)) {
             for (i in 0 until variables.size) {
                 if (variables[i].containsKey(name)) {
-                    setValue(value, name, i)
+                    setValue(value, name, variables[i][name]!!.type, i)
                     return value
                 }
             }
@@ -74,7 +92,7 @@ class VariableStorage {
      * Adds multiple variables to the current scope, if there is no scope, one is added
      */
     fun addVariablesToCurrentScope(map: Map<String, Variable>) {
-        if(this.variables.empty()) addScope()
+        if (this.variables.empty()) addScope()
         variables.peek().putAll(map)
     }
 

@@ -5,4 +5,4 @@ import com.cubearrow.cubelang.utils.NullValue
 enum class VariableState{
     UNDEFINED, DEFINED
 }
-data class Variable(val name: String, val value: Any? = NullValue(), val VariableState: VariableState)
+data class Variable(val name: String, val value: Any? = NullValue(), val type: String, val VariableState: VariableState)

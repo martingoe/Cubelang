@@ -1,5 +1,7 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.utils.ExpressionUtils
+
 interface Callable {
     val name: String
     val args: List<String>
@@ -14,7 +16,7 @@ interface Callable {
 
         //Add the argument variables to the variable stack
         for (i in this.args.indices) {
-            variableStorage.addVariableToCurrentScope(this.args[i], args[i])
+            variableStorage.addVariableToCurrentScope(this.args[i], ExpressionUtils.getType(null, args[i]), args[i])
         }
         val value = this.call(variableStorage, functionStorage)
         variableStorage.popScope()
