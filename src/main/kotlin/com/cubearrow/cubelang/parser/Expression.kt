@@ -13,7 +13,7 @@ abstract class Expression {
         }
     }
 
-    class VarInitialization (var identifier1: Token, var expression1: Expression) : Expression() {
+    class VarInitialization (var identifier1: Token, var identifierNull1: Token?, var expressionNull1: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarInitialization(this)
         }
