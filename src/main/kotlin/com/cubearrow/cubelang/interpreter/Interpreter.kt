@@ -3,6 +3,7 @@ package com.cubearrow.cubelang.interpreter
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
+import kotlin.math.pow
 
 /**
  * The interpreter for the AST, it runs the program. Implements the [Expression.ExpressionVisitor]
@@ -30,17 +31,20 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         val right = evaluate(operation.expression2)
         val left = evaluate(operation.expression1)
 
-        if (right is Double && left is Double) {
-            return when (operation.operator1.substring) {
-                "-" -> left - right
-                "+" -> left + right
-                "/" -> left / right
-                "*" -> left * right
-                "^" -> Math.pow(left, right)
-                "%" -> left % right
+        if (right is Number && left is Number) {
+            val rightDouble = right.toDouble()
+            val leftDouble = left.toDouble()
+            val value =  when (operation.operator1.substring) {
+                "-" -> leftDouble - rightDouble
+                "+" -> leftDouble + rightDouble
+                "/" -> leftDouble / rightDouble
+                "*" -> leftDouble * rightDouble
+                "^" -> leftDouble.pow(rightDouble)
+                "%" -> leftDouble % rightDouble
                 //Unreachable
                 else -> null
             }
+            return if(left is Int) value?.toInt() else value
         } else if (right is String && left is String && operation.operator1.substring == "+") {
             return left + right
         }
