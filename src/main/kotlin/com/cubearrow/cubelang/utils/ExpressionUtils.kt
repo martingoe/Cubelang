@@ -20,9 +20,10 @@ class ExpressionUtils {
         }
 
         fun computeVarInitialization(varInitialization: Expression.VarInitialization, variableStorage: VariableStorage, interpreter: Interpreter){
-            val type = getType(varInitialization.identifierNull1, varInitialization.expressionNull1)
+            val value = varInitialization.expressionNull1?.let { interpreter.evaluate(it) }
+            val type = getType(varInitialization.identifierNull1, value)
             if(varInitialization.expressionNull1 != null) {
-                variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, interpreter.evaluate(varInitialization.expressionNull1!!))
+                variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, value!!)
             } else{
                 variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, null)
             }
