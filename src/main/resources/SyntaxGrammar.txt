@@ -5,7 +5,7 @@
 <call> ::= <identifier> <expressionLst>
 <literal> ::= <any>
 <varCall> ::= <identifier>
-<functionDefinition> ::= <identifier> <expressionLst> <expressionLst>
+<functionDefinition> ::= <identifier> <expressionLst> <identifierNull> <expressionLst>
 <comparison> ::= <expression> <comparator> <expression>
 
 <ifStmnt> ::= <expression> <expressionLst> <expressionLst>

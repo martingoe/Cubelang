@@ -112,7 +112,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
                 result.expression1 = Expression.InstanceGet(expressions[i], expressions[i + 1])
             }
             i--
-
         }
         return result
     }
@@ -179,11 +178,16 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseFunctionDefinition(name: Token): Expression.FunctionDefinition {
         consume(TokenType.BRCKTL, "Expected '(' after a function name.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
+        var type: Token? = null
 
+        if (peek(TokenType.COLON)) {
+            current++
+            type = consume(TokenType.IDENTIFIER, "Expected an Identifier after ':' in a function definition.")
+        }
         consume(TokenType.CURLYL, "Expected '{' after the function args.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
 
-        return Expression.FunctionDefinition(name, args, body)
+        return Expression.FunctionDefinition(name, args, type, body)
     }
 
     private fun parseIfStmnt(): Expression.IfStmnt? {
