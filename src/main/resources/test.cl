@@ -1,24 +1,7 @@
-class Y {
-    var test = 10.0;
-    fun test(){
-        return 5;
-    };
+fun x (): char{
+var x:char = 20;
+return x;
 }
 
-class X : Y{
-    var test = 5;
-    fun test(){
-        return 10;
-    };
-
-    var x = 10;
-}
-
-var x: X = X();
-var y = Y();
-println(x.test());
-println(x.test);
-println(y.test);
-x = 10;
-println(x);
-
+var x = x();
+var y = 4;

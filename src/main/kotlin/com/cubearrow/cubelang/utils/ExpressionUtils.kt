@@ -21,7 +21,7 @@ class ExpressionUtils {
 
         fun computeVarInitialization(varInitialization: Expression.VarInitialization, variableStorage: VariableStorage, interpreter: Interpreter){
             val value = varInitialization.expressionNull1?.let { interpreter.evaluate(it) }
-            val type = getType(varInitialization.identifierNull1, value)
+            val type = getType(varInitialization.identifierNull1?.substring, value)
             if(varInitialization.expressionNull1 != null) {
                 variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, value!!)
             } else{
@@ -29,14 +29,15 @@ class ExpressionUtils {
             }
         }
 
-        fun getType(type: Token?, value: Any?): String {
+        fun getType(type: String?, value: Any?): String {
             var valueToCompare = value
             if(value is Expression.Literal) valueToCompare = value.any1
-            return type?.substring?.toLowerCase()
+            return type?.toLowerCase()
                     ?: when (valueToCompare){
                         is Int -> "int"
                         is Double -> "double"
                         is String -> "string"
+                        is Char -> "char"
                         is ClassInstance -> valueToCompare.className
                         null -> "any"
                         else -> "any"

@@ -2,11 +2,11 @@ section .text
     global _start
 _start:
 mov rbp, rsp
-sub rsp, 12
+sub rsp, 5
 
 call x 
-mov QWORD [rbp - 8], rax
-mov DWORD [rbp - 12], 4
+mov BYTE [rbp - 1], al
+mov DWORD [rbp - 5], 4
 
 
 mov rax, 60
@@ -16,9 +16,9 @@ syscall
 x:
 push rbp
 mov rbp, rsp
-sub rsp, 4
-mov DWORD [rbp - 4], 20
-mov rax, DWORD PTR [rdb-4]
+sub rsp, 1
+mov BYTE [rbp - 1], 20
+mov al, BYTE [rbp-1]
 
 leave
 ret
