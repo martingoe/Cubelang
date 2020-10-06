@@ -14,6 +14,9 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     private var stackIndex = Stack<Int>()
     private var lengthsOfTypes = mapOf("int" to 4, "char" to 1)
     private var currentReturnLength: Int? = null
+    private var lIndex: Int = 2
+    private var inIfCondition = false
+    private var separateReturnSegment = false
 
     private var variables: Stack<MutableMap<String, LocalVariable>> = Stack()
     private var functions: MutableMap<String, Function> = HashMap()
@@ -55,29 +58,23 @@ $functions"""
     }
 
     private fun getRegister(baseName: String, length: Int): String {
-        when (length) {
-            8 -> return "r${baseName}x"
-            4 -> {
-                return try {
-                    baseName.toInt()
-                    "r${baseName}d"
-                } catch (e: NumberFormatException) {
-                    "e${baseName}x"
-                }
+        return try {
+            baseName.toInt()
+            when (length) {
+                8 -> "r$baseName"
+                4 -> "r${baseName}d"
+                2 -> "r${baseName}w"
+                1 -> "r${baseName}b"
+                else -> ""
             }
-            2 -> return try {
-                baseName.toInt()
-                "r${baseName}w"
-            } catch (e: NumberFormatException) {
-                "${baseName}h"
+        } catch (e: NumberFormatException) {
+            when (length) {
+                8 -> "r${baseName}"
+                4 -> "e${baseName}"
+                2 -> "${baseName[0]}h"
+                1 -> "${baseName[0]}l"
+                else -> ""
             }
-            1 -> return try {
-                baseName.toInt()
-                "r${baseName}b"
-            } catch (e: NumberFormatException) {
-                "${baseName}l"
-            }
-            else -> return ""
         }
     }
 
@@ -93,7 +90,7 @@ $functions"""
             "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${assignment.expression1.accept(this)}"
         } else {
             "${assignment.expression1.accept(this)} \n" +
-                    "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${getRegister("a", variable.length)}"
+                    "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${getRegister("ax", variable.length)}"
         }
     }
 
@@ -107,7 +104,7 @@ $functions"""
                 stackIndex.push(stackIndex.pop() + length)
                 variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), type, length)
                 "mov ${getASMPointerLength(length)} [rbp - ${stackIndex.peek()}], $value"
-            }else if(varInitialization.expressionNull1 is Expression.Call){
+            } else if (varInitialization.expressionNull1 is Expression.Call) {
                 initializeCallingFunction(varInitialization, value)
             } else {
                 val length = 8
@@ -118,23 +115,25 @@ $functions"""
             }
         }
 
-        variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), varInitialization.identifierNull1!!.substring, lengthsOfTypes[varInitialization.identifierNull1!!.substring] ?: error("The returned type could not be found"))
+        variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), varInitialization.identifierNull1!!.substring, lengthsOfTypes[varInitialization.identifierNull1!!.substring]
+                ?: error("The returned type could not be found"))
         return ""
     }
 
     private fun initializeCallingFunction(varInitialization: Expression.VarInitialization, value: String?): String {
-        if (functions[varInitialization.identifier1.substring]?.returnType == null) {
+        val call = varInitialization.expressionNull1 as Expression.Call
+        if (functions[call.identifier1.substring]?.returnType == null) {
             Main.error((varInitialization.expressionNull1 as Expression.Call).identifier1.line, (varInitialization.expressionNull1 as Expression.Call).identifier1.line, null, "The function does not return a value")
             return ""
         }
 
-        val length = lengthsOfTypes[functions[varInitialization.identifier1.substring]!!.returnType]!!
+        val length = lengthsOfTypes[functions[call.identifier1.substring]!!.returnType]!!
         stackIndex.push(stackIndex.pop() + length)
 
         val type = ExpressionUtils.getType(functions[varInitialization.identifier1.substring]?.returnType, null)
         variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), type, length)
         return "$value \n" +
-                "mov ${getASMPointerLength(length)} [rbp - ${stackIndex.peek()}], ${getRegister("a", length)}"
+                "mov ${getASMPointerLength(length)} [rbp - ${stackIndex.peek()}], ${getRegister("ax", length)}"
     }
 
     override fun visitOperation(operation: Expression.Operation): String {
@@ -160,9 +159,10 @@ $functions"""
         if (x != null) {
             val lengthAsString = getASMPointerLength(x.length)
             return "$lengthAsString [rbp-${x.index}]"
-
         }
-        TODO("Not yet implemented")
+        Main.error(varCall.identifier1.line, varCall.identifier1.index, null,
+                "The requested variable does not exist in the current scope.")
+        return ""
     }
 
     private fun getASMPointerLength(length: Int): String {
@@ -193,18 +193,43 @@ $functions"""
         currentReturnLength = null
         return basic + """${stackIndex.pop()}
             |$statements
+            |${if (separateReturnSegment) ".L${lIndex}:" else ""}
             |leave
             |ret
         """.trimMargin()
-
     }
 
     override fun visitComparison(comparison: Expression.Comparison): String {
+        if (comparison.expression1 is Expression.VarCall && inIfCondition) {
+            if (comparison.expression2 is Expression.Literal || comparison.expression2 is Expression.VarCall) {
+                return "cmp ${comparison.expression1.accept(this)}, ${comparison.expression2.accept(this)}\n" +
+                        when (comparison.comparator1.substring) {
+                            "==" -> "jne"
+                            "!=" -> "je"
+                            "<" -> "jge"
+                            "<=" -> "jg"
+                            ">" -> "jle"
+                            ">=" -> "jl"
+                            else -> error("Comparison operator not expected")
+                        } + " .L${lIndex}"
+            }
+        }
         TODO("Not yet implemented")
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt): String {
-        TODO("Not yet implemented")
+        this.inIfCondition = true
+        val condition = ifStmnt.expression1.accept(this) + "\n"
+        val first = ifStmnt.expressionLst1.joinToString {
+            var x = it.accept(this)
+            if (it is Expression.ReturnStmnt) {
+                x += "\njmp .L${lIndex + 1}"
+                separateReturnSegment = true
+            }
+            x + "\n"
+        }
+        val after = ".L${lIndex++}:\n${ifStmnt.expressionLst2.joinToString { it.accept(this) }}"
+        return condition + first + after
     }
 
     override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt): String {
@@ -214,7 +239,7 @@ $functions"""
         }
 
         if (returnStmnt.expression1 is Expression.Literal || returnStmnt.expression1 is Expression.VarCall) {
-            return "mov ${getRegister("a", currentReturnLength!!)}, ${returnStmnt.expression1.accept(this)}"
+            return "mov ${getRegister("ax", currentReturnLength!!)}, ${returnStmnt.expression1.accept(this)}"
         }
         return ""
     }

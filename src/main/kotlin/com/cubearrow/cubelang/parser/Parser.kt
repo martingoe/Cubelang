@@ -196,7 +196,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         consume(TokenType.BRCKTR, "Expected '(' after the condition of the if statement.")
         consume(TokenType.CURLYL, "Expected '{' starting the body of the if statement.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        val elseBody: List<Expression> = if (tokens[current].tokenType == TokenType.ELSE) {
+        val elseBody: List<Expression> = if (peek(TokenType.ELSE)) {
+            current++
             consume(TokenType.CURLYL, "Expected '{' starting the else body of the if statement.")
             multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
         } else {
