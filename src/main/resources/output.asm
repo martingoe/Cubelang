@@ -4,6 +4,7 @@ _start:
 mov rbp, rsp
 sub rsp, 4
 
+mov edi, 4 
 call x 
 mov DWORD [rbp - 4], eax
 
@@ -15,15 +16,16 @@ syscall
 x:
 push rbp
 mov rbp, rsp
-sub rsp, 4
-mov DWORD [rbp - 4], 20
-cmp DWORD [rbp-4], 10
+sub rsp, 8
+mov DWORD[rbp - 4], edi
+mov DWORD [rbp - 8], DWORD [rbp-4]
+cmp DWORD [rbp-8], 10
 jge .L2
-mov DWORD [rbp - 4], 10
+mov DWORD [rbp - 8], 10
 .L2:
-mov DWORD [rbp - 4], 3
-mov DWORD [rbp - 4], 2
-mov eax, DWORD [rbp-4]
+mov DWORD [rbp - 8], 3
+mov DWORD [rbp - 8], 2
+mov eax, DWORD [rbp-8]
 
 
 leave

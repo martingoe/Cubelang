@@ -8,15 +8,19 @@ import java.util.*
 import kotlin.collections.HashMap
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
+    companion object{
+        val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
+    }
     data class LocalVariable(var index: Int, var type: String, var length: Int)
     data class Function(var name: String, var args: Map<String, String>, var returnType: String?)
 
     private var stackIndex = Stack<Int>()
     private var lengthsOfTypes = mapOf("int" to 4, "char" to 1)
     private var currentReturnLength: Int? = null
-    private var lIndex: Int = 2
+    private var lIndex = 2
     private var inIfCondition = false
     private var separateReturnSegment = false
+    private var argumentIndex = 0
 
     private var variables: Stack<MutableMap<String, LocalVariable>> = Stack()
     private var functions: MutableMap<String, Function> = HashMap()
@@ -57,26 +61,6 @@ $functions"""
  """.trimIndent()
     }
 
-    private fun getRegister(baseName: String, length: Int): String {
-        return try {
-            baseName.toInt()
-            when (length) {
-                8 -> "r$baseName"
-                4 -> "r${baseName}d"
-                2 -> "r${baseName}w"
-                1 -> "r${baseName}b"
-                else -> ""
-            }
-        } catch (e: NumberFormatException) {
-            when (length) {
-                8 -> "r${baseName}"
-                4 -> "e${baseName}"
-                2 -> "${baseName[0]}h"
-                1 -> "${baseName[0]}l"
-                else -> ""
-            }
-        }
-    }
 
     override fun visitAssignment(assignment: Expression.Assignment): String {
         val variable = variables.peek()[assignment.identifier1.substring]
@@ -90,7 +74,7 @@ $functions"""
             "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${assignment.expression1.accept(this)}"
         } else {
             "${assignment.expression1.accept(this)} \n" +
-                    "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${getRegister("ax", variable.length)}"
+                    "mov ${getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${CompilerUtils.getRegister("ax", variable.length)}"
         }
     }
 
@@ -99,7 +83,14 @@ $functions"""
             val value = varInitialization.expressionNull1?.accept(this)
 
             return if (varInitialization.expressionNull1 is Expression.Literal || varInitialization.expressionNull1 is Expression.VarCall) {
-                val type = ExpressionUtils.getType(varInitialization.identifierNull1?.substring, (varInitialization.expressionNull1 as Expression.Literal).any1)
+                val type:String
+                if(varInitialization.expressionNull1 is Expression.Literal){
+                    type = ExpressionUtils.getType(varInitialization.identifierNull1?.substring,  (varInitialization.expressionNull1 as Expression.Literal).any1)
+                } else{
+                    val varCall = varInitialization.expressionNull1 as Expression.VarCall
+                    type = variables.peek()[varCall.identifier1.substring]!!.type
+                    varInitialization.identifierNull1?.let { if(it.substring != type) Main.error(it.line, it.index, null, "Mismatched types") }
+                }
                 val length = lengthsOfTypes[type] ?: TODO("Type not yet supported")
                 stackIndex.push(stackIndex.pop() + length)
                 variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), type, length)
@@ -133,7 +124,7 @@ $functions"""
         val type = ExpressionUtils.getType(functions[varInitialization.identifier1.substring]?.returnType, null)
         variables.peek()[varInitialization.identifier1.substring] = LocalVariable(stackIndex.peek(), type, length)
         return "$value \n" +
-                "mov ${getASMPointerLength(length)} [rbp - ${stackIndex.peek()}], ${getRegister("ax", length)}"
+                "mov ${getASMPointerLength(length)} [rbp - ${stackIndex.peek()}], ${CompilerUtils.getRegister("ax", length)}"
     }
 
     override fun visitOperation(operation: Expression.Operation): String {
@@ -141,8 +132,24 @@ $functions"""
     }
 
     override fun visitCall(call: Expression.Call): String {
-        if (functions[call.identifier1.substring] != null)
-            return "call ${call.identifier1.substring}"
+        val function = functions[call.identifier1.substring]
+        if (function != null) {
+            argumentIndex = 0
+            var args = ""
+            for (i in 0 until call.expressionLst1.size){
+                val expression = call.expressionLst1[i]
+                val argumentType = function.args[function.args.keys.elementAt(i)] ?: TODO()
+                val argumentLength = lengthsOfTypes[argumentType] ?: TODO()
+                val baseString = "mov ${ARGUMENT_INDEXES[argumentIndex++]?.let { CompilerUtils.getRegister(it, argumentLength) }}, "
+                args += if(expression is Expression.Literal || expression is Expression.VarCall){
+                    "$baseString${expression.accept(this)} \n"
+                } else{
+                    "${expression.accept(this)} \n" +
+                            "$baseString${CompilerUtils.getRegister("ax", argumentLength)} \n"
+                }
+            }
+            return "${args}call ${call.identifier1.substring}"
+        }
         Main.error(call.identifier1.line, call.identifier1.index, null, "The called function does not exist.")
         TODO("Not yet implemented")
     }
@@ -178,20 +185,23 @@ $functions"""
     class UnknownByteSizeException : Throwable()
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): String {
-        functions[functionDefinition.identifier1.substring] = Function(functionDefinition.identifier1.substring, mapOf("i" to "e"), functionDefinition.identifierNull1?.substring) //TODO
+        val args = LinkedHashMap<String, String>()
+        functionDefinition.expressionLst1.map { it as Expression.ArgumentDefinition }.forEach { args[it.identifier1.substring] = it.identifier2.substring }
+        functions[functionDefinition.identifier1.substring] = Function(functionDefinition.identifier1.substring, args, functionDefinition.identifierNull1?.substring) //TODO
         stackIndex.push(0)
-        val basic = """${functionDefinition.identifier1.substring}:
-            |push rbp
-            |mov rbp, rsp
-            |sub rsp, """.trimMargin()
-
+        variables.push(HashMap())
         var statements = ""
         currentReturnLength = lengthsOfTypes[functionDefinition.identifierNull1?.substring]
-        functionDefinition.expressionLst2.forEach {
-            statements += it.accept(this) + "\n"
-        }
+        argumentIndex = 0
+        functionDefinition.expressionLst1.forEach { statements += it.accept(this) + "\n" }
+        functionDefinition.expressionLst2.forEach { statements += it.accept(this) + "\n" }
+        variables.pop()
         currentReturnLength = null
-        return basic + """${stackIndex.pop()}
+
+        return """${functionDefinition.identifier1.substring}:
+            |push rbp
+            |mov rbp, rsp
+            |sub rsp, ${stackIndex.pop()}
             |$statements
             |${if (separateReturnSegment) ".L${lIndex}:" else ""}
             |leave
@@ -239,7 +249,7 @@ $functions"""
         }
 
         if (returnStmnt.expression1 is Expression.Literal || returnStmnt.expression1 is Expression.VarCall) {
-            return "mov ${getRegister("ax", currentReturnLength!!)}, ${returnStmnt.expression1.accept(this)}"
+            return "mov ${CompilerUtils.getRegister("ax", currentReturnLength!!)}, ${returnStmnt.expression1.accept(this)}"
         }
         return ""
     }
@@ -262,5 +272,16 @@ $functions"""
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet): String {
         TODO("Not yet implemented")
+    }
+
+    override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): String {
+        val length: Int = (lengthsOfTypes[argumentDefinition.identifier2.substring] ?:
+        Main.error(argumentDefinition.identifier2.line, argumentDefinition.identifier2.index, null,
+                "The specified type cannot be found")) as Int
+
+        stackIndex.push(stackIndex.pop() + length)
+        variables.peek()[argumentDefinition.identifier1.substring] = LocalVariable(stackIndex.peek(), argumentDefinition.identifier2.substring, length)
+
+        return "mov ${getASMPointerLength(length)}[rbp - ${stackIndex.peek()}], ${ARGUMENT_INDEXES[argumentIndex++]?.let { CompilerUtils.getRegister(it, length) }}"
     }
 }

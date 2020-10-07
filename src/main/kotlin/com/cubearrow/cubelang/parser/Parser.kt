@@ -69,6 +69,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             value = parseVarInitialization()
         } else if (currentToken.tokenType == TokenType.CLASS) {
             value = parseClass()
+        } else if (currentToken.tokenType == TokenType.COLON && previousToken != null) {
+            value = parseArgumentDefinition()
         } else if (currentToken.tokenType == TokenType.DOT) {
             if (previousToken != null) {
                 parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it) }
@@ -79,6 +81,12 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         value?.let { return it }
         Main.error(currentToken.line, currentToken.index, null, "Unexpected token: \"${currentToken.substring}\"")
         return null
+    }
+
+    private fun parseArgumentDefinition(): Expression? {
+        val name = tokens[current - 1]
+        val type = consume(TokenType.IDENTIFIER, "Expected a type after ':' in an argument definition")
+        return Expression.ArgumentDefinition(name, type)
     }
 
     private fun parseAssignment(name: Token): Expression.Assignment {

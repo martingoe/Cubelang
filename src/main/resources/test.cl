@@ -1,5 +1,5 @@
-fun x():int{
-    var x = 20;
+fun x(z: int):int{
+    var x = z;
     if(x < 10){
         x = 10;
     } else {
@@ -8,4 +8,4 @@ fun x():int{
     x = 2;
     return x;
 };
-var res = x();
+var res = x(4);
