@@ -71,7 +71,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
-        val args = functionDefinition.expressionLst1.map {(it as Expression.ArgumentDefinition).identifier1.substring to it.identifier2.substring}.toMap()
+        val args = ExpressionUtils.mapArgumentDefinitions(functionDefinition.expressionLst1)
         functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
     }
 

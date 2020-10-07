@@ -8,14 +8,14 @@ import com.cubearrow.cubelang.parser.Expression
 class ExpressionUtils {
     companion object {
         /**
-         * Maps a [List] of [Expression] which may only contain [Expression.VarCall] to their substrings
+         * Maps a [List] of [Expression] which may only contain [Expression.ArgumentDefinition] to their substrings
          *
          * @throws TypeCastException Throws this exception when one of the elements of the expressions are not a [Expression.VarCall]
          * @param expressions The expressions whose names are to be returned
-         * @return Returns a [List] of [String]s with the substrings of the identifier of the [Expression.VarCall]
+         * @return Returns a [Map] of [String]s mapped to [String]s with the substrings of the identifier of the [Expression.ArgumentDefinition]
          */
-        fun mapVarCallsToStrings(expressions: List<Expression>): List<String> {
-            return expressions.map { (it as Expression.VarCall).identifier1.substring }
+        fun mapArgumentDefinitions(expressions: List<Expression>): Map<String, String> {
+            return expressions.associate { Pair((it as Expression.ArgumentDefinition).identifier1.substring, it.identifier2.substring) }
         }
 
         fun computeVarInitialization(varInitialization: Expression.VarInitialization, variableStorage: VariableStorage, interpreter: Interpreter) {

@@ -29,7 +29,7 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
     }
     init{
         classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.identifier1.substring == "init" }
-                .forEach() {this.args = it.expressionLst1.map { it2 -> (it2 as Expression.ArgumentDefinition).identifier1.substring to it2.identifier2.substring }.toMap()}
+                .forEach {ExpressionUtils.mapArgumentDefinitions(it.expressionLst1)}
     }
 
     /**
