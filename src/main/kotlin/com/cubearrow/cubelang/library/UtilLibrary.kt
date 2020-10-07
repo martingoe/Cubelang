@@ -9,7 +9,7 @@ import kotlin.math.absoluteValue
 class UtilLibrary {
     class Len : Callable {
         override val name = "len"
-        override val args = listOf("string")
+        override val args = mapOf("string" to "string")
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Int {
             val any = variableStorage.getCurrentVariables()["string"]
@@ -23,7 +23,7 @@ class UtilLibrary {
     }
     class Abs : Callable {
         override val name = "abs"
-        override val args = listOf("string")
+        override val args = mapOf("string" to "string")
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Double {
             val any = variableStorage.getCurrentVariables()["string"]

@@ -7,7 +7,7 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 class Klass(override val name: String, private var inheritsFrom: Klass?, private var classBody: MutableList<Expression>) : Callable {
     private val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
-    override var args: List<String> = listOf()
+    override var args: Map<String, String> = mapOf()
 
     /**
      * Creates an instance of the Klass
@@ -29,7 +29,7 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
     }
     init{
         classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.identifier1.substring == "init" }
-                .forEach() {this.args = ExpressionUtils.mapVarCallsToStrings(it.expressionLst1)}
+                .forEach() {this.args = it.expressionLst1.map { it2 -> (it2 as Expression.ArgumentDefinition).identifier1.substring to it2.identifier2.substring }.toMap()}
     }
 
     /**
@@ -44,7 +44,7 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
 
         for (expression in classBody) {
             if (expression is Expression.FunctionDefinition) {
-                val expressionArgs = expression.expressionLst1.map { (it as Expression.VarCall).identifier1.substring }
+                val expressionArgs = expression.expressionLst1.map { (it as Expression.ArgumentDefinition).identifier1.substring to it.identifier2.substring }.toMap()
                 this.functionStorage.removeFunction(expression.identifier1, expressionArgs)
                 this.functionStorage.addFunction(expression.identifier1, expressionArgs, expression.expressionLst2)
             }

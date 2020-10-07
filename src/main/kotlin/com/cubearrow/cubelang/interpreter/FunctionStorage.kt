@@ -9,7 +9,7 @@ import com.cubearrow.cubelang.parser.Expression
  * Stores the instances of [Callable] defined in a program
  */
 class FunctionStorage {
-    class Function(override val name: String, override var args: List<String>, private var body: List<Expression>) : Callable {
+    class Function(override val name: String, override var args: Map<String, String>, private var body: List<Expression>) : Callable {
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Any? {
             return Interpreter(this.body, variableStorage, functionStorage).returnedValue
         }
@@ -24,7 +24,7 @@ class FunctionStorage {
      * @param args The arguments the function will take
      * @param body The [List] of [Expression] representing the body
      */
-    fun addFunction(name: Token, args: List<String>, body: List<Expression>) {
+    fun addFunction(name: Token, args: Map<String, String>, body: List<Expression>) {
         if (functions.stream().anyMatch { it.name == name.substring && it.args == args }) {
             Main.error(name.line, name.index, null, "A function with the specified name and argument size already exists")
         } else {
@@ -76,7 +76,7 @@ class FunctionStorage {
      * @param name The name of the function
      * @param arguments The arguments of the function
      */
-    fun removeFunction(name: Token, arguments: List<String>) {
+    fun removeFunction(name: Token, arguments: Map<String, String>) {
         functions.remove(functions.firstOrNull { it.name == name.substring && it.args == arguments })
     }
 

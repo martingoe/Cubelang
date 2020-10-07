@@ -6,7 +6,9 @@ class Library {
     val classes = ArrayList<Callable>()
    
     init {
-        classes.add(PrintingLibrary.Println())
+        classes.add(PrintingLibrary.printDouble())
+        classes.add(PrintingLibrary.printInt())
+        classes.add(PrintingLibrary.printString())
         classes.add(UtilLibrary.Abs())
         classes.add(UtilLibrary.Len())
     }

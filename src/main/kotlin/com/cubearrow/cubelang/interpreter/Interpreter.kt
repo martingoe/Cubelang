@@ -71,7 +71,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
-        val args = ExpressionUtils.mapVarCallsToStrings(functionDefinition.expressionLst1)
+        val args = functionDefinition.expressionLst1.map {(it as Expression.ArgumentDefinition).identifier1.substring to it.identifier2.substring}.toMap()
         functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
     }
 
@@ -91,20 +91,34 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         val left = evaluate(comparison.expression1)
         val right = evaluate(comparison.expression2)
         try {
-            return when (comparison.comparator1.substring) {
-                "==" -> left == right
-                "!=" -> left != right
-                "<" -> (left as Double) < right as Double
-                "<=" -> left as Double <= right as Double
-                ">" -> left as Double > right as Double
-                ">=" -> left as Double >= right as Double
-                // Unreachable
-                else -> return false
+            if(left is Double && right is Double) {
+                return when (comparison.comparator1.substring) {
+                    "==" -> left == right
+                    "!=" -> left != right
+                    "<" -> left < right
+                    "<=" -> left <= right
+                    ">" -> left > right
+                    ">=" -> left >= right
+                    // Unreachable
+                    else -> return false
+                }
+            } else if(left is Int && right is Int){
+                return when (comparison.comparator1.substring) {
+                    "==" -> left == right
+                    "!=" -> left != right
+                    "<" -> left < right
+                    "<=" -> left <= right
+                    ">" -> left > right
+                    ">=" -> left >= right
+                    // Unreachable
+                    else -> return false
+                }
             }
         } catch (error: TypeCastException) {
             Main.error(comparison.comparator1.line, comparison.comparator1.index, null, "The comparator \"${comparison.comparator1.substring}\" can only be executed on numbers.")
             return false
         }
+        return false
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {

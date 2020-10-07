@@ -5,9 +5,25 @@ import com.cubearrow.cubelang.interpreter.FunctionStorage
 import com.cubearrow.cubelang.interpreter.VariableStorage
 
 class PrintingLibrary {
-    class Println : Callable {
-        override val name = "println"
-        override val args = listOf("value")
+    class printString : Callable {
+        override val name = "printString"
+        override val args = mapOf("value" to "string")
+
+        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage) {
+            println(variableStorage.getCurrentVariables()["value"]?.value)
+        }
+    }
+    class printInt : Callable {
+        override val name = "printInt"
+        override val args = mapOf("value" to "int")
+
+        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage) {
+            println(variableStorage.getCurrentVariables()["value"]?.value)
+        }
+    }
+    class printDouble : Callable {
+        override val name = "printDouble"
+        override val args = mapOf("value" to "double")
 
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage) {
             println(variableStorage.getCurrentVariables()["value"]?.value)
