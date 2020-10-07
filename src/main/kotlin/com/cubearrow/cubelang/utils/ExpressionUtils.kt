@@ -3,7 +3,6 @@ package com.cubearrow.cubelang.utils
 import com.cubearrow.cubelang.interpreter.ClassInstance
 import com.cubearrow.cubelang.interpreter.Interpreter
 import com.cubearrow.cubelang.interpreter.VariableStorage
-import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.parser.Expression
 
 class ExpressionUtils {
@@ -19,21 +18,21 @@ class ExpressionUtils {
             return expressions.map { (it as Expression.VarCall).identifier1.substring }
         }
 
-        fun computeVarInitialization(varInitialization: Expression.VarInitialization, variableStorage: VariableStorage, interpreter: Interpreter){
+        fun computeVarInitialization(varInitialization: Expression.VarInitialization, variableStorage: VariableStorage, interpreter: Interpreter) {
             val value = varInitialization.expressionNull1?.let { interpreter.evaluate(it) }
             val type = getType(varInitialization.identifierNull1?.substring, value)
-            if(varInitialization.expressionNull1 != null) {
+            if (varInitialization.expressionNull1 != null) {
                 variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, value!!)
-            } else{
+            } else {
                 variableStorage.addVariableToCurrentScope(varInitialization.identifier1.substring, type, null)
             }
         }
 
         fun getType(type: String?, value: Any?): String {
             var valueToCompare = value
-            if(value is Expression.Literal) valueToCompare = value.any1
+            if (value is Expression.Literal) valueToCompare = value.any1
             return type?.toLowerCase()
-                    ?: when (valueToCompare){
+                    ?: when (valueToCompare) {
                         is Int -> "int"
                         is Double -> "double"
                         is String -> "string"

@@ -193,4 +193,8 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             instance.variableStorage.updateVariable(expression.identifier1.substring, evaluate(expression.expression1))
         }
     }
+
+    override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): Any? {
+        TODO("Not yet implemented")
+    }
 }
