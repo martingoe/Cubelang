@@ -79,7 +79,7 @@ abstract class Expression {
         }
     }
 
-    class ClassDefinition (var identifier1: Token, var identifier2: Token, var expressionLst1: MutableList<Expression>) : Expression() {
+    class ClassDefinition (var identifier1: Token, var identifierNull1: Token?, var expressionLst1: MutableList<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitClassDefinition(this)
         }

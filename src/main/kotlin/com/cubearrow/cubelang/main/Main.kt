@@ -26,7 +26,7 @@ class Main {
         val syntaxParserSingleton: Singleton<BnfParser> = Singleton()
         val tokenGrammarSingleton: Singleton<TokenGrammar> = Singleton()
         var containsError: Boolean = false
-        var useCompiler = false
+        var useCompiler = true
 
 
         fun error(line: Int, index: Int, fullLine: String?, message: String) {

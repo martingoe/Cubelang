@@ -8,4 +8,3 @@ fun x(z: int):int{
     return x;
 };
 var res = x(4);
-printInt(res);

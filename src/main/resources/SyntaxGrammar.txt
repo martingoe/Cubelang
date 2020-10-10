@@ -12,7 +12,7 @@
 <returnStmnt> ::= <expression>
 <whileStmnt> ::= <expression> <expressionLst>
 <forStmnt> ::= <expressionLst> <expressionLst>
-<classDefinition> ::= <identifier> <identifier> <expressionLst>
+<classDefinition> ::= <identifier> <identifierNull> <expressionLst>
 <instanceGet> ::= <expression> <expression>
 <instanceSet> ::= <expression> <expression>
 <argumentDefinition> ::= <identifier> <identifier>

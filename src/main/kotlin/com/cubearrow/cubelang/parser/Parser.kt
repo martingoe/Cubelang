@@ -126,11 +126,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
     private fun parseClass(): Expression? {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
-        var implements = Token("", TokenType.IDENTIFIER, -1, -1)
-        if (peek(TokenType.COLON)) {
-            current++
-            implements = consume(TokenType.IDENTIFIER, "Expected an identifier after : in a class definition")
-        }
+        val implements = getType()
         consume(TokenType.CURLYL, "Expected '{' after the class identifier")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter { it is Expression.VarInitialization || it is Expression.FunctionDefinition }
 
@@ -138,13 +134,17 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         return Expression.ClassDefinition(name, implements, body as MutableList<Expression>)
     }
 
-    private fun parseVarInitialization(): Expression? {
-        val identifier = consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
-        var type: Token? = null
+    private fun getType(): Token? {
         if (peek(TokenType.COLON)) {
             current++
-            type = consume(TokenType.IDENTIFIER, "Expected an identifier as the type")
+            return consume(TokenType.IDENTIFIER, "Expected an identifier after ':'")
         }
+        return null
+    }
+
+    private fun parseVarInitialization(): Expression? {
+        val identifier = consume(TokenType.IDENTIFIER, "Expected an identifier after 'var'")
+        val type = getType()
         var value: Expression? = null
         if (peek(TokenType.EQUALS)) {
             current++
@@ -186,12 +186,8 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseFunctionDefinition(name: Token): Expression.FunctionDefinition {
         consume(TokenType.BRCKTL, "Expected '(' after a function name.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
-        var type: Token? = null
 
-        if (peek(TokenType.COLON)) {
-            current++
-            type = consume(TokenType.IDENTIFIER, "Expected an Identifier after ':' in a function definition.")
-        }
+        val type = getType()
         consume(TokenType.CURLYL, "Expected '{' after the function args.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
 

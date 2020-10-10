@@ -173,7 +173,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
         val klass = Klass(classDefinition.identifier1.substring,
-                functionStorage.functions.firstOrNull { it.name == classDefinition.identifier2.substring } as Klass?,
+                functionStorage.functions.firstOrNull { it.name == classDefinition.identifierNull1?.substring } as Klass?,
                 classDefinition.expressionLst1)
         functionStorage.addFunction(klass)
         klass.initializeVariables(this)

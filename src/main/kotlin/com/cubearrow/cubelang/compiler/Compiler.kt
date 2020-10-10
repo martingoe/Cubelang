@@ -8,9 +8,10 @@ import java.util.*
 import kotlin.collections.HashMap
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
-    companion object{
+    companion object {
         val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
     }
+
     data class LocalVariable(var index: Int, var type: String, var length: Int)
     data class Function(var name: String, var args: Map<String, String>, var returnType: String?)
 
@@ -24,6 +25,10 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
 
     private var variables: Stack<MutableMap<String, LocalVariable>> = Stack()
     private var functions: MutableMap<String, Function> = HashMap()
+
+    private fun evaluateList(list: List<Expression>): String {
+        return list.joinToString { it.accept(this) + "\n" }
+    }
 
     init {
         variables.push(HashMap())
@@ -83,13 +88,13 @@ $functions"""
             val value = varInitialization.expressionNull1?.accept(this)
 
             return if (varInitialization.expressionNull1 is Expression.Literal || varInitialization.expressionNull1 is Expression.VarCall) {
-                val type:String
-                if(varInitialization.expressionNull1 is Expression.Literal){
-                    type = ExpressionUtils.getType(varInitialization.identifierNull1?.substring,  (varInitialization.expressionNull1 as Expression.Literal).any1)
-                } else{
+                val type: String
+                if (varInitialization.expressionNull1 is Expression.Literal) {
+                    type = ExpressionUtils.getType(varInitialization.identifierNull1?.substring, (varInitialization.expressionNull1 as Expression.Literal).any1)
+                } else {
                     val varCall = varInitialization.expressionNull1 as Expression.VarCall
                     type = variables.peek()[varCall.identifier1.substring]!!.type
-                    varInitialization.identifierNull1?.let { if(it.substring != type) Main.error(it.line, it.index, null, "Mismatched types") }
+                    varInitialization.identifierNull1?.let { if (it.substring != type) Main.error(it.line, it.index, null, "Mismatched types") }
                 }
                 val length = lengthsOfTypes[type] ?: TODO("Type not yet supported")
                 stackIndex.push(stackIndex.pop() + length)
@@ -136,14 +141,14 @@ $functions"""
         if (function != null) {
             argumentIndex = 0
             var args = ""
-            for (i in 0 until call.expressionLst1.size){
+            for (i in 0 until call.expressionLst1.size) {
                 val expression = call.expressionLst1[i]
                 val argumentType = function.args[function.args.keys.elementAt(i)] ?: TODO()
                 val argumentLength = lengthsOfTypes[argumentType] ?: TODO()
                 val baseString = "mov ${ARGUMENT_INDEXES[argumentIndex++]?.let { CompilerUtils.getRegister(it, argumentLength) }}, "
-                args += if(expression is Expression.Literal || expression is Expression.VarCall){
+                args += if (expression is Expression.Literal || expression is Expression.VarCall) {
                     "$baseString${expression.accept(this)} \n"
-                } else{
+                } else {
                     "${expression.accept(this)} \n" +
                             "$baseString${CompilerUtils.getRegister("ax", argumentLength)} \n"
                 }
@@ -185,16 +190,13 @@ $functions"""
     class UnknownByteSizeException : Throwable()
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): String {
-        val args = LinkedHashMap<String, String>()
-        functionDefinition.expressionLst1.map { it as Expression.ArgumentDefinition }.forEach { args[it.identifier1.substring] = it.identifier2.substring }
-        functions[functionDefinition.identifier1.substring] = Function(functionDefinition.identifier1.substring, args, functionDefinition.identifierNull1?.substring) //TODO
+        val args = ExpressionUtils.mapArgumentDefinitions(functionDefinition.expressionLst1)
+        functions[functionDefinition.identifier1.substring] = Function(functionDefinition.identifier1.substring, args, functionDefinition.identifierNull1?.substring)
         stackIndex.push(0)
         variables.push(HashMap())
-        var statements = ""
         currentReturnLength = lengthsOfTypes[functionDefinition.identifierNull1?.substring]
         argumentIndex = 0
-        functionDefinition.expressionLst1.forEach { statements += it.accept(this) + "\n" }
-        functionDefinition.expressionLst2.forEach { statements += it.accept(this) + "\n" }
+        val statements = evaluateList(functionDefinition.expressionLst1) + evaluateList(functionDefinition.expressionLst2)
         variables.pop()
         currentReturnLength = null
 
@@ -275,9 +277,9 @@ $functions"""
     }
 
     override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): String {
-        val length: Int = (lengthsOfTypes[argumentDefinition.identifier2.substring] ?:
-        Main.error(argumentDefinition.identifier2.line, argumentDefinition.identifier2.index, null,
-                "The specified type cannot be found")) as Int
+        val length: Int = (lengthsOfTypes[argumentDefinition.identifier2.substring]
+                ?: Main.error(argumentDefinition.identifier2.line, argumentDefinition.identifier2.index, null,
+                        "The specified type cannot be found")) as Int
 
         stackIndex.push(stackIndex.pop() + length)
         variables.peek()[argumentDefinition.identifier1.substring] = LocalVariable(stackIndex.peek(), argumentDefinition.identifier2.substring, length)
