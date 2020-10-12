@@ -26,10 +26,6 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     private var variables: Stack<MutableMap<String, LocalVariable>> = Stack()
     private var functions: MutableMap<String, Function> = HashMap()
 
-    private fun evaluateList(list: List<Expression>): String {
-        return list.joinToString { it.accept(this) + "\n" }
-    }
-
     init {
         variables.push(HashMap())
         stackIndex.push(0)
@@ -196,7 +192,9 @@ $functions"""
         variables.push(HashMap())
         currentReturnLength = lengthsOfTypes[functionDefinition.identifierNull1?.substring]
         argumentIndex = 0
-        val statements = evaluateList(functionDefinition.expressionLst1) + evaluateList(functionDefinition.expressionLst2)
+        var statements = ""
+        functionDefinition.expressionLst1.forEach { statements += it.accept(this) + "\n" }
+        functionDefinition.expressionLst2.forEach { statements += it.accept(this) + "\n" }
         variables.pop()
         currentReturnLength = null
 
