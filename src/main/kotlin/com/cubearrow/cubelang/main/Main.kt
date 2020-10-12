@@ -56,7 +56,7 @@ class Main {
 
         syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
         val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
-        val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON)).parse()
+        val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON, TokenType.CURLYR)).parse()
         if (useCompiler) {
             Compiler(expressions, "src/main/resources/output.asm")
         } else {

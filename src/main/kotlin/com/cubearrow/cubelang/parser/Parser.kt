@@ -60,7 +60,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         } else if (currentToken.tokenType == TokenType.IF) {
             value = parseIfStmnt()
         } else if (currentToken.tokenType == TokenType.RETURN) {
-            value = nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
+            value = nextExpressionUntilEnd()?.let { current++; Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
             value = parseWhileStatement()
         } else if (currentToken.tokenType == TokenType.FOR) {
@@ -86,16 +86,19 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseArgumentDefinition(): Expression? {
         val name = tokens[current - 1]
         val type = consume(TokenType.IDENTIFIER, "Expected a type after ':' in an argument definition")
+        consume(listOf(TokenType.BRCKTR, TokenType.COMMA), "Expected a ')' or a ',' after an argument definition")
         return Expression.ArgumentDefinition(name, type)
     }
 
     private fun parseAssignment(name: Token): Expression.Assignment {
-        return Expression.Assignment(name, nextExpressionUntilEnd() as Expression)
+        val expression = nextExpressionUntilEnd() as Expression
+        current++
+        return Expression.Assignment(name, expression)
     }
 
     private fun parseGetOrSet(): Expression? {
         val previous = this.expressions.removeAt(this.expressions.size - 1)
-        val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON, TokenType.OPERATOR, TokenType.EQUALS) as MutableList<TokenType>, TokenType.DOT)
+        val expressions = multipleExpressions(listOf(TokenType.BRCKTR, TokenType.SEMICOLON, TokenType.OPERATOR, TokenType.EQUALS) as MutableList<TokenType>, listOf(TokenType.DOT))
         expressions.add(0, previous)
         val result: Expression
         if (tokens[current].tokenType == TokenType.EQUALS) {
@@ -128,7 +131,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier after 'class'")
         val implements = getType()
         consume(TokenType.CURLYL, "Expected '{' after the class identifier")
-        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON).filter { it is Expression.VarInitialization || it is Expression.FunctionDefinition }
+        val body = multipleExpressions(listOf(TokenType.CURLYR), listOf(TokenType.SEMICOLON, TokenType.CURLYR)).filter { it is Expression.VarInitialization || it is Expression.FunctionDefinition }
 
 
         return Expression.ClassDefinition(name, implements, body as MutableList<Expression>)
@@ -150,6 +153,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             current++
             value = nextExpressionUntilEnd()
         }
+        consume(TokenType.SEMICOLON, "Expected an ';'")
         return Expression.VarInitialization(identifier, type, value)
     }
 
@@ -157,7 +161,9 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun parseForLoop(): Expression? {
         consume(TokenType.BRCKTL, "Expected '(' after 'for'.")
         val args = multipleExpressions(TokenType.BRCKTR, TokenType.SEMICOLON)
-        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        consume(TokenType.CURLYL, "Expected '{' starting the body of a for loop")
+        val body = multipleExpressions(listOf(TokenType.CURLYR), listOf(TokenType.SEMICOLON, TokenType.CURLYR))
+        consume(TokenType.CURLYR, "Expected '}' after the for loop body.")
         return Expression.ForStmnt(args, body)
     }
 
@@ -167,6 +173,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         consume(TokenType.BRCKTR, "Expected ')' after the condition of a while loop.")
         consume(TokenType.CURLYL, "Expected '{' starting the body of a while loop.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        consume(TokenType.CURLYR, "Expected '}' after the while loop body.")
         return condition?.let { Expression.WhileStmnt(it, body) }
     }
 
@@ -189,7 +196,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
         val type = getType()
         consume(TokenType.CURLYL, "Expected '{' after the function args.")
-        val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        val body = multipleExpressions(listOf(TokenType.CURLYR), listOf(TokenType.SEMICOLON, TokenType.CURLYR))
 
         return Expression.FunctionDefinition(name, args, type, body)
     }
@@ -200,14 +207,16 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         consume(TokenType.BRCKTR, "Expected '(' after the condition of the if statement.")
         consume(TokenType.CURLYL, "Expected '{' starting the body of the if statement.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+        current++
         val elseBody: List<Expression> = if (peek(TokenType.ELSE)) {
             current++
             consume(TokenType.CURLYL, "Expected '{' starting the else body of the if statement.")
-            multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
+            multipleExpressions(listOf(TokenType.CURLYR), listOf(TokenType.SEMICOLON, TokenType.CURLYR))
         } else {
             ArrayList()
         }
 
+        consume(TokenType.CURLYR, "Expected '}' closing the for loop")
         return condition?.let { Expression.IfStmnt(it, body, elseBody as MutableList<Expression>) }
     }
 
@@ -244,14 +253,14 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun multipleExpressions(endsAt: TokenType, delimiter: TokenType): MutableList<Expression> {
-        return multipleExpressions(listOf(endsAt) as MutableList<TokenType>, delimiter)
+        return multipleExpressions(listOf(endsAt), listOf(delimiter))
     }
 
-    private fun multipleExpressions(endsAt: MutableList<TokenType>, delimiter: TokenType): MutableList<Expression> {
+    private fun multipleExpressions(endsAt: List<TokenType>, delimiters: List<TokenType>): MutableList<Expression> {
         val result = ArrayList<Expression>()
         val all: MutableList<TokenType> = ArrayList()
         all.addAll(endsAt)
-        all.add(delimiter)
+        all.addAll(delimiters)
         val argsParser = Parser(tokens.subList(current + 1, tokens.size), all)
 
         while (!argsParser.peek(endsAt)) {
@@ -259,17 +268,19 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             argsParser.expressions.add(expression)
 
             // Continue parsing if the expression is not finished
-            while (!argsParser.peek(delimiter) && !argsParser.peek(endsAt)) {
+            while (!delimiters.contains(argsParser.tokens[argsParser.current].tokenType) && !endsAt.contains(argsParser.tokens[argsParser.current].tokenType)) {
                 expression = argsParser.nextExpression(null) ?: expression
             }
             result.add(expression)
 
-            if (argsParser.peek(endsAt)) {
+
+            val tokenType = argsParser.tokens[argsParser.current].tokenType
+            if (endsAt.contains(tokenType) && !delimiters.contains(tokenType)) {
                 break
             }
-            argsParser.consume(delimiter, "Expected the delimiter between expressions.")
+
         }
-        current += argsParser.current + 2
+        current += argsParser.current + 1
 
         if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call)
             current--
@@ -306,6 +317,13 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     private fun consume(tokenType: TokenType, errorMessage: String): Token {
         this.current++
         if (tokens[current].tokenType != tokenType) {
+            Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
+        }
+        return tokens[current]
+    }
+    private fun consume(tokenType: List<TokenType>, errorMessage: String): Token {
+        this.current++
+        if (!tokenType.contains(this.tokens[current].tokenType)) {
             Main.error(tokens[current].line, tokens[current].index, null, errorMessage)
         }
         return tokens[current]
