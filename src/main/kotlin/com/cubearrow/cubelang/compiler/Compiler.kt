@@ -27,6 +27,9 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     private var functions: MutableMap<String, Function> = HashMap()
 
     init {
+        functions["printChar"] = Function("printChar", mapOf("value" to "char"), null)
+
+        functions["printInt"] = Function("printInt", mapOf("value" to "int"), null)
         variables.push(HashMap())
         stackIndex.push(0)
         var statements = ""
@@ -40,7 +43,7 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
         }
 
         val result = """${getBasicStructure()}
-_start:
+main:
 mov rbp, rsp
 sub rsp, ${stackIndex.pop()}
 
@@ -57,8 +60,25 @@ $functions"""
     }
 
     private fun getBasicStructure(): String {
-        return """section .text
-    global _start
+        return """
+extern printf
+extern putchar
+section .data
+    intPrintFormat db "%d", 10, 0
+section .text
+    global main
+printInt:
+    mov esi, edi
+    mov edi, intPrintFormat
+    xor al, al
+    call printf
+    ret
+    
+printChar:
+    call putchar
+    mov rdi, 10
+    call putchar 
+    ret
  """.trimIndent()
     }
 
