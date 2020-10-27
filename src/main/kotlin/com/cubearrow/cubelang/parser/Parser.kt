@@ -13,7 +13,7 @@ import com.cubearrow.cubelang.utils.NullValue
  */
 class Parser(private var tokens: List<Token>, private val expressionSeparator: List<TokenType>) {
     companion object {
-        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.DOUBLE, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE)
+        val unidentifiableTokenTypes = listOf(TokenType.IDENTIFIER, TokenType.DOUBLE, TokenType.STRING, TokenType.FUN, TokenType.NULLVALUE, TokenType.CHAR)
     }
 
     private var current = -1
@@ -178,12 +178,12 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
     }
 
     private fun nextExpressionUntilEnd(): Expression? {
-        var result: Expression? = nextExpression(null)
+        var result: Expression? = nextExpression(null, true)
         var temp: Expression? = result
         while (temp != null) {
             result = temp
             expressions.add(temp)
-            temp = nextExpression(null)
+            temp = nextExpression(null, true)
             expressions.remove(result)
         }
         current--
@@ -282,8 +282,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         }
         current += argsParser.current + 1
 
-        if (argsParser.expressions.size > 0 && argsParser.expressions.removeLast() is Expression.Call)
-            current--
         return result
     }
 
@@ -301,6 +299,9 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
                 return Expression.Literal(token.substring.toInt())
             }
             return Expression.Literal(token.substring.toDouble())
+        }
+        if(token.tokenType == TokenType.CHAR){
+            return Expression.Literal(token.substring[0])
         }
         return when (token.tokenType) {
             TokenType.STRING -> Expression.Literal(token.substring)
