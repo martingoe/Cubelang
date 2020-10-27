@@ -1,10 +1,13 @@
-fun x(z: int):int{
+fun x(z: char):int{
     var x = z;
-    if(x < 10){
-        x = 10;
+    if(x <= 10){
+        printChar('1');
+        return 2;
     } else {
-        x = 3;
+        printChar('0');
     }
-    return x;
+    return 5;
 }
-var res = x(4);
+var x = 'x';
+var res = x(x) + 2;
+printInt(res);
