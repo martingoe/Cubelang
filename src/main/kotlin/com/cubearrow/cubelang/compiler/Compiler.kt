@@ -6,6 +6,7 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 import java.io.File
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.math.max
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
     companion object {
@@ -22,6 +23,7 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     private var inIfCondition = false
     private var separateReturnSegment = false
     private var argumentIndex = 0
+    private var operationResultSize = 0
 
     private var variables: Stack<MutableMap<String, LocalVariable>> = Stack()
     private var functions: MutableMap<String, Function> = HashMap()
@@ -178,6 +180,8 @@ printChar:
     override fun visitLiteral(literal: Expression.Literal): String {
         if (literal.any1 is Int) {
             return literal.any1.toString()
+        } else if (literal.any1 is Char) {
+            return (literal.any1 as Char).toByte().toInt().toString()
         }
         TODO("Not yet implemented")
     }
