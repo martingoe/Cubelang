@@ -17,7 +17,9 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     private var line = 1
     private var isComment = false
     private var isString = false
+    private var isChar = false
     private var stringResult = ""
+    private var charResult: Char? = null
 
 
     /**
@@ -35,7 +37,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             val stringAtIndex = fileContent[i].toString()
 
             if (tokenGrammar.isSeparator(stringAtIndex)) {
-                if(stringAtIndex == "." && substring.matches(tokenGrammar.getRegex("DOUBLE"))) continue
+                if (stringAtIndex == "." && substring.matches(tokenGrammar.getRegex("DOUBLE"))) continue
                 substringStartingIndex = if (fileContent.length > i + 1 && TokenType.fromString(stringAtIndex + fileContent[i + 1], tokenGrammar) != TokenType.NOT_FOUND) {
                     addTwoTokens(substring, stringAtIndex + fileContent[i + 1])
                     i + 2
@@ -60,13 +62,13 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     private fun addTwoTokens(s1: String, s2: String) {
         setCommentMode(s1)
         lineIndex--
-        addTokenToResult(s2)
+        if (s2.isNotEmpty()) addTokenToResult(s2)
         lineIndex++
-        addTokenToResult(s1)
+        if (s1.isNotEmpty()) addTokenToResult(s1)
     }
 
     private fun setStringMode(s1: String): Boolean {
-        this.isString = s1 == "\""
+        this.isString = s1 == "\"" && !isComment
         return isString
     }
 
@@ -80,13 +82,21 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
             tokenSequence.add(Token(stringResult, TokenType.STRING, line, index))
             isString = false
             return
-        }else if(isString){
+        } else if (isString) {
             stringResult += substring
-        }else{
+        } else if (isChar && substring == "'") {
+            val index = (lineIndex - substring.length)
+            tokenSequence.add(Token(charResult.toString(), TokenType.CHAR, line, index))
+            isChar = false
+            return
+        } else if (isChar) {
+            charResult = substring[0]
+        } else {
             setStringMode(substring)
+            setCharMode(substring)
         }
 
-        if (!isComment && !isString) {
+        if (!isComment && !isString && !isChar) {
             val substringToken = TokenType.fromString(substring, tokenGrammar)
             val index = (lineIndex - substring.length)
             if (substringToken == TokenType.NOT_FOUND) {
@@ -95,6 +105,11 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
                 tokenSequence.add(Token(substring, substringToken, line, index))
             }
         }
+    }
+
+    private fun setCharMode(substring: String): Boolean {
+        this.isChar = substring == "'" && !isString
+        return isChar
     }
 
     private fun catchTokenError(substring: String, index: Int) {

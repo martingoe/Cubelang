@@ -12,7 +12,7 @@ class TokenGrammar(private var source: String) {
     private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"),
             getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
             getRegex("OPERATOR"), getRegex("LINE_COMMENT"), getRegex("CURLYL"), getRegex("CURLYR"),
-            getRegex("COMPARATOR"), getRegex("DOT"), getRegex("COLON"), Regex("\\s|\\t|\\z|\""))
+            getRegex("COMPARATOR"), getRegex("DOT"), getRegex("COLON"), Regex("\\s|\\t|\\z|\"|\'"))
 
 
     /**
