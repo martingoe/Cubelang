@@ -3,6 +3,15 @@ package com.cubearrow.cubelang.compiler
 
 class CompilerUtils {
     companion object {
+        fun getOperator(operatorString: String): String{
+            return when(operatorString){
+                "+" -> "add"
+                "-" -> "sub"
+                "*" -> "mul"
+                "/" -> "div"
+                else -> error("Unexpected operator")
+            }
+        }
         fun getRegister(baseName: String, length: Int): String {
             return try {
                 baseName.toInt()

@@ -151,7 +151,47 @@ printChar:
     }
 
     override fun visitOperation(operation: Expression.Operation): String {
-        TODO("Not yet implemented")
+        val rightPair = getOperationSide(operation.expression2)
+        val rightSide = rightPair.first + "\nmov rbx, rax"
+        val rightRegister = CompilerUtils.getRegister("ax", rightPair.second)
+
+        val leftPair = getOperationSide(operation.expression1)
+        val leftSide = leftPair.first
+        val leftRegister = CompilerUtils.getRegister("bx", leftPair.second)
+        operationResultSize = leftPair.second
+        return "$rightSide\n$leftSide\n${CompilerUtils.getOperator(operation.operator1.substring)} $rightRegister, $leftRegister"
+    }
+
+    private fun getOperationSide(side: Expression): Pair<String, Int> {
+        val registerSize: Int
+        val leftSide = when (side) {
+            is Expression.Literal -> {
+                val value = side.accept(this)
+                val length = lengthsOfTypes[ExpressionUtils.getType(null, side.any1)]
+                        ?: error("Unsupported type")
+                val register = CompilerUtils.getRegister("ax", length)
+                registerSize = length
+                "mov ${register}, $value"
+            }
+            is Expression.VarCall -> {
+                val variable = variables.peek()[side.identifier1.substring]
+                        ?: error("The variable could not be found")
+                val register = CompilerUtils.getRegister("ax", variable.length)
+
+                registerSize = variable.length
+                "mov $register, ${side.accept(this)}"
+            }
+            is Expression.Call -> {
+                val function = functions[side.identifier1.substring] ?: error("The called function does not exist")
+                registerSize = lengthsOfTypes[function.returnType]!!
+                side.accept(this)
+            }
+            else -> {
+                registerSize = 8
+                side.accept(this)
+            }
+        }
+        return Pair(leftSide, registerSize)
     }
 
     override fun visitCall(call: Expression.Call): String {
