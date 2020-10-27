@@ -30,7 +30,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         return expressions
     }
 
-    private fun nextExpression(previousToken: Token?): Expression? {
+    private fun nextExpression(previousToken: Token?, notConsumeSemicolon:Boolean = false): Expression? {
         current++
         val currentToken = tokens[current]
         if (expressionSeparator.contains(currentToken.tokenType)) {
@@ -42,7 +42,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
 
         var value: Expression? = null
         if (previousToken == null && unidentifiableTokenTypes.contains(currentToken.tokenType)) {
-            value = nextExpression(currentToken)
+            value = nextExpression(currentToken, notConsumeSemicolon)
         } else if (currentToken.tokenType == TokenType.OPERATOR) {
             if (previousToken != null) parseExpressionFromSingleToken(previousToken)?.let { expressions.add(it);current++ }
             current--
@@ -51,6 +51,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             value = parseAssignment(previousToken)
         } else if (currentToken.tokenType == TokenType.BRCKTL && previousToken?.tokenType == TokenType.IDENTIFIER) {
             val args = multipleExpressions(TokenType.BRCKTR, TokenType.COMMA)
+            if(peek(TokenType.SEMICOLON) && !notConsumeSemicolon) current++
             value = Expression.Call(previousToken, args)
         } else if (currentToken.tokenType == TokenType.IDENTIFIER && previousToken?.tokenType == TokenType.FUN) {
             value = parseFunctionDefinition(currentToken)
