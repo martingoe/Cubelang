@@ -18,17 +18,12 @@ printChar:
     ret
 main:
 mov rbp, rsp
-sub rsp, 5
+sub rsp, 4
 
-mov BYTE [rbp - 1], 120
-mov eax, 2
-mov rbx, rax
-mov al, BYTE [rbp-1] 
-movsx rdi, al
-call x
-add eax, ebx 
-mov DWORD [rbp - 5], eax
-mov edi, DWORD [rbp-5] 
+mov edi, 10 
+call fib 
+mov DWORD [rbp - 4], eax
+mov edi, DWORD [rbp-4] 
 call printInt
 
 
@@ -36,24 +31,35 @@ mov rax, 60
 mov rdi, 0
 syscall
 
-x:
+fib:
 push rbp
 mov rbp, rsp
-sub rsp, 2
-mov eax, edi
-mov BYTE[rbp - 1], al
-mov al, BYTE [rbp - 1]
-mov BYTE [rbp - 2], al
-cmp BYTE [rbp-2], 10
-jg .L2
-mov edi, 49 
-call printChar
-mov eax, 2
+sub rsp, 4
+mov DWORD[rbp - 4], edi
+cmp DWORD [rbp-4], 2
+jge .L2
+mov eax, DWORD [rbp-4]
 jmp .L3
 .L2:
-mov edi, 48 
-call printChar
-mov eax, 5
+
+push r12
+push rbx
+mov eax, 2
+mov r12, rax
+mov eax, DWORD [rbp-4]
+sub eax, r12d 
+mov edi, eax 
+call fib
+mov rbx, rax
+mov eax, 1
+mov r12, rax
+mov eax, DWORD [rbp-4]
+sub eax, r12d 
+mov edi, eax 
+call fib
+add eax, ebx
+pop rbx
+pop r12
 
 .L3:
 leave
