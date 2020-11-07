@@ -5,5 +5,5 @@ fun fib(n:int): int{
     return fib(n - 1) + fib(n - 2);
 }
 var x = fib(10);
-printInt(fib(10));
+printInt(x);
 
