@@ -61,7 +61,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         } else if (currentToken.tokenType == TokenType.IF) {
             value = parseIfStmnt()
         } else if (currentToken.tokenType == TokenType.RETURN) {
-            value = nextExpressionUntilEnd()?.let { current++; Expression.ReturnStmnt(it) }
+            value = nextExpressionUntilEnd()?.let { Expression.ReturnStmnt(it) }
         } else if (currentToken.tokenType == TokenType.WHILE) {
             value = parseWhileStatement()
         } else if (currentToken.tokenType == TokenType.FOR) {
@@ -208,7 +208,7 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
         consume(TokenType.BRCKTR, "Expected '(' after the condition of the if statement.")
         consume(TokenType.CURLYL, "Expected '{' starting the body of the if statement.")
         val body = multipleExpressions(TokenType.CURLYR, TokenType.SEMICOLON)
-        current++
+        consume(TokenType.CURLYR, "Expected '}' closing the if statement")
         val elseBody: List<Expression> = if (peek(TokenType.ELSE)) {
             current++
             consume(TokenType.CURLYL, "Expected '{' starting the else body of the if statement.")
@@ -217,7 +217,6 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             ArrayList()
         }
 
-        consume(TokenType.CURLYR, "Expected '}' closing the for loop")
         return condition?.let { Expression.IfStmnt(it, body, elseBody as MutableList<Expression>) }
     }
 
@@ -274,12 +273,10 @@ class Parser(private var tokens: List<Token>, private val expressionSeparator: L
             }
             result.add(expression)
 
-
             val tokenType = argsParser.tokens[argsParser.current].tokenType
             if (endsAt.contains(tokenType) && !delimiters.contains(tokenType)) {
                 break
             }
-
         }
         current += argsParser.current + 1
 
