@@ -1,13 +1,9 @@
-fun x(z: char):int{
-    var x = z;
-    if(x <= 10){
-        printChar('1');
-        return 2;
-    } else {
-        printChar('0');
+fun fib(n:int): int{
+    if (n < 2) {
+        return n;
     }
-    return 5;
+    return fib(n - 1) + fib(n - 2);
 }
-var x = 'x';
-var res = x(x) + 2;
-printInt(res);
+var x = fib(10);
+printInt(fib(10));
+
