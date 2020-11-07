@@ -23,6 +23,7 @@ fun main(args: Array<String>) {
 
 class Main {
     companion object {
+        private var exitAfterError = false
         val syntaxParserSingleton: Singleton<BnfParser> = Singleton()
         val tokenGrammarSingleton: Singleton<TokenGrammar> = Singleton()
         var containsError: Boolean = false
@@ -43,7 +44,8 @@ class Main {
             """.trimIndent())
             }
             containsError = true
-            exitProcess(65)
+            if(exitAfterError)
+                exitProcess(65)
         }
     }
 
@@ -57,13 +59,15 @@ class Main {
         syntaxParserSingleton.instance = BnfParser(syntaxGrammarFile, tokenGrammarSingleton.instance!!.bnfParser)
         val tokenSequence = TokenSequence(sourceCode, tokenGrammarSingleton.instance!!)
         val expressions = Parser(tokenSequence.tokenSequence, listOf(TokenType.SEMICOLON, TokenType.CURLYR)).parse()
+        if (containsError)
+            exitProcess(65)
+        exitAfterError = true
         if (useCompiler) {
             Compiler(expressions, "src/main/resources/output.asm")
         } else {
             Interpreter(expressions)
         }
 
-        if (containsError)
-            exitProcess(65)
+
     }
 }
