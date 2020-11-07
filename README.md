@@ -45,10 +45,10 @@ java -jar build/libs/Cubelang-1.0-SNAPSHOT.jar
 * [JUnit](https://junit.org/junit5/) - Testing framework
 
 ## Examples
-### Hello World
-The following program writes "Hello World!" in the console
+### Output
+The following program writes the integer 10 in the console
 ```
-println("Hello World!");
+printInt(10);
 ```
 ### Fibonacci
 The following function recursively calculates the n-th fibonacci number 
@@ -56,9 +56,9 @@ The following function recursively calculates the n-th fibonacci number
 fun fib(n){
     if(n < 2) {
         return n;
-    };
+    }
     return fib(n - 1) + fib(n - 2);
-};
+}
 ```
 ## Resources
 
