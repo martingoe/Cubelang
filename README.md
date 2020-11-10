@@ -53,7 +53,7 @@ printInt(10);
 ### Fibonacci
 The following function recursively calculates the n-th fibonacci number 
 ```
-fun fib(n){
+fun fib(n: int): int{
     if(n < 2) {
         return n;
     }
