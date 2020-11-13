@@ -3,11 +3,11 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
-import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.UsualErrorMessages
 import kotlin.math.max
 
-class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Call>{
+class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Call> {
     override fun accept(expression: Expression.Call): String {
         val function = context.functions[expression.identifier1.substring]
         if (function != null) {
@@ -15,9 +15,10 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
             val args = getFunctionCallArguments(expression, function)
             return "${args}call ${expression.identifier1.substring}"
         }
-        Main.error(expression.identifier1.line, expression.identifier1.index, null, "The called function does not exist.")
+        UsualErrorMessages.xNotFound("called function", expression.identifier1)
         return ""
     }
+
     private fun getFunctionCallArguments(call: Expression.Call, function: Compiler.Function): String {
         var args = ""
         for (i in 0 until call.expressionLst1.size) {

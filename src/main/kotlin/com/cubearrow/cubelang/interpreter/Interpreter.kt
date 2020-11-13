@@ -3,6 +3,7 @@ package com.cubearrow.cubelang.interpreter
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
+import com.cubearrow.cubelang.utils.UsualErrorMessages
 import kotlin.math.pow
 
 /**
@@ -48,7 +49,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
         } else if (right is String && left is String && operation.operator1.substring == "+") {
             return left + right
         }
-        Main.error(operation.operator1.line, operation.operator1.index, null, "Mathematical operations can only be performed on numbers")
+        UsualErrorMessages.onlyNumberError(operation.operator1)
         return null
     }
 
@@ -115,7 +116,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 }
             }
         } catch (error: TypeCastException) {
-            Main.error(comparison.comparator1.line, comparison.comparator1.index, null, "The comparator \"${comparison.comparator1.substring}\" can only be executed on numbers.")
+            UsualErrorMessages.onlyNumberError(comparison.comparator1)
             return false
         }
         return false
