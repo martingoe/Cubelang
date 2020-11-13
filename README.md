@@ -37,12 +37,12 @@ cd Cubelang
 Package the program in an executable JAR
 
 ```
-./gradlew jar
+./gradlew fatJar
 ```
 
-Run the program making sure you use `--enable-preview`
+Run the program
 ```
-java -jar build/libs/Cubelang-1.0-SNAPSHOT.jar
+java -jar build/libs/Cubelang-fat-1.0-SNAPSHOT.jar sourcefile
 ```
 
 

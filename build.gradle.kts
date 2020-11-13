@@ -1,3 +1,5 @@
+import org.gradle.jvm.tasks.Jar
+
 plugins {
     kotlin("jvm") version "1.4.0"
     id("org.jetbrains.dokka") version "1.4.0"
@@ -8,7 +10,7 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
     jcenter()
-    maven{
+    maven {
         url = uri("https://dl.bintray.com/kotlin/kotlin-eap")
     }
 }
@@ -26,27 +28,21 @@ tasks.dokkaHtml.configure {
 
 
 
-tasks.test{
+tasks.test {
     useJUnitPlatform()
 }
 
-//open class CopyTestResources : DefaultTask(){
-//    from "${projectDir}/src/test/resources"
-//    into "${buildDir}/classes/test"
-//}
-//
-//processTestResources.dependsOn copyTestResources
 
-tasks.jar {
+val fatJar = task("fatJar", type = Jar::class) {
+    archiveBaseName.set("${project.name}-fat")
     manifest {
-        attributes ("Main-Class" to "com.cubearrow.cubelang.main.MainKt")
+        attributes["Main-Class"] = "com.cubearrow.cubelang.main.MainKt"
     }
+
     from(sourceSets.main.get().output)
 
     dependsOn(configurations.runtimeClasspath)
     from({
         configurations.runtimeClasspath.get().map { zipTree(it) }
     })
-
 }
-
