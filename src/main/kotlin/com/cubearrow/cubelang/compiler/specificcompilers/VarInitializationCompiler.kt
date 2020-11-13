@@ -39,16 +39,14 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
                             Compiler.LocalVariable(context.stackIndex.peek() + context.operationResultSize, "any",
                                     context.operationResultSize)) // TODO
 
-                    "$value \n" +
-                            "mov ${CompilerUtils.getASMPointerLength(context.operationResultSize)} [rbp - ${context.stackIndex.peek()}], " +
-                            CompilerUtils.getRegister("ax", context.operationResultSize)
+                    "$value \n" + CompilerUtils.moveAXToVariable(context.operationResultSize, context)
+
                 }
                 else -> {
                     val length = 8
                     initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.peek() + length, "any", length))
 
-                    "$value \n" +
-                            "mov ${CompilerUtils.getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], rax"
+                    "$value \n" + CompilerUtils.moveAXToVariable(length, context)
                 }
             }
         }
@@ -68,14 +66,13 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
         val call = varInitialization.expressionNull1 as Expression.Call
         val function = context.functions[call.identifier1.substring] ?: error("The called function does not exist")
         if (function.returnType == null) {
-            Main.error((varInitialization.expressionNull1 as Expression.Call).identifier1.line, (varInitialization.expressionNull1 as Expression.Call).identifier1.line, null, "The function does not return a value")
+            Main.error(call.identifier1.line, call.identifier1.line, null, "The function does not return a value")
             return ""
         }
         varInitialization.identifierNull1?.let { checkMatchingTypes(it, function.returnType!!) }
 
         val length = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
         initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.peek() + length, function.returnType!!, length))
-        return "$value \n" +
-                "mov ${CompilerUtils.getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], ${CompilerUtils.getRegister("ax", length)}"
+        return "$value \n" + CompilerUtils.moveAXToVariable(length, context)
     }
 }

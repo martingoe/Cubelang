@@ -6,6 +6,9 @@ import com.cubearrow.cubelang.main.Main
 
 class CompilerUtils {
     companion object {
+        fun moveAXToVariable(length: Int, context: CompilerContext): String =
+                "mov ${getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], ${getRegister("ax", length)}"
+
         fun assignVariableToVariable(variableToAssignTo: Compiler.LocalVariable, variableToAssign: Compiler.LocalVariable): String {
             val length = Compiler.LENGTHS_OF_TYPES[variableToAssignTo.type]
             val register = getRegister("ax", length)
