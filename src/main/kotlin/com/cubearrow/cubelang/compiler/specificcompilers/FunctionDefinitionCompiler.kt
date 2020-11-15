@@ -9,7 +9,8 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
         val args = ExpressionUtils.mapArgumentDefinitions(expression.expressionLst1)
-        if (args.size > 5) Main.error(expression.identifier1.line, expression.identifier1.index, null, "The function must only have 5 arguments")
+        if (args.size > 5)
+            Main.error(expression.identifier1.line, expression.identifier1.index, null, "The function must only have 5 arguments")
         context.functions[expression.identifier1.substring] = Compiler.Function(expression.identifier1.substring, args, expression.identifierNull1?.substring)
 
         context.stackIndex.push(0)
@@ -18,7 +19,7 @@ class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompile
         context.argumentIndex = 0
         var statements = ""
         expression.expressionLst1.forEach { statements += it.accept(context.compilerInstance) + "\n" }
-        expression.expressionLst2.forEach { statements += it.accept(context.compilerInstance) + "\n" }
+        statements += expression.expression1.accept(context.compilerInstance)
         context.variables.pop()
         context.currentReturnLength = null
 

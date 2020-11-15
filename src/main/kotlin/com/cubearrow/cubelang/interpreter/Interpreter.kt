@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
@@ -54,13 +55,17 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitCall(call: Expression.Call): Any? {
-        val function = functionStorage.getFunction(call.identifier1.substring, call.expressionLst1.size)
-        if (function == null) {
-            Main.error(call.identifier1.line, call.identifier1.index, null, "The called function is not defined")
-            return null
-        }
+        if(call.expression1 is Expression.VarCall) {
+            val varCall = call.expression1 as Expression.VarCall
+            val function = functionStorage.getFunction(varCall.identifier1.substring, call.expressionLst1.size)
+            if (function == null) {
+                Main.error(varCall.identifier1.line, varCall.identifier1.index, null, "The called function is not defined")
+                return null
+            }
 
-        return function.call(call.expressionLst1.map(this::evaluate), variableStorage, functionStorage)
+            return function.call(call.expressionLst1.map(this::evaluate), variableStorage, functionStorage)
+        }
+        TODO("")
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
@@ -68,12 +73,12 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return getVariableFromVariableStorage(variableStorage, varCall).value
+        return getVariableFromVariableStorage(variableStorage, varCall.identifier1).value
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
         val args = ExpressionUtils.mapArgumentDefinitions(functionDefinition.expressionLst1)
-        functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expressionLst2)
+        functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expression1)
     }
 
     fun evaluate(expression: Expression) = expression.accept(this)
@@ -125,32 +130,29 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
         val isTrue = evaluate(ifStmnt.expression1) as Boolean
         if (isTrue) {
-            this.returnedValue = Interpreter(ifStmnt.expressionLst1, variableStorage, functionStorage).returnedValue
+            ifStmnt.expression2.accept(this)
             if (this.returnedValue != null) throw Return()
-        } else {
-            Interpreter(ifStmnt.expressionLst2, variableStorage, functionStorage)
+        } else if(ifStmnt.expressionNull1 != null){
+            ifStmnt.expressionNull1!!.accept(this)
         }
     }
 
     override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt): Any? {
-        this.returnedValue = evaluate(returnStmnt.expression1)
+        this.returnedValue = returnStmnt.expressionNull1?.let { evaluate(it) }
         throw Return()
     }
 
     override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt): Any? {
-        var interpreter: Interpreter? = null
         try {
             while (evaluate(whileStmnt.expression1) as Boolean) {
                 variableStorage.addScope()
-                interpreter = Interpreter(whileStmnt.expressionLst1, variableStorage, functionStorage)
-                interpreter.variableStorage.popScope()
-                this.variableStorage = interpreter.variableStorage
-                this.functionStorage = interpreter.functionStorage
+                whileStmnt.expression2.accept(this)
+                variableStorage.popScope()
             }
         } catch (error: TypeCastException) {
             Main.error(-1, -1, null, "The condition of the while statement is not a boolean.")
         } catch (returnError: Return) {
-            return interpreter!!.returnedValue
+            return returnedValue
         }
         return null
     }
@@ -160,8 +162,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
             variableStorage.addScope()
             evaluate(forStmnt.expressionLst1[0])
             while (evaluate(forStmnt.expressionLst1[1]) as Boolean) {
-                val interpreter = Interpreter(forStmnt.expressionLst2, variableStorage, functionStorage)
-                variableStorage = interpreter.variableStorage
+                forStmnt.expression1.accept(this)
                 evaluate(forStmnt.expressionLst1[2])
             }
             variableStorage.popScope()
@@ -182,21 +183,15 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Any? {
         val instance = evaluate(instanceGet.expression1) as ClassInstance
-        val expression = instanceGet.expression2
-        if (expression is Expression.VarCall) {
-            return getVariableFromVariableStorage(instance.variableStorage, expression).value
-        } else if (expression is Expression.Call) {
-            val args = expression.expressionLst1.map { evaluate(it) }
-            return instance.functionStorage.getFunction(expression.identifier1.substring, expression.expressionLst1.size)?.let { instance.callFunction(it, args) }
-        }
-        return null
+        val expression = instanceGet.identifier1
+        return getVariableFromVariableStorage(instance.variableStorage, expression).value
     }
 
-    private fun getVariableFromVariableStorage(variables: VariableStorage, expression: Expression.VarCall): Variable {
-        val returnValue = variables.getCurrentVariables()[expression.identifier1.substring]
-        if (returnValue == null) {
-            Main.error(expression.identifier1.line, expression.identifier1.index, null,
-                    "The variable with the name \"${expression.identifier1.substring}\" is not defined or out of scope.")
+    private fun getVariableFromVariableStorage(variables: VariableStorage, expression: Token): Variable {
+        val returnValue = variables.getCurrentVariables()[expression.substring]
+        if (returnValue != null) {
+            Main.error(expression.line, expression.index, null,
+                    "The variable with the name \"${expression.substring}\" is not defined or out of scope.")
         }
         return returnValue!!
     }
@@ -212,4 +207,24 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): Any? {
         TODO("Not yet implemented")
     }
+
+    override fun visitBlockStatement(blockStatement: Expression.BlockStatement){
+        for(expression in blockStatement.expressionLst1){
+            expression.accept(this)
+        }
+    }
+
+    override fun visitLogical(logical: Expression.Logical): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitUnary(unary: Expression.Unary): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitGrouping(grouping: Expression.Grouping): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitEmpty(empty: Expression.Empty){}
 }

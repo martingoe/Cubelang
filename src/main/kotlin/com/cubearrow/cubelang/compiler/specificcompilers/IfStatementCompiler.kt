@@ -8,18 +8,13 @@ class IfStatementCompiler(var context: CompilerContext): SpecificCompiler<Expres
         context.inIfCondition = true
         val condition = expression.expression1.accept(context.compilerInstance) + "\n"
         var first = ""
-        expression.expressionLst1.forEach {
-            var x = it.accept(context.compilerInstance)
-            if (it is Expression.ReturnStmnt) {
-                x += "\njmp .L${context.lIndex + 1}"
-                context.separateReturnSegment = true
-            }
-            first += x + "\n"
-        }
-        first += if (expression.expressionLst2.isNotEmpty() && !context.separateReturnSegment) "jmp .L${context.lIndex + 1}\n" else ""
+        context.jmpIfReturnStatement = true
+        first += expression.expression2.accept(context.compilerInstance)
 
-        val after = ".L${context.lIndex++}:\n${expression.expressionLst2.joinToString { it.accept(context.compilerInstance) }}"
-        return condition + first + after + if (expression.expressionLst2.isNotEmpty() && !context.separateReturnSegment) "\n.L${context.lIndex}:" else ""
+        first += if (expression.expressionNull1 != null && !context.separateReturnSegment) "jmp .L${context.lIndex + 1}\n" else ""
+        context.jmpIfReturnStatement = false
 
+        val after = ".L${context.lIndex++}:\n${expression.expressionNull1?.accept(context.compilerInstance) ?: ""}"
+        return condition + first + after + if (expression.expressionNull1 != null && !context.separateReturnSegment) "\n.L${context.lIndex}:" else ""
     }
 }

@@ -25,7 +25,7 @@ abstract class Expression {
         }
     }
 
-    class Call (var identifier1: Token, var expressionLst1: MutableList<Expression>) : Expression() {
+    class Call (var expression1: Expression, var expressionLst1: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitCall(this)
         }
@@ -43,7 +43,7 @@ abstract class Expression {
         }
     }
 
-    class FunctionDefinition (var identifier1: Token, var expressionLst1: MutableList<Expression>, var identifierNull1: Token?, var expressionLst2: MutableList<Expression>) : Expression() {
+    class FunctionDefinition (var identifier1: Token, var expressionLst1: List<Expression>, var identifierNull1: Token?, var expression1: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitFunctionDefinition(this)
         }
@@ -55,43 +55,43 @@ abstract class Expression {
         }
     }
 
-    class IfStmnt (var expression1: Expression, var expressionLst1: MutableList<Expression>, var expressionLst2: MutableList<Expression>) : Expression() {
+    class IfStmnt (var expression1: Expression, var expression2: Expression, var expressionNull1: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitIfStmnt(this)
         }
     }
 
-    class ReturnStmnt (var expression1: Expression) : Expression() {
+    class ReturnStmnt (var expressionNull1: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitReturnStmnt(this)
         }
     }
 
-    class WhileStmnt (var expression1: Expression, var expressionLst1: MutableList<Expression>) : Expression() {
+    class WhileStmnt (var expression1: Expression, var expression2: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitWhileStmnt(this)
         }
     }
 
-    class ForStmnt (var expressionLst1: MutableList<Expression>, var expressionLst2: MutableList<Expression>) : Expression() {
+    class ForStmnt (var expressionLst1: List<Expression>, var expression1: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitForStmnt(this)
         }
     }
 
-    class ClassDefinition (var identifier1: Token, var identifierNull1: Token?, var expressionLst1: MutableList<Expression>) : Expression() {
+    class ClassDefinition (var identifier1: Token, var identifierNull1: Token?, var expressionLst1: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitClassDefinition(this)
         }
     }
 
-    class InstanceGet (var expression1: Expression, var expression2: Expression) : Expression() {
+    class InstanceGet (var expression1: Expression, var identifier1: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitInstanceGet(this)
         }
     }
 
-    class InstanceSet (var expression1: Expression, var expression2: Expression) : Expression() {
+    class InstanceSet (var expression1: Expression, var identifier1: Token, var expression2: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitInstanceSet(this)
         }
@@ -100,6 +100,36 @@ abstract class Expression {
     class ArgumentDefinition (var identifier1: Token, var identifier2: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitArgumentDefinition(this)
+        }
+    }
+
+    class BlockStatement (var expressionLst1: List<Expression>) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitBlockStatement(this)
+        }
+    }
+
+    class Logical (var expression1: Expression, var identifier1: Token, var expression2: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitLogical(this)
+        }
+    }
+
+    class Unary (var identifier1: Token, var expression1: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitUnary(this)
+        }
+    }
+
+    class Grouping (var expression1: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitGrouping(this)
+        }
+    }
+
+    class Empty (var identifierNull1: Token?) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitEmpty(this)
         }
     }
     interface ExpressionVisitor<R> {
@@ -119,6 +149,11 @@ abstract class Expression {
         fun visitInstanceGet(instanceGet: InstanceGet): R
         fun visitInstanceSet(instanceSet: InstanceSet): R
         fun visitArgumentDefinition(argumentDefinition: ArgumentDefinition): R
+        fun visitBlockStatement(blockStatement: BlockStatement): R
+        fun visitLogical(logical: Logical): R
+        fun visitUnary(unary: Unary): R
+        fun visitGrouping(grouping: Grouping): R
+        fun visitEmpty(empty: Empty): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }

@@ -49,6 +49,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
 
             adjustNewLine(fileContent[i])
         }
+        tokenSequence.add(Token("", TokenType.EOF, line, lineIndex + 1))
     }
 
     private fun adjustNewLine(character: Char) {

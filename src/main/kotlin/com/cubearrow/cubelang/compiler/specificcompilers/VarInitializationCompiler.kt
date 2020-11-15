@@ -21,15 +21,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
                     "mov ${CompilerUtils.getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], $value"
                 }
                 is Expression.VarCall -> {
-                    val varCall = expression.expressionNull1 as Expression.VarCall
-                    val variableToAssign = context.variables.peek()[varCall.identifier1.substring]
-                            ?: error("Variable not found")
-                    expression.identifierNull1?.let { checkMatchingTypes(it, variableToAssign.type) }
-                    val length = Compiler.LENGTHS_OF_TYPES[variableToAssign.type]
-                    val variable = Compiler.LocalVariable(context.stackIndex.peek() + length, variableToAssign.type, length)
-
-                    initializeVariable(length, expression, variable)
-                    CompilerUtils.assignVariableToVariable(variable, variableToAssign)
+                    initializeVarCall(expression)
                 }
                 is Expression.Call -> {
                     initializeVariableWithCall(expression, value)
@@ -57,6 +49,18 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
         return ""
     }
 
+    private fun initializeVarCall(expression: Expression.VarInitialization): String {
+        val varCall = expression.expressionNull1 as Expression.VarCall
+        val variableToAssign = context.variables.peek()[varCall.identifier1.substring]
+                ?: error("Variable not found")
+        expression.identifierNull1?.let { checkMatchingTypes(it, variableToAssign.type) }
+        val length = Compiler.LENGTHS_OF_TYPES[variableToAssign.type]
+        val variable = Compiler.LocalVariable(context.stackIndex.peek() + length, variableToAssign.type, length)
+
+        initializeVariable(length, expression, variable)
+        return CompilerUtils.assignVariableToVariable(variable, variableToAssign)
+    }
+
     private fun initializeVariable(length: Int, varInitialization: Expression.VarInitialization, variable: Compiler.LocalVariable) {
         context.stackIndex.push(context.stackIndex.pop() + length)
         context.variables.peek()[varInitialization.identifier1.substring] = variable
@@ -64,15 +68,19 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
 
     private fun initializeVariableWithCall(varInitialization: Expression.VarInitialization, value: String?): String {
         val call = varInitialization.expressionNull1 as Expression.Call
-        val function = context.functions[call.identifier1.substring] ?: error("The called function does not exist")
-        if (function.returnType == null) {
-            Main.error(call.identifier1.line, call.identifier1.line, null, "The function does not return a value")
-            return ""
-        }
-        varInitialization.identifierNull1?.let { checkMatchingTypes(it, function.returnType!!) }
+        if(call.expression1 is Expression.VarCall) {
+            val name = (call.expression1 as Expression.VarCall).identifier1
+            val function = context.functions[name.substring] ?: error("The called function does not exist")
+            if (function.returnType == null) {
+                Main.error(name.line, name.line, null, "The function does not return a value")
+                return ""
+            }
+            varInitialization.identifierNull1?.let { checkMatchingTypes(it, function.returnType!!) }
 
-        val length = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
-        initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.peek() + length, function.returnType!!, length))
-        return "$value \n" + CompilerUtils.moveAXToVariable(length, context)
+            val length = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
+            initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.peek() + length, function.returnType!!, length))
+            return "$value \n" + CompilerUtils.moveAXToVariable(length, context)
+        }
+        TODO()
     }
 }

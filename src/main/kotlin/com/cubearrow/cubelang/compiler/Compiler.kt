@@ -143,4 +143,33 @@ printChar:
     override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): String {
         return ArgumentDefinitionCompiler(context).accept(argumentDefinition)
     }
+
+    override fun visitBlockStatement(blockStatement: Expression.BlockStatement): String {
+        var result = ""
+        blockStatement.expressionLst1.forEach {
+            var x = it.accept(context.compilerInstance)
+            if (it is Expression.ReturnStmnt && context.jmpIfReturnStatement) {
+                x += "\njmp .L${context.lIndex + 1}"
+                context.separateReturnSegment = true
+            }
+            result += x + "\n"
+        }
+        return result
+    }
+
+    override fun visitLogical(logical: Expression.Logical): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitUnary(unary: Expression.Unary): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitGrouping(grouping: Expression.Grouping): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitEmpty(empty: Expression.Empty): String {
+        return ""
+    }
 }

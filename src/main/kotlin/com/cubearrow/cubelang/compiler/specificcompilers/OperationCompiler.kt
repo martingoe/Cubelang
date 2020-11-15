@@ -51,9 +51,15 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
                 "mov $register, ${side.accept(compilerInstance)}"
             }
             is Expression.Call -> {
-                val function = context.functions[side.identifier1.substring] ?: error("The called function does not exist")
-                registerSize = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
-                side.accept(compilerInstance)
+                if(side.expression1 is Expression.VarCall) {
+                    val varCall = side.expression1 as Expression.VarCall
+                    val function = context.functions[varCall.identifier1.substring]
+                            ?: error("The called function does not exist")
+                    registerSize = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
+                    side.accept(compilerInstance)
+                }else {
+                    TODO()
+                }
             }
             is Expression.Operation -> {
                 registerSize = 8

@@ -15,5 +15,6 @@ data class CompilerContext(
         var argumentIndex: Int = 0,
         var operationResultSize: Int = 0,
         var variables: Stack<MutableMap<String, Compiler.LocalVariable>> = Stack(),
-        var functions: MutableMap<String, Compiler.Function> = HashMap()
+        var functions: MutableMap<String, Compiler.Function> = HashMap(),
+        var jmpIfReturnStatement: Boolean = false
 )
