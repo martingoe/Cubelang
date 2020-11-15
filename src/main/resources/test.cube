@@ -4,6 +4,9 @@ fun fib(n: int): int{
     }
     return fib(n - 1) + fib(n - 2);
 }
-var x = fib(10);
-printInt(x);
+
+fun x(x: int, y: int): int
+    return x + y;
+
+printInt(x(fib(10), 1));
 

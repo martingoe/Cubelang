@@ -18,12 +18,14 @@ printChar:
     ret
 main:
 mov rbp, rsp
-sub rsp, 4
+sub rsp, 0
 
 mov edi, 10 
 call fib 
-mov DWORD [rbp - 4], eax
-mov edi, DWORD [rbp-4] 
+mov edi, eax 
+mov esi, 1 
+call x 
+mov edi, eax 
 call printInt
 
 
@@ -61,6 +63,23 @@ add eax, ebx
 pop rbx
 pop r12
 
+.L3:
+leave
+ret
+x:
+push rbp
+mov rbp, rsp
+sub rsp, 8
+mov DWORD[rbp - 4], edi
+mov DWORD[rbp - 8], esi
+push r12
+push rbx
+mov eax, DWORD [rbp-8]
+mov rbx, rax
+mov eax, DWORD [rbp-4]
+add eax, ebx
+pop rbx
+pop r12
 .L3:
 leave
 ret
