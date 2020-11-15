@@ -72,7 +72,6 @@ fun fib(n: int): int{
 These are very useful resources that I have used to get started with this project
 
 * [Crafting interpreters](https://craftinginterpreters.com/) - A book about creating programming languages
-* [Cell](https://gitlab.com/cell_lang/cell) - A programming language created for the purpose of teaching about interpreters. A tutorial can be found on YouTube.
 * [Compiler Explorer](https://godbolt.org) - A website that simulates compilers like gcc and displays the x86 output
 
 
