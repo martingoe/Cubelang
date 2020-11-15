@@ -5,7 +5,7 @@
 This is a very simple statically typed (WIP) interpreted and compiled (x86_64 NASM) programming language.
 
 
-##Reasoning behind this project
+## Reasoning behind this project
 I started this project with the intent of learning about how both compiled and interpreted programming languages are laid out and how they work, 
 how a CPU executes programs and how one uses low level programming languages to write those programs. 
 
