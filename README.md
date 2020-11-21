@@ -25,23 +25,23 @@ You will need to have the following programs installed on your system:
 ### Installing
 
 Clone the repository to your local machine
-```
+```bash
 git clone https://gitlab.com/CubeArrow/Cubelang.git
 ```
 
 Change directory to `Cubelang`
-```
+```bash
 cd Cubelang 
 ```
 
 Package the program in an executable JAR
 
-```
+```bash
 ./gradlew fatJar
 ```
 
 Run the program
-```
+```bash
 java -jar build/libs/Cubelang-fat-1.0-SNAPSHOT.jar sourcefile
 ```
 
