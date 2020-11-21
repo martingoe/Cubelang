@@ -42,9 +42,6 @@ sub rsp, ${context.stackIndex.pop()}
 
 $statements
 
-mov rax, 60
-mov rdi, 0
-syscall
 
 $functions"""
         val file = File(path)
@@ -143,16 +140,7 @@ printChar:
     }
 
     override fun visitBlockStatement(blockStatement: Expression.BlockStatement): String {
-        var result = ""
-        blockStatement.expressionLst1.forEach {
-            var x = it.accept(context.compilerInstance)
-            if (it is Expression.ReturnStmnt && context.jmpIfReturnStatement) {
-                x += "\njmp .L${context.lIndex + 1}"
-                context.separateReturnSegment = true
-            }
-            result += x + "\n"
-        }
-        return result
+        return BlockCompiler(context).accept(blockStatement)
     }
 
     override fun visitLogical(logical: Expression.Logical): String {
