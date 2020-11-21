@@ -25,7 +25,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
     private fun getFunctionCallArguments(call: Expression.Call, function: Compiler.Function): String {
         var args = ""
         val laterArgs: MutableMap<Int, Expression> = HashMap()
-        for (i in 0 until call.expressionLst1.size) {
+        for (i in call.expressionLst1.indices) {
             val argumentExpression = call.expressionLst1[i]
             if (argumentExpression !is Expression.Call) {
                 laterArgs[i] = argumentExpression
