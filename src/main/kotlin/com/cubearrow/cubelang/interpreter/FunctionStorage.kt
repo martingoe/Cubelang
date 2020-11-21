@@ -1,7 +1,7 @@
 package com.cubearrow.cubelang.interpreter
 
 import com.cubearrow.cubelang.lexer.Token
-import com.cubearrow.cubelang.library.Library
+import com.cubearrow.cubelang.interpreter.library.Library
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 

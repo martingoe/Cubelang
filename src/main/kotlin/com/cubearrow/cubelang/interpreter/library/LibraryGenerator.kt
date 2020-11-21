@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.library
+package com.cubearrow.cubelang.interpreter.library
 
 import java.io.File
 

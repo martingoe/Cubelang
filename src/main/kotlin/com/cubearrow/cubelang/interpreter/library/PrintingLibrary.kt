@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.library
+package com.cubearrow.cubelang.interpreter.library
 
 import com.cubearrow.cubelang.interpreter.Callable
 import com.cubearrow.cubelang.interpreter.FunctionStorage
