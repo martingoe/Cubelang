@@ -28,7 +28,7 @@ class CompilerUtils {
                 2 -> "WORD"
                 4 -> "DWORD"
                 8 -> "QWORD"
-                else -> throw Compiler.UnknownByteSizeException()
+                else -> error("Unknown byte size")
             }
         }
 

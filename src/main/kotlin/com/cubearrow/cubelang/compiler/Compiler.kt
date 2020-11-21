@@ -101,8 +101,6 @@ printChar:
     }
 
 
-    class UnknownByteSizeException : Throwable()
-
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): String {
         return FunctionDefinitionCompiler(context).accept(functionDefinition)
     }
