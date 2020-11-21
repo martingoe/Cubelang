@@ -29,9 +29,6 @@ mov edi, eax
 call printInt
 
 
-mov rax, 60
-mov rdi, 0
-syscall
 
 fib:
 push rbp
@@ -41,7 +38,6 @@ mov DWORD[rbp - 4], edi
 cmp DWORD [rbp-4], 2
 jge .L2
 mov eax, DWORD [rbp-4]
-jmp .L3
 .L2:
 
 push r12
