@@ -11,42 +11,45 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.VarInitialization> {
     override fun accept(expression: Expression.VarInitialization): String {
         if (expression.expressionNull1 != null) {
-            val value = expression.expressionNull1?.accept(context.compilerInstance)
-
-            return when (expression.expressionNull1) {
-                is Expression.Literal -> {
-                    val type = ExpressionUtils.getType(expression.identifierNull1?.substring, (expression.expressionNull1 as Expression.Literal).any1)
-                    val length = Compiler.LENGTHS_OF_TYPES[type]
-                    initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.peek() + length, type, length))
-                    "mov ${CompilerUtils.getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], $value"
-                }
-                is Expression.VarCall -> {
-                    initializeVarCall(expression)
-                }
-                is Expression.Call -> {
-                    initializeVariableWithCall(expression, value)
-                }
-                is Expression.Operation -> {
-                    initializeVariable(context.operationResultSize, expression,
-                            Compiler.LocalVariable(context.stackIndex.peek() + context.operationResultSize, "any",
-                                    context.operationResultSize)) // TODO
-
-                    "$value \n" + CompilerUtils.moveAXToVariable(context.operationResultSize, context)
-
-                }
-                else -> {
-                    val length = 8
-                    initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.peek() + length, "any", length))
-
-                    "$value \n" + CompilerUtils.moveAXToVariable(length, context)
-                }
-            }
+            return initializeValueNotNull(expression)
         }
 
         context.variables.peek()[expression.identifier1.substring] =
                 Compiler.LocalVariable(context.stackIndex.peek(), expression.identifierNull1!!.substring,
                         Compiler.LENGTHS_OF_TYPES[expression.identifierNull1!!.substring])
         return ""
+    }
+
+    private fun initializeValueNotNull(expression: Expression.VarInitialization): String {
+        val value = expression.expressionNull1?.accept(context.compilerInstance)
+
+        return when (expression.expressionNull1) {
+            is Expression.Literal -> {
+                val type = ExpressionUtils.getType(expression.identifierNull1?.substring, (expression.expressionNull1 as Expression.Literal).any1)
+                val length = Compiler.LENGTHS_OF_TYPES[type]
+                initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.peek() + length, type, length))
+                "mov ${CompilerUtils.getASMPointerLength(length)} [rbp - ${context.stackIndex.peek()}], $value"
+            }
+            is Expression.VarCall -> {
+                initializeVarCall(expression)
+            }
+            is Expression.Call -> {
+                initializeVariableWithCall(expression, value)
+            }
+            is Expression.Operation -> {
+                initializeVariable(context.operationResultSize, expression,
+                        Compiler.LocalVariable(context.stackIndex.peek() + context.operationResultSize, "any",
+                                context.operationResultSize)) // TODO actual type
+
+                "$value \n" + CompilerUtils.moveAXToVariable(context.operationResultSize, context)
+            }
+            else -> {
+                val length = 8
+                initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.peek() + length, "any", length))
+
+                "$value \n" + CompilerUtils.moveAXToVariable(length, context)
+            }
+        }
     }
 
     private fun initializeVarCall(expression: Expression.VarInitialization): String {
