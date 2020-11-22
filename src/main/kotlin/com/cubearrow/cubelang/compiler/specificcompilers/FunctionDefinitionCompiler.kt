@@ -8,6 +8,7 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
+        context.separateReturnSegment = false
         val args = ExpressionUtils.mapArgumentDefinitions(expression.expressionLst1)
         if (args.size > 5)
             Main.error(expression.identifier1.line, expression.identifier1.index, null, "The function must only have 5 arguments")
