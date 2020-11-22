@@ -120,7 +120,7 @@ printChar:
     }
 
     override fun visitForStmnt(forStmnt: Expression.ForStmnt): String {
-        TODO("Not yet implemented")
+        return ForLoopCompiler(context).accept(forStmnt)
     }
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition): String {
