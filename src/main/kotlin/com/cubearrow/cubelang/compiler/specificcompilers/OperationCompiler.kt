@@ -8,7 +8,6 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 
 class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Operation> {
     override fun accept(expression: Expression.Operation): String {
-
         val wasInSub = context.isInSubOperation
         if(!context.isInSubOperation) context.isInSubOperation = true
         context.operationIndex++
@@ -22,15 +21,22 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val leftRegister = CompilerUtils.getRegister(register, leftPair.second)
         context.operationResultSize = leftPair.second
         context.operationIndex--
-        var result = "$rightSide\n$leftSide\n${CompilerUtils.getOperator(expression.operator1.substring)} $rightRegister, $leftRegister"
-        if(!wasInSub) {
+        val operator = CompilerUtils.getOperator(expression.operator1.substring)
+        val result = "$rightSide\n$leftSide\n${operator} ${if(operator != "mul" && operator != "div") "$rightRegister," else ""} $leftRegister"
+        return saveUsedRegisters(wasInSub, result)
+    }
+
+    private fun saveUsedRegisters(wasInSub: Boolean, result: String): String {
+        var result1 = result
+        if (!wasInSub) {
             context.isInSubOperation = false
             for (i in 0 until Compiler.OPERATION_REGISTERS.size) {
-                result = "push r${Compiler.OPERATION_REGISTERS[i]}\n$result\npop r${Compiler.OPERATION_REGISTERS[i]}"
+                result1 = "push r${Compiler.OPERATION_REGISTERS[i]}\n$result1\npop r${Compiler.OPERATION_REGISTERS[i]}"
             }
         }
-        return result
+        return result1
     }
+
     private fun getOperationSide(side: Expression): Pair<String, Int> {
         val compilerInstance = context.compilerInstance
         val registerSize: Int
