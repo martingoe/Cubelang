@@ -74,7 +74,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     }
 
     private fun setCommentMode(stringAtIndex: String) {
-        isComment = stringAtIndex.matches(tokenGrammar.bnfParser.getRuleFromString("line_comment")!!.toRegex())
+        isComment = stringAtIndex.matches(tokenGrammar.bnfParser.getRuleFromString("line_comment")!!.toRegex()) || isComment
     }
 
     private fun addTokenToResult(substring: String) {
@@ -114,7 +114,7 @@ class TokenSequence(private val fileContent: String, private var tokenGrammar: T
     }
 
     private fun catchTokenError(substring: String, index: Int) {
-        if (substring != " " && !substring.isBlank()) {
+        if (substring != " " && substring.isNotBlank()) {
             val fullLine = fileContent.split("\n")[line - 1]
             Main.error(line, index, fullLine, "Unexpected token \"$substring\"")
         }
