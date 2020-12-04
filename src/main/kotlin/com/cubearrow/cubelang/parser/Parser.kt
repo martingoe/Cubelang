@@ -6,7 +6,7 @@ import com.cubearrow.cubelang.main.Main
 import kotlin.system.exitProcess
 
 class Parser(private var tokens: List<Token>) {
-    var current = -1
+    private var current = -1
 
     fun parse(): List<Expression> {
         val statements: MutableList<Expression> = ArrayList()

@@ -31,7 +31,7 @@ class BnfParser(source: String, additionalParser: BnfParser? = null) {
 
     init {
         for (line in source.split("\n")) {
-            if (!line.isBlank() && !line.startsWith("//")) {
+            if (line.isNotBlank() && !line.startsWith("//")) {
                 rules.add(BnfRule(line, this, additionalParser))
             }
         }

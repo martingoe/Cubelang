@@ -5,7 +5,6 @@ import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.interpreter.Interpreter
 import com.cubearrow.cubelang.lexer.TokenGrammar
 import com.cubearrow.cubelang.lexer.TokenSequence
-import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.utils.ConsoleColor
 import com.cubearrow.cubelang.utils.Singleton
@@ -33,18 +32,22 @@ class Main {
         fun error(line: Int, index: Int, fullLine: String?, message: String) {
             if (fullLine != null) {
                 val indicator = " ".repeat(index - 1) + "^"
-                println("""
+                println(
+                    """
                 ${ConsoleColor.ANSI_RED}${fullLine}
                 $indicator
                 Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
-            """.trimIndent())
+            """.trimIndent()
+                )
             } else {
-                println("""
+                println(
+                    """
                 ${ConsoleColor.ANSI_RED}Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
-            """.trimIndent())
+            """.trimIndent()
+                )
             }
             containsError = true
-            if(exitAfterError)
+            if (exitAfterError)
                 exitProcess(65)
         }
     }
