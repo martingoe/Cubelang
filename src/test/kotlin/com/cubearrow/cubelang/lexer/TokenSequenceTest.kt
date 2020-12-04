@@ -15,7 +15,8 @@ class TokenSequenceTest {
                 Token("(", TokenType.BRCKTL, 1, 8),
                 Token("1", TokenType.DOUBLE, 1, 9),
                 Token(")", TokenType.BRCKTR, 1, 10),
-                Token(";", TokenType.SEMICOLON, 1, 11))
+                Token(";", TokenType.SEMICOLON, 1, 11),
+                Token("", TokenType.EOF, 1, 13))
 
         assert(tokenSequence.tokenSequence == expected)
     }
