@@ -152,7 +152,7 @@ printChar:
     }
 
     override fun visitGrouping(grouping: Expression.Grouping): String {
-        TODO("Not yet implemented")
+        return GroupingCompiler(context).accept(grouping)
     }
 
     override fun visitEmpty(empty: Expression.Empty): String {
