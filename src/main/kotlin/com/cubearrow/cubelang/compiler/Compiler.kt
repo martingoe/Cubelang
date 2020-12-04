@@ -1,13 +1,16 @@
 package com.cubearrow.cubelang.compiler
 
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
 import com.cubearrow.cubelang.compiler.specificcompilers.*
 import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.ExpressionUtils.Companion.getType
+import com.cubearrow.cubelang.utils.UsualErrorMessages
 import java.io.File
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
     companion object {
         val ARGUMENT_INDEXES = NonNullMap(mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9") as MutableMap<Int, String>)
-        val OPERATION_REGISTERS = NonNullMap(mapOf(0 to "bx", 1 to "12") as MutableMap<Int, String>)
+        val OPERATION_REGISTERS = NonNullMap(mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14") as MutableMap<Int, String>)
         var LENGTHS_OF_TYPES = NonNullMap(mapOf("int" to 4, "char" to 1) as MutableMap<String, Int>)
     }
 
@@ -116,7 +119,7 @@ printChar:
     }
 
     override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt): String {
-        TODO("Not yet implemented")
+        return WhileCompiler(context).accept(whileStmnt)
     }
 
     override fun visitForStmnt(forStmnt: Expression.ForStmnt): String {
