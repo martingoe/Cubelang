@@ -67,9 +67,10 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
                     TODO()
                 }
             }
-            is Expression.Operation -> {
-                registerSize = 8
-                side.accept(compilerInstance)
+            is Expression.Operation, is Expression.Grouping -> {
+                val result = side.accept(compilerInstance)
+                registerSize = context.operationResultSize
+                result
             }
             else -> {
                 registerSize = 8
