@@ -1,48 +1,42 @@
-import org.gradle.jvm.tasks.Jar
-
 plugins {
-    kotlin("jvm") version "1.4.0"
-    id("org.jetbrains.dokka") version "1.4.0"
+    kotlin("multiplatform") version "1.4.10"
 }
+
+
+repositories {
+    mavenCentral()
+}
+
+kotlin {
+    val hostOs = System.getProperty("os.name")
+    val isMingwX64 = hostOs.startsWith("Windows")
+    val nativeTarget = when {
+        hostOs == "Mac OS X" -> macosX64("native")
+        hostOs == "Linux" -> linuxX64("native")
+        isMingwX64 -> mingwX64("native")
+        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
+    }
+
+    nativeTarget.apply {
+        binaries {
+            executable {
+                entryPoint = "main"
+            }
+        }
+    }
+    sourceSets {
+        val nativeMain by getting
+        val nativeTest by getting
+    }
+}
+
 
 group = "com.cubearrow"
 version = "1.0-SNAPSHOT"
-repositories {
-    mavenCentral()
-    jcenter()
-    maven {
-        url = uri("https://dl.bintray.com/kotlin/kotlin-eap")
-    }
+
+
+tasks.withType<Wrapper> {
+    gradleVersion = "6.7.1"
+    distributionType = Wrapper.DistributionType.BIN
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.4.0")
-
-    testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
-}
-
-tasks.dokkaHtml.configure {
-    outputDirectory.set(buildDir.resolve("dokka"))
-}
-
-
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-
-val fatJar = task("fatJar", type = Jar::class) {
-    archiveBaseName.set("${project.name}-fat")
-    manifest {
-        attributes["Main-Class"] = "com.cubearrow.cubelang.main.MainKt"
-    }
-
-    from(sourceSets.main.get().output)
-
-    dependsOn(configurations.runtimeClasspath)
-    from({
-        configurations.runtimeClasspath.get().map { zipTree(it) }
-    })
-}

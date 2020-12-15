@@ -3,3 +3,5 @@ out
 ./gradlew.bat
 .idea
 build
+stdio-build
+stdio.klib
