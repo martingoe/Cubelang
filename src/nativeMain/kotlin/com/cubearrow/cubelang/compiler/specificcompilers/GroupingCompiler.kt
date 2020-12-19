@@ -14,15 +14,15 @@ class GroupingCompiler(var context: CompilerContext) : SpecificCompiler<Expressi
                     "ax",
                     ExpressionUtils.getType(
                         null,
-                        expression.expression.any
+                        expression.expression.value
                     ).getRawLength()
                 )
             }"
             is Expression.VarCall -> {
                 val varCall = expression.expression
-                val variable = context.variables.last()[varCall.identifier.substring]
+                val variable = context.variables.last()[varCall.varName.substring]
                 if (variable == null) {
-                    UsualErrorMessages.xNotFound("variable", varCall.identifier)
+                    UsualErrorMessages.xNotFound("variable", varCall.varName)
                     return ""
                 }
                 context.operationResultSize = variable.type.getRawLength()

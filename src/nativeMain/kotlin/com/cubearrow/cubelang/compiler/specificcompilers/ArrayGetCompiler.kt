@@ -8,17 +8,17 @@ import com.cubearrow.cubelang.parser.Expression
 
 class ArrayGetCompiler(val context: CompilerContext): SpecificCompiler<Expression.ArrayGet> {
     override fun accept(expression: Expression.ArrayGet): String {
-        if (expression.expression2 is Expression.Literal) {
+        if (expression.inBrackets is Expression.Literal) {
             val variable = CompilerUtils.getVariableFromArrayGet(expression, context)
             val index = variable!!.index - getIndex(expression, variable.type, variable.type.getRawLength())
             return "[rbp - $index]"
         } else if (expression.expression is Expression.VarCall) {
-            if (expression.expression2 is Expression.VarCall) {
-                val variable = CompilerUtils.getVariableFromArrayGet(expression.expression2, context)
+            if (expression.inBrackets is Expression.VarCall) {
+                val variable = CompilerUtils.getVariableFromArrayGet(expression.inBrackets, context)
                 val arrayVariable = CompilerUtils.getVariableFromArrayGet(expression, context)
                 if (variable != null) {
                     val register = CompilerUtils.getRegister("ax", variable.type.getRawLength())
-                    return """mov $register, ${expression.expression2.accept(context.compilerInstance)}
+                    return """mov $register, ${expression.inBrackets.accept(context.compilerInstance)}
                         |mov rbx, rax
                         |[rbp-${arrayVariable!!.index}+rbx*${arrayVariable.type.getRawLength()}]
                     """.trimMargin()
@@ -31,8 +31,8 @@ class ArrayGetCompiler(val context: CompilerContext): SpecificCompiler<Expressio
 
     private fun getIndex(expression: Expression, type: Type, rawLength: Int): Int {
         if (expression is Expression.ArrayGet) {
-            if (expression.expression2 is Expression.Literal) {
-                val literalValue = expression.expression2.any
+            if (expression.inBrackets is Expression.Literal) {
+                val literalValue = expression.inBrackets.value
                 if (literalValue is Int) {
                     return getIndex(expression.expression, (type as ArrayType).subType, rawLength) * type.count + literalValue * rawLength
                 }

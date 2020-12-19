@@ -11,23 +11,23 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 
 class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.VarInitialization> {
     override fun accept(expression: Expression.VarInitialization): String {
-        if (expression.expressionNull != null) {
+        if (expression.valueExpression != null) {
             return initializeValueNotNull(expression)
         }
 
-        context.stackIndex.add(context.stackIndex.removeLast() + (expression.typeNull?.getRawLength() ?: error("Unreachable")))
-        context.variables.last()[expression.identifier.substring] =
-                Compiler.LocalVariable(context.stackIndex.last(), ExpressionUtils.getType(expression.typeNull, null),
-                        expression.typeNull.getLength())
+        context.stackIndex.add(context.stackIndex.removeLast() + (expression.type?.getRawLength() ?: error("Unreachable")))
+        context.variables.last()[expression.name.substring] =
+                Compiler.LocalVariable(context.stackIndex.last(), ExpressionUtils.getType(expression.type, null),
+                        expression.type.getLength())
         return ""
     }
 
     private fun initializeValueNotNull(expression: Expression.VarInitialization): String {
-        val value = expression.expressionNull?.accept(context.compilerInstance)
+        val value = expression.valueExpression?.accept(context.compilerInstance)
 
-        return when (expression.expressionNull) {
+        return when (expression.valueExpression) {
             is Expression.Literal -> {
-                val type = ExpressionUtils.getType(expression.typeNull, expression.expressionNull.any)
+                val type = ExpressionUtils.getType(expression.type, expression.valueExpression.value)
                 val length = type.getLength()
                 initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.last() + length, type, length))
                 "mov ${CompilerUtils.getASMPointerLength(type.getRawLength())} [rbp - ${context.stackIndex.last()}], $value"
@@ -57,10 +57,10 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
     }
 
     private fun initializeVarCall(expression: Expression.VarInitialization): String {
-        val varCall = expression.expressionNull as Expression.VarCall
-        val variableToAssign = context.variables.last()[varCall.identifier.substring]
+        val varCall = expression.valueExpression as Expression.VarCall
+        val variableToAssign = context.variables.last()[varCall.varName.substring]
                 ?: error("Variable not found")
-        expression.typeNull?.let { checkMatchingTypes(it, variableToAssign.type) }
+        expression.type?.let { checkMatchingTypes(it, variableToAssign.type) }
         val length = variableToAssign.type.getLength()
         val variable = Compiler.LocalVariable(context.stackIndex.last() + length, variableToAssign.type, length)
 
@@ -70,19 +70,19 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
 
     private fun initializeVariable(length: Int, varInitialization: Expression.VarInitialization, variable: Compiler.LocalVariable) {
         context.stackIndex.add(context.stackIndex.removeLast() + length)
-        context.variables.last()[varInitialization.identifier.substring] = variable
+        context.variables.last()[varInitialization.name.substring] = variable
     }
 
     private fun initializeVariableWithCall(varInitialization: Expression.VarInitialization, value: String?): String {
-        val call = varInitialization.expressionNull as Expression.Call
-        if(call.expression is Expression.VarCall) {
-            val name = call.expression.identifier
+        val call = varInitialization.valueExpression as Expression.Call
+        if(call.callee is Expression.VarCall) {
+            val name = call.callee.varName
             val function = context.functions[name.substring] ?: error("The called function does not exist")
             if (function.returnType == null) {
                 Main.error(name.line, name.line, null, "The function does not return a value")
                 return ""
             }
-            varInitialization.typeNull?.let { checkMatchingTypes(it, function.returnType!!) }
+            varInitialization.type?.let { checkMatchingTypes(it, function.returnType!!) }
 
             val length = function.returnType!!.getLength()
             initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.last() + length, function.returnType!!, length))

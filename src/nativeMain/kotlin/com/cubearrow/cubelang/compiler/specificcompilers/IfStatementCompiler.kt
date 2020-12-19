@@ -8,14 +8,14 @@ class IfStatementCompiler(var context: CompilerContext): SpecificCompiler<Expres
         context.lIndex++
         context.inIfStatement = true
         context.inJmpCondition = true
-        val condition = expression.expression.accept(context.compilerInstance) + "\n"
+        val condition = expression.condition.accept(context.compilerInstance) + "\n"
         context.inJmpCondition = false
 
-        val first = expression.expression2.accept(context.compilerInstance) + "\n" +
-            if (expression.expressionNull != null && !context.separateReturnSegment) "jmp .L${context.lIndex + 1}\n" else ""
+        val first = expression.ifBody.accept(context.compilerInstance) + "\n" +
+            if (expression.elseBody != null && !context.separateReturnSegment) "jmp .L${context.lIndex + 1}\n" else ""
 
-        val after = ".L${context.lIndex++}:\n${expression.expressionNull?.accept(context.compilerInstance) ?: ""}"
+        val after = ".L${context.lIndex++}:\n${expression.elseBody?.accept(context.compilerInstance) ?: ""}"
         context.inIfStatement = false
-        return condition + first + after + if (expression.expressionNull != null && !context.separateReturnSegment) "\n.L${context.lIndex}:" else ""
+        return condition + first + after + if (expression.elseBody != null && !context.separateReturnSegment) "\n.L${context.lIndex}:" else ""
     }
 }

@@ -9,79 +9,79 @@ import com.cubearrow.cubelang.lexer.Token
  **/
 abstract class Expression {
 
-    class Assignment (val identifier: Token, val expression: Expression) : Expression() {
+    class Assignment (val name: Token, val valueExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }
     }
 
-    class VarInitialization (val identifier: Token, val typeNull: Type?, val expressionNull: Expression?) : Expression() {
+    class VarInitialization (val name: Token, val type: Type?, val valueExpression: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarInitialization(this)
         }
     }
 
-    class Operation (val expression: Expression, val operator: Token, val expression2: Expression) : Expression() {
+    class Operation (val leftExpression: Expression, val operator: Token, val rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitOperation(this)
         }
     }
 
-    class Call (val expression: Expression, val expressionLst: List<Expression>) : Expression() {
+    class Call (val callee: Expression, val arguments: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitCall(this)
         }
     }
 
-    class Literal (val any: Any?) : Expression() {
+    class Literal (val value: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLiteral(this)
         }
     }
 
-    class VarCall (val identifier: Token) : Expression() {
+    class VarCall (val varName: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarCall(this)
         }
     }
 
-    class FunctionDefinition (val identifier: Token, val expressionLst: List<Expression>, val typeNull: Type?, val expression: Expression) : Expression() {
+    class FunctionDefinition (val name: Token, val args: List<Expression>, val type: Type?, val body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitFunctionDefinition(this)
         }
     }
 
-    class Comparison (val expression: Expression, val comparator: Token, val expression2: Expression) : Expression() {
+    class Comparison (val leftExpression: Expression, val comparator: Token, val rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitComparison(this)
         }
     }
 
-    class IfStmnt (val expression: Expression, val expression2: Expression, val expressionNull: Expression?) : Expression() {
+    class IfStmnt (val condition: Expression, val ifBody: Expression, val elseBody: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitIfStmnt(this)
         }
     }
 
-    class ReturnStmnt (val expressionNull: Expression?) : Expression() {
+    class ReturnStmnt (val returnValue: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitReturnStmnt(this)
         }
     }
 
-    class WhileStmnt (val expression: Expression, val expression2: Expression) : Expression() {
+    class WhileStmnt (val condition: Expression, val body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitWhileStmnt(this)
         }
     }
 
-    class ForStmnt (val expressionLst: List<Expression>, val expression: Expression) : Expression() {
+    class ForStmnt (val inBrackets: List<Expression>, val body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitForStmnt(this)
         }
     }
 
-    class ClassDefinition (val identifier: Token, val typeNull: Type?, val expressionLst: List<Expression>) : Expression() {
+    class ClassDefinition (val name: Token, val type: Type?, val body: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitClassDefinition(this)
         }
@@ -93,25 +93,25 @@ abstract class Expression {
         }
     }
 
-    class InstanceSet (val expression: Expression, val identifier: Token, val expression2: Expression) : Expression() {
+    class InstanceSet (val expression: Expression, val identifier: Token, val value: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitInstanceSet(this)
         }
     }
 
-    class ArgumentDefinition (val identifier: Token, val type: Type) : Expression() {
+    class ArgumentDefinition (val name: Token, val type: Type) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitArgumentDefinition(this)
         }
     }
 
-    class BlockStatement (val expressionLst: List<Expression>) : Expression() {
+    class BlockStatement (val statements: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitBlockStatement(this)
         }
     }
 
-    class Logical (val expression: Expression, val identifier: Token, val expression2: Expression) : Expression() {
+    class Logical (val leftExpression: Expression, val logical: Token, val rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLogical(this)
         }
@@ -129,19 +129,19 @@ abstract class Expression {
         }
     }
 
-    class ArrayGet (val expression: Expression, val expression2: Expression) : Expression() {
+    class ArrayGet (val expression: Expression, val inBrackets: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitArrayGet(this)
         }
     }
 
-    class ArraySet (val arrayGet: ArrayGet, val expression: Expression) : Expression() {
+    class ArraySet (val arrayGet: ArrayGet, val value: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitArraySet(this)
         }
     }
 
-    class Empty (val identifierNull: Token?) : Expression() {
+    class Empty (val any: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitEmpty(this)
         }

@@ -11,15 +11,15 @@ import kotlin.math.max
 
 class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Call> {
     override fun accept(expression: Expression.Call): String {
-        if (expression.expression is Expression.VarCall) {
-            val varCall = expression.expression
-            val function = context.functions[varCall.identifier.substring]
+        if (expression.callee is Expression.VarCall) {
+            val varCall = expression.callee
+            val function = context.functions[varCall.varName.substring]
             if (function != null) {
                 context.argumentIndex = 0
                 val args = getFunctionCallArguments(expression, function)
-                return "${args}call ${varCall.identifier.substring}"
+                return "${args}call ${varCall.varName.substring}"
             }
-            UsualErrorMessages.xNotFound("called function", varCall.identifier)
+            UsualErrorMessages.xNotFound("called function", varCall.varName)
         }
         return ""
     }
@@ -27,8 +27,8 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
     private fun getFunctionCallArguments(call: Expression.Call, function: Compiler.Function): String {
         var args = ""
         val laterArgs: MutableMap<Int, Expression> = HashMap()
-        for (i in call.expressionLst.indices) {
-            val argumentExpression = call.expressionLst[i]
+        for (i in call.arguments.indices) {
+            val argumentExpression = call.arguments[i]
             if (argumentExpression !is Expression.Call) {
                 laterArgs[i] = argumentExpression
                 continue
@@ -38,7 +38,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
 
         for (entry in laterArgs) {
             val i = entry.key
-            val argumentExpression = call.expressionLst[i]
+            val argumentExpression = call.arguments[i]
             args += getSingleArgument(function, i, argumentExpression)
         }
         return args

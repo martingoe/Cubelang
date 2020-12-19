@@ -9,19 +9,19 @@ class CompilerUtils {
         fun getOperationDepth(expression: Expression): Int {
             return when (expression) {
                 is Expression.Operation -> max(
-                    getOperationDepth(expression.expression),
-                    getOperationDepth(expression.expression2)
+                    getOperationDepth(expression.leftExpression),
+                    getOperationDepth(expression.rightExpression)
                 ) + 1
                 is Expression.Comparison -> max(
-                    getOperationDepth(expression.expression),
-                    getOperationDepth(expression.expression2)
+                    getOperationDepth(expression.leftExpression),
+                    getOperationDepth(expression.rightExpression)
                 )
                 is Expression.Grouping -> getOperationDepth(expression.expression)
-                is Expression.Call -> expression.expressionLst.fold(0) { acc, arg -> max(acc, getOperationDepth(arg)) }
+                is Expression.Call -> expression.arguments.fold(0) { acc, arg -> max(acc, getOperationDepth(arg)) }
                 is Expression.Unary -> getOperationDepth(expression.expression)
                 is Expression.Logical -> max(
-                    getOperationDepth(expression.expression),
-                    getOperationDepth(expression.expression2)
+                    getOperationDepth(expression.leftExpression),
+                    getOperationDepth(expression.rightExpression)
                 )
                 else -> 0
             }
@@ -31,7 +31,7 @@ class CompilerUtils {
             if (expression is Expression.ArrayGet) {
                 return getVariableFromArrayGet(expression.expression, context)
             } else if (expression is Expression.VarCall) {
-                return context.variables.last()[expression.identifier.substring]
+                return context.variables.last()[expression.varName.substring]
             }
             return null
         }
@@ -119,7 +119,7 @@ class CompilerUtils {
             val before: String
             val pointer: String
 
-            if (arrayGet.expression2 !is Expression.Literal) {
+            if (arrayGet.inBrackets !is Expression.Literal) {
                 val string = arrayGet.accept(context.compilerInstance)
                 val indexOf = string.indexOf("[", string.indexOf("[") + 1)
                 before = string.substring(0 until indexOf)

@@ -30,8 +30,8 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
         return instance
     }
     init{
-        classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.identifier.substring == "init" }
-                .forEach {ExpressionUtils.mapArgumentDefinitions(it.expressionLst)}
+        classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.name.substring == "init" }
+                .forEach {ExpressionUtils.mapArgumentDefinitions(it.args)}
     }
 
     /**
@@ -45,9 +45,9 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
         }
         for (expression in classBody) {
             if (expression is Expression.FunctionDefinition) {
-                val expressionArgs = expression.expressionLst.map { (it as Expression.ArgumentDefinition).identifier.substring to it.type }.toMap()
-                this.functionStorage.removeFunction(expression.identifier, expressionArgs)
-                this.functionStorage.addFunction(expression.identifier, expressionArgs, expression.expression)
+                val expressionArgs = expression.args.map { (it as Expression.ArgumentDefinition).name.substring to it.type }.toMap()
+                this.functionStorage.removeFunction(expression.name, expressionArgs)
+                this.functionStorage.addFunction(expression.name, expressionArgs, expression.body)
             }
             if (expression is Expression.VarInitialization) {
                 ExpressionUtils.computeVarInitialization(expression, variableStorage, interpreter)

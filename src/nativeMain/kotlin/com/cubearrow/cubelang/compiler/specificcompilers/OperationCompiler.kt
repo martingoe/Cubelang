@@ -15,11 +15,11 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         if (!context.isInSubOperation) context.isInSubOperation = true
         context.operationIndex++
         val register = Compiler.OPERATION_REGISTERS[context.operationIndex]!!
-        val rightPair = getOperationSide(expression.expression2)
+        val rightPair = getOperationSide(expression.rightExpression)
         val rightSide = rightPair.first + "\nmov r$register, rax"
         val rightRegister = CompilerUtils.getRegister("ax", rightPair.second)
 
-        val leftPair = getOperationSide(expression.expression)
+        val leftPair = getOperationSide(expression.leftExpression)
         val leftSide = leftPair.first
         val leftRegister = CompilerUtils.getRegister(register, leftPair.second)
         context.operationResultSize = leftPair.second
@@ -47,13 +47,13 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val leftSide = when (side) {
             is Expression.Literal -> {
                 val value = side.accept(compilerInstance)
-                val length = ExpressionUtils.getType(null, side.any).getRawLength()
+                val length = ExpressionUtils.getType(null, side.value).getRawLength()
                 val register = CompilerUtils.getRegister("ax", length)
                 registerSize = length
                 "mov $register, $value"
             }
             is Expression.VarCall -> {
-                val variable = context.variables.last()[side.identifier.substring]
+                val variable = context.variables.last()[side.varName.substring]
                     ?: error("The variable could not be found")
                 val register = CompilerUtils.getRegister("ax", variable.length)
 
@@ -61,8 +61,8 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
                 "mov $register, ${side.accept(compilerInstance)}"
             }
             is Expression.Call -> {
-                if (side.expression is Expression.VarCall) {
-                    val function = context.functions[side.expression.identifier.substring]
+                if (side.callee is Expression.VarCall) {
+                    val function = context.functions[side.callee.varName.substring]
                         ?: error("The called function does not exist")
                     registerSize = function.returnType!!.getRawLength()
                     side.accept(compilerInstance)

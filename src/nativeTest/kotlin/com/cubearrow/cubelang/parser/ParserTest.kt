@@ -12,13 +12,13 @@ class ParserTest {
         val tokens = listOf(
             token,
             Token("=", TokenType.EQUALS, 1, 2),
-            Token("2", TokenType.DOUBLE, 1, 3),
+            Token("2", TokenType.NUMBER, 1, 3),
             Token(";", TokenType.SEMICOLON, 1, 4),
             Token("", TokenType.EOF, 1, 6)
         )
         val actual = Parser(tokens).parse()[0] as Expression.Assignment
-        assert((actual.expression as Expression.Literal).any == 2)
-        assert(actual.identifier == token)
+        assert((actual.valueExpression as Expression.Literal).value == 2)
+        assert(actual.name == token)
     }
 
     @Test
@@ -31,15 +31,15 @@ class ParserTest {
             Token(":", TokenType.COLON, 1, 5),
             typeToken,
             Token("=", TokenType.EQUALS, 1, 7),
-            Token("2", TokenType.DOUBLE, 1, 8),
+            Token("2", TokenType.NUMBER, 1, 8),
             Token(";", TokenType.SEMICOLON, 1, 9),
             Token("", TokenType.EOF, 1, 0)
         )
         val actual = Parser(tokens).parse()[0] as Expression.VarInitialization
-        assert((actual.expressionNull as Expression.Literal).any == 2)
+        assert((actual.valueExpression as Expression.Literal).value == 2)
 
-        assert(actual.typeNull!! == NormalType(typeToken.substring))
-        assert(actual.identifier == nameToken)
+        assert(actual.type!! == NormalType(typeToken.substring))
+        assert(actual.name == nameToken)
     }
 
     @Test
@@ -51,14 +51,14 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 4)
         )
         val actual = Parser(tokens).parse()[0] as Expression.VarCall
-        assert(actual.identifier == token)
+        assert(actual.varName == token)
     }
 
     @Test
     internal fun comparison() {
         val comparator = Token("<", TokenType.COMPARATOR, 1, 2)
         val first = Token("a", TokenType.IDENTIFIER, 1, 1)
-        val second = Token("2", TokenType.DOUBLE, 1, 3)
+        val second = Token("2", TokenType.NUMBER, 1, 3)
         val tokens = listOf(
             first,
             comparator,
@@ -67,9 +67,9 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 6)
         )
         val actual = Parser(tokens).parse()[0] as Expression.Comparison
-        assert((actual.expression2 as Expression.Literal).any == 2)
+        assert((actual.rightExpression as Expression.Literal).value == 2)
 
-        assert((actual.expression as Expression.VarCall).identifier == first)
+        assert((actual.leftExpression as Expression.VarCall).varName == first)
         assert(actual.comparator == comparator)
     }
 
@@ -84,6 +84,6 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 5)
         )
         val actual = Parser(tokens).parse()[0] as Expression.BlockStatement
-        assert((actual.expressionLst[0] as Expression.VarCall).identifier == varCallToken)
+        assert((actual.statements[0] as Expression.VarCall).varName == varCallToken)
     }
 }

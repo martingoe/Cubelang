@@ -98,6 +98,7 @@ class Parser(private var tokens: List<Token>) {
 
     private fun forStatement(): Expression {
         consume(TokenType.BRCKTL, "Expected a '(' after 'for'")
+
         val init = when {
             match(TokenType.SEMICOLON) -> Expression.Empty(null)
             match(TokenType.VAR) -> variableDefinition()
@@ -145,7 +146,7 @@ class Parser(private var tokens: List<Token>) {
             val value = assignment()
             return when (expression) {
                 is Expression.VarCall -> {
-                    Expression.Assignment(expression.identifier, value)
+                    Expression.Assignment(expression.varName, value)
                 }
                 is Expression.InstanceGet -> {
                     Expression.InstanceSet(expression.expression, expression.identifier, value)
@@ -254,7 +255,7 @@ class Parser(private var tokens: List<Token>) {
                 result
             }
             TokenType.CHAR -> Expression.Literal(current().substring[0])
-            TokenType.DOUBLE -> {
+            TokenType.NUMBER -> {
                 return if (!current().substring.contains(".")) {
                     Expression.Literal(current().substring.toInt())
                 } else {
@@ -266,8 +267,8 @@ class Parser(private var tokens: List<Token>) {
                 consume(TokenType.BRCKTR, "Expected a closing ')'")
                 Expression.Grouping(expression)
             }
-
             else -> throw ParseException("Expected an expression", previous())
+
         }
     }
 
@@ -332,7 +333,7 @@ class Parser(private var tokens: List<Token>) {
             consume(TokenType.CLOSEDL, "Expected '['.")
             val name = type()
             consume(TokenType.COLON, "Expected an ':' in the argument type.")
-            val amount = consume(TokenType.DOUBLE, "Expected an amount in the array type.").substring.toInt()
+            val amount = consume(TokenType.NUMBER, "Expected an amount in the array type.").substring.toInt()
             consume(TokenType.CLOSEDR, "Expected ']' closing the array definition.")
             ArrayType(name, amount)
         }

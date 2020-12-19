@@ -12,10 +12,10 @@ class ReturnCompiler (var context: CompilerContext): SpecificCompiler<Expression
             return ""
         }
 
-        if (expression.expressionNull is Expression.Literal || expression.expressionNull is Expression.VarCall) {
+        if (expression.returnValue is Expression.Literal || expression.returnValue is Expression.VarCall) {
             return "mov ${CompilerUtils.getRegister("ax", context.currentReturnLength!!)}, " +
-                    expression.expressionNull.accept(context.compilerInstance)
+                    expression.returnValue.accept(context.compilerInstance)
         }
-        return expression.expressionNull?.accept(context.compilerInstance) ?: ""
+        return expression.returnValue?.accept(context.compilerInstance) ?: ""
     }
 }

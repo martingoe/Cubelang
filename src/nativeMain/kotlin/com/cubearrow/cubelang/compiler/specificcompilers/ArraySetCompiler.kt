@@ -13,14 +13,14 @@ class ArraySetCompiler(val context: CompilerContext): SpecificCompiler<Expressio
             Main.error(-1, -1, null, "Could not find the requested array-variable.")
             return ""
         }
-        return when (expression.expression) {
+        return when (expression.value) {
             is Expression.Literal -> {
                 "$before\nmov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} $pointer" +
-                        ", ${expression.expression.accept(context.compilerInstance)}"
+                        ", ${expression.value.accept(context.compilerInstance)}"
             }
             is Expression.VarCall -> {
-                val varCall = expression.expression
-                val localVariable = context.variables.last()[varCall.identifier.substring]
+                val varCall = expression.value
+                val localVariable = context.variables.last()[varCall.varName.substring]
                 if (localVariable != null) {
                     val length = localVariable.type.getRawLength()
 
@@ -30,11 +30,11 @@ class ArraySetCompiler(val context: CompilerContext): SpecificCompiler<Expressio
                         |mov $register, ${CompilerUtils.getASMPointerLength(length)} [rbp - ${localVariable.index}]
                         |mov ${CompilerUtils.getASMPointerLength(length)} ${pointer}, $register""".trimMargin()
                 }
-                UsualErrorMessages.xNotFound("variable", varCall.identifier)
+                UsualErrorMessages.xNotFound("variable", varCall.varName)
                 ""
             }
             else -> {
-                "$before\n${expression.expression.accept(context.compilerInstance)} \n" +
+                "$before\n${expression.value.accept(context.compilerInstance)} \n" +
                         "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} $pointer, ${
                             CompilerUtils.getRegister(
                                 "ax",

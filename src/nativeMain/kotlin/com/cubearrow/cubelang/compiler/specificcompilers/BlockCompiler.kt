@@ -6,7 +6,7 @@ import com.cubearrow.cubelang.parser.Expression
 class BlockCompiler (var context: CompilerContext): SpecificCompiler<Expression.BlockStatement>{
     override fun accept(expression: Expression.BlockStatement): String {
         var result = ""
-        for (it in expression.expressionLst) {
+        for (it in expression.statements) {
             result += it.accept(context.compilerInstance) + "\n"
             if (it is Expression.ReturnStmnt ) {
                 if(context.inIfStatement) {

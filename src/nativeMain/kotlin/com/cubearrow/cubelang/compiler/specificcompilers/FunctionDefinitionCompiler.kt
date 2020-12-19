@@ -10,22 +10,22 @@ import com.cubearrow.cubelang.utils.ExpressionUtils
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
         context.separateReturnSegment = false
-        val args = ExpressionUtils.mapArgumentDefinitions(expression.expressionLst)
+        val args = ExpressionUtils.mapArgumentDefinitions(expression.args)
         if (args.size > 5)
-            Main.error(expression.identifier.line, expression.identifier.index, null, "The function must only have 5 arguments")
-        context.functions[expression.identifier.substring] = Compiler.Function(expression.identifier.substring, args, expression.typeNull)
+            Main.error(expression.name.line, expression.name.index, null, "The function must only have 5 arguments")
+        context.functions[expression.name.substring] = Compiler.Function(expression.name.substring, args, expression.type)
 
         context.stackIndex.add(0)
         context.variables.add(HashMap())
-        context.currentReturnLength = expression.typeNull?.getLength() // TODO: Figure out how to handle returning arrays
+        context.currentReturnLength = expression.type?.getLength() // TODO: Figure out how to handle returning arrays
         context.argumentIndex = 0
         var statements = ""
-        expression.expressionLst.forEach { statements += it.accept(context.compilerInstance) + "\n" }
-        statements += expression.expression.accept(context.compilerInstance)
+        expression.args.forEach { statements += it.accept(context.compilerInstance) + "\n" }
+        statements += expression.body.accept(context.compilerInstance)
         context.variables.removeLast()
         context.currentReturnLength = null
 
-        return """${expression.identifier.substring}:
+        return """${expression.name.substring}:
             |push rbp
             |mov rbp, rsp
             |sub rsp, ${context.stackIndex.removeLast()}

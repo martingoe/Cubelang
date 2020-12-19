@@ -1,28 +1,26 @@
-<expression> ::= <assignment> | <operation> | <call> | <literal>
-<assignment> ::= <identifier> <expression>
-<varInitialization> ::= <identifier> <typeNull> <expressionNull>
-<operation> ::= <expression> <operator> <expression>
-<call> ::= <expression> <expressionLst>
-<literal> ::= <any>
-<varCall> ::= <identifier>
-<functionDefinition> ::= <identifier> <expressionLst> <typeNull> <expression>
-<comparison> ::= <expression> <comparator> <expression>
+assignment = name: Token, valueExpression: Expression
+varInitialization = name: Token, type: Type?, valueExpression: Expression?
+operation = leftExpression: Expression, operator: Token, rightExpression: Expression
+call = callee: Expression, arguments: List<Expression>
+literal = value: Any?
+varCall = varName: Token
+functionDefinition = name: Token, args: List<Expression>, type: Type?, body: Expression
+comparison = leftExpression: Expression, comparator: Token, rightExpression: Expression
 
-<ifStmnt> ::= <expression> <expression> <expressionNull>
-<returnStmnt> ::= <expressionNull>
-<whileStmnt> ::= <expression> <expression>
-<forStmnt> ::= <expressionLst> <expression>
-<classDefinition> ::= <identifier> <typeNull> <expressionLst>
-<instanceGet> ::= <expression> <identifier>
-<instanceSet> ::= <expression> <identifier> <expression>
-<argumentDefinition> ::= <identifier> <type>
-<blockStatement> ::= <expressionLst>
-<logical> ::= <expression> <identifier> <expression>
-<unary> ::= <identifier> <expression>
-<grouping> ::= <expression>
+ifStmnt = condition: Expression, ifBody: Expression, elseBody: Expression?
+returnStmnt = returnValue: Expression?
+whileStmnt = condition: Expression, body: Expression
+forStmnt = inBrackets: List<Expression>, body: Expression
+classDefinition = name: Token, type: Type?, body: List<Expression>
+instanceGet = expression: Expression, identifier: Token
+instanceSet = expression: Expression, identifier: Token, value: Expression
+argumentDefinition = name: Token, type: Type
+blockStatement = statements: List<Expression>
+logical = leftExpression: Expression, logical: Token, rightExpression: Expression
+unary = identifier: Token, expression: Expression
+grouping = expression: Expression
 
-<arrayGet> ::= <expression> <expression>
-<arraySet> ::= <arrayGet> <expression>
+arrayGet = expression: Expression, inBrackets: Expression
+arraySet = arrayGet: ArrayGet, value: Expression
 
-
-<empty> ::= <identifierNull>
+empty = any: Any?

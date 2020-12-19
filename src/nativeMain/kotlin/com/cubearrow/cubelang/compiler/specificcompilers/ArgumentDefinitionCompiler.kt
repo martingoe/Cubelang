@@ -10,14 +10,14 @@ class ArgumentDefinitionCompiler(var context: CompilerContext): SpecificCompiler
         val length: Int = expression.type.getLength()
 
         context.stackIndex.add(context.stackIndex.removeLast() + length)
-        context.variables.last()[expression.identifier1.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.identifier2.substring, length)
+        context.variables.last()[expression.name.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.type, length)
 
         val register = Compiler.ARGUMENT_INDEXES[context.argumentIndex++]!!
         return if (length > 2) {
             "mov ${CompilerUtils.getASMPointerLength(length)}[rbp - ${context.stackIndex.last()}], ${CompilerUtils.getRegister(register, length)}"
         } else {
             "mov eax, ${CompilerUtils.getRegister(register, 4)}\n" +
-                    "mov ${CompilerUtils.getASMPointerLength(length)}[rbp - ${context.stackIndex.last()}], ${CompilerUtils.getRegister("ax", length)}"
+                    "mov ${CompilerUtils.getASMPointerLength(expression.type.getRawLength())}[rbp - ${context.stackIndex.last()}], ${CompilerUtils.getRegister("ax", length)}"
         }
     }
 }
