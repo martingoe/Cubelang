@@ -9,8 +9,8 @@ import com.cubearrow.cubelang.bnf.BnfParser
  */
 class TokenGrammar(private var source: String) {
     var bnfParser: BnfParser = BnfParser(this.source)
-    private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"),
-            getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"),
+    private val separators = listOf(getRegex("BRCKTL"), getRegex("BRCKTR"), getRegex("CLOSEDL"), getRegex("CLOSEDR"),
+            getRegex("COMMA"), getRegex("EQUALS"), getRegex("SEMICOLON"), getRegex("PLUSMINUS"),
             getRegex("OPERATOR"), getRegex("LINE_COMMENT"), getRegex("CURLYL"), getRegex("CURLYR"),
             getRegex("COMPARATOR"), getRegex("DOT"), getRegex("COLON"), Regex("\\s|\\t|\\z|\"|\'"))
 

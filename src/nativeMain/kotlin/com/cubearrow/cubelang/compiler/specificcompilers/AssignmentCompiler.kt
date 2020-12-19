@@ -7,29 +7,29 @@ import com.cubearrow.cubelang.utils.UsualErrorMessages
 
 class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Assignment> {
     override fun accept(expression: Expression.Assignment): String {
-        val variable = context.variables.last()[expression.identifier1.substring]
+        val variable = context.variables.last()[expression.identifier.substring]
         if (variable == null) {
-            UsualErrorMessages.xNotFound("variable '${expression.identifier1.substring}'", expression.identifier1)
+            UsualErrorMessages.xNotFound("variable '${expression.identifier.substring}'", expression.identifier)
             //Unreachable
             return ""
         }
 
-        return when {
-            expression.expression1 is Expression.Literal && (expression.expression1 as Expression.Literal).any1 is Int -> {
-                "mov ${CompilerUtils.getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${expression.expression1.accept(context.compilerInstance)}"
+        return when (expression.expression) {
+            is Expression.Literal -> {
+                "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ${expression.expression.accept(context.compilerInstance)}"
             }
-            expression.expression1 is Expression.VarCall -> {
-                val varCall = expression.expression1 as Expression.VarCall
-                val localVariable = context.variables.last()[varCall.identifier1.substring]
+            is Expression.VarCall -> {
+                val varCall = expression.expression
+                val localVariable = context.variables.last()[varCall.identifier.substring]
                 if (localVariable != null) {
                     CompilerUtils.assignVariableToVariable(variable, localVariable)
                 }
-                UsualErrorMessages.xNotFound("variable", varCall.identifier1)
+                UsualErrorMessages.xNotFound("variable", varCall.identifier)
                 ""
             }
             else -> {
-                "${expression.expression1.accept(context.compilerInstance)} \n" +
-                "mov ${CompilerUtils.getASMPointerLength(variable.length)} [rbp - ${variable.index}], ${CompilerUtils.getRegister("ax", variable.length)}"
+                "${expression.expression.accept(context.compilerInstance)} \n" +
+                        "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ${CompilerUtils.getRegister("ax", variable.length)}"
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.compiler.Type
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
@@ -8,7 +9,7 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
     Callable {
     private val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
-    override var args: Map<String, String> = mapOf()
+    override var args: Map<String, Type> = mapOf()
 
     /**
      * Creates an instance of the Klass
@@ -29,8 +30,8 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
         return instance
     }
     init{
-        classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.identifier1.substring == "init" }
-                .forEach {ExpressionUtils.mapArgumentDefinitions(it.expressionLst1)}
+        classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.identifier.substring == "init" }
+                .forEach {ExpressionUtils.mapArgumentDefinitions(it.expressionLst)}
     }
 
     /**
@@ -42,12 +43,11 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
             functionStorage.addFunctions(inheritsFrom!!.functionStorage.functions)
             variableStorage.addVariablesToCurrentScope(inheritsFrom!!.variableStorage.getCurrentVariables())
         }
-
         for (expression in classBody) {
             if (expression is Expression.FunctionDefinition) {
-                val expressionArgs = expression.expressionLst1.map { (it as Expression.ArgumentDefinition).identifier1.substring to it.identifier2.substring }.toMap()
-                this.functionStorage.removeFunction(expression.identifier1, expressionArgs)
-                this.functionStorage.addFunction(expression.identifier1, expressionArgs, expression.expression1)
+                val expressionArgs = expression.expressionLst.map { (it as Expression.ArgumentDefinition).identifier.substring to it.type }.toMap()
+                this.functionStorage.removeFunction(expression.identifier, expressionArgs)
+                this.functionStorage.addFunction(expression.identifier, expressionArgs, expression.expression)
             }
             if (expression is Expression.VarInitialization) {
                 ExpressionUtils.computeVarInitialization(expression, variableStorage, interpreter)

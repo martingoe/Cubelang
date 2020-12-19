@@ -13,13 +13,14 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
 
     private var context = CompilerContext(this)
 
-    data class LocalVariable(var index: Int, var type: String, var length: Int)
-    data class Function(var name: String, var args: Map<String, String>, var returnType: String?)
+    data class LocalVariable(var index: Int, var type: Type, var length: Int)
+    data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
 
     init {
-        context.functions["printChar"] = Function("printChar", mapOf("value" to "char"), null)
-        context.functions["getCurrentTime"] = Function("getCurrentTime", mapOf(), "int")
-        context.functions["printInt"] = Function("printInt", mapOf("value" to "int"), null)
+        context.functions["printChar"] = Function("printChar", mapOf("value" to NormalType("char")), null)
+        context.functions["putchar"] = Function("putchar", mapOf("value" to NormalType("char")), null)
+        context.functions["getCurrentTime"] = Function("getCurrentTime", mapOf(), NormalType("int"))
+        context.functions["printInt"] = Function("printInt", mapOf("value" to NormalType("int")), null)
 
         context.variables.add(HashMap())
         context.stackIndex.add(0)
@@ -154,5 +155,13 @@ printChar:
 
     override fun visitEmpty(empty: Expression.Empty): String {
         return ""
+    }
+
+    override fun visitArrayGet(arrayGet: Expression.ArrayGet): String {
+        return ArrayGetCompiler(context).accept(arrayGet)
+    }
+
+    override fun visitArraySet(arraySet: Expression.ArraySet): String {
+        return ArraySetCompiler(context).accept(arraySet)
     }
 }

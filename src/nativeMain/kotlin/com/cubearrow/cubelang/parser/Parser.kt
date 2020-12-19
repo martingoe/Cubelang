@@ -1,5 +1,8 @@
 package com.cubearrow.cubelang.parser
 
+import com.cubearrow.cubelang.compiler.ArrayType
+import com.cubearrow.cubelang.compiler.NormalType
+import com.cubearrow.cubelang.compiler.Type
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import kotlin.system.exitProcess
@@ -80,7 +83,6 @@ class Parser(private var tokens: List<Token>) {
                 else -> throw ParseException("Wrong statement type for a class", previous())
             }
         }
-
         return Expression.ClassDefinition(name, implements, methods)
     }
 
@@ -143,10 +145,13 @@ class Parser(private var tokens: List<Token>) {
             val value = assignment()
             return when (expression) {
                 is Expression.VarCall -> {
-                    Expression.Assignment(expression.identifier1, value)
+                    Expression.Assignment(expression.identifier, value)
                 }
                 is Expression.InstanceGet -> {
-                    Expression.InstanceSet(expression.expression1, expression.identifier1, value)
+                    Expression.InstanceSet(expression.expression, expression.identifier, value)
+                }
+                is Expression.ArrayGet -> {
+                    Expression.ArraySet(expression, value)
                 }
                 else -> {
                     throw ParseException("Invalid assignment target", equals)
@@ -228,7 +233,6 @@ class Parser(private var tokens: List<Token>) {
 
         while (!peek(TokenType.BRCKTR)) {
             arguments.add(expression())
-
             while (match(TokenType.COMMA))
                 arguments.add(expression())
         }
@@ -240,7 +244,15 @@ class Parser(private var tokens: List<Token>) {
         return when (advance().tokenType) {
             TokenType.NULLVALUE -> Expression.Literal(null)
             TokenType.STRING -> Expression.Literal(current())
-            TokenType.IDENTIFIER -> Expression.VarCall(current())
+            TokenType.IDENTIFIER -> {
+                var result: Expression = Expression.VarCall(current())
+                while(match(TokenType.CLOSEDL)) {
+                    val number = expression()
+                    consume(TokenType.CLOSEDR, "Expected ']'")
+                    result = Expression.ArrayGet(result, number)
+                }
+                result
+            }
             TokenType.CHAR -> Expression.Literal(current().substring[0])
             TokenType.DOUBLE -> {
                 return if (!current().substring.contains(".")) {
@@ -306,12 +318,24 @@ class Parser(private var tokens: List<Token>) {
         return false
     }
 
-    private fun getType(): Token? {
+    private fun getType(): Type? {
         if (peek(TokenType.COLON)) {
             current++
-            return consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'")
+            return type()
         }
         return null
+    }
+    private fun type(): ArrayType {
+        return if(peek(TokenType.IDENTIFIER))
+            ArrayType(NormalType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring), 1)
+        else{
+            consume(TokenType.CLOSEDL, "Expected '['.")
+            val name = type()
+            consume(TokenType.COLON, "Expected an ':' in the argument type.")
+            val amount = consume(TokenType.DOUBLE, "Expected an amount in the array type.").substring.toInt()
+            consume(TokenType.CLOSEDR, "Expected ']' closing the array definition.")
+            ArrayType(name, amount)
+        }
     }
 
     private fun isAtEnd(): Boolean = current >= tokens.size && !peek(TokenType.EOF)

@@ -1,11 +1,16 @@
-var before = getCurrentTime();
-printInt(fib(40));
-printInt(getCurrentTime() - before);
-
-fun fib(n: int): int{
-    if(n < 2){
-        return n;
-    }
-    return fib(n - 2) + fib(n - 1);
+var string: [int: 13];
+string[0] = 'H';
+string[1] = 'e';
+string[2] = 'l';
+string[3] = 'l';
+string[4] = 'o';
+string[5] = ' ';
+string[6] = 'W';
+string[7] = 'o';
+string[8] = 'r';
+string[9] = 'l';
+string[10] = 'd';
+string[11] = 10;
+for(var i = 0; i < 13; i = i + 1){
+    putchar(string[i]);
 }
-

@@ -3,8 +3,11 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
+import com.cubearrow.cubelang.lexer.Token
+import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
+import com.cubearrow.cubelang.utils.UsualErrorMessages
 
 class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Operation> {
     override fun accept(expression: Expression.Operation): String {
@@ -16,12 +19,12 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val rightSide = rightPair.first + "\nmov r$register, rax"
         val rightRegister = CompilerUtils.getRegister("ax", rightPair.second)
 
-        val leftPair = getOperationSide(expression.expression1)
+        val leftPair = getOperationSide(expression.expression)
         val leftSide = leftPair.first
         val leftRegister = CompilerUtils.getRegister(register, leftPair.second)
         context.operationResultSize = leftPair.second
         context.operationIndex--
-        val operator = CompilerUtils.getOperator(expression.operator1.substring)
+        val operator = CompilerUtils.getOperator(expression.operator.substring)
         val result =
             "$rightSide\n$leftSide\n${operator} ${if (operator != "mul" && operator != "div") "$rightRegister," else ""} $leftRegister"
         return saveUsedRegisters(wasInSub, result, expression)
@@ -44,13 +47,13 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val leftSide = when (side) {
             is Expression.Literal -> {
                 val value = side.accept(compilerInstance)
-                val length = Compiler.LENGTHS_OF_TYPES[ExpressionUtils.getType(null, side.any1)]!!
+                val length = ExpressionUtils.getType(null, side.any).getRawLength()
                 val register = CompilerUtils.getRegister("ax", length)
                 registerSize = length
-                "mov ${register}, $value"
+                "mov $register, $value"
             }
             is Expression.VarCall -> {
-                val variable = context.variables.last()[side.identifier1.substring]
+                val variable = context.variables.last()[side.identifier.substring]
                     ?: error("The variable could not be found")
                 val register = CompilerUtils.getRegister("ax", variable.length)
 
@@ -58,14 +61,31 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
                 "mov $register, ${side.accept(compilerInstance)}"
             }
             is Expression.Call -> {
-                if (side.expression1 is Expression.VarCall) {
-                    val varCall = side.expression1 as Expression.VarCall
-                    val function = context.functions[varCall.identifier1.substring]
+                if (side.expression is Expression.VarCall) {
+                    val function = context.functions[side.expression.identifier.substring]
                         ?: error("The called function does not exist")
-                    registerSize = Compiler.LENGTHS_OF_TYPES[function.returnType]!!
+                    registerSize = function.returnType!!.getRawLength()
                     side.accept(compilerInstance)
                 } else {
                     TODO()
+                }
+            }
+            is Expression.ArrayGet -> {
+                val variable = CompilerUtils.getVariableFromArrayGet(side, context)
+                if (variable != null) {
+                    registerSize = variable.type.getRawLength()
+                    CompilerUtils.moveArrayGetToSth(
+                        side,
+                        "mov ${
+                            CompilerUtils.getRegister(
+                                "ax",
+                                variable.type.getRawLength()
+                            )
+                        }, ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())}", context)
+                } else {
+                    registerSize = 8
+                    UsualErrorMessages.xNotFound("variable", Token("", TokenType.IDENTIFIER, -1, -1))
+                    ""
                 }
             }
             is Expression.Operation, is Expression.Grouping -> {

@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.compiler.Type
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.interpreter.library.Library
 import com.cubearrow.cubelang.parser.Expression
@@ -8,7 +9,7 @@ import com.cubearrow.cubelang.parser.Expression
  * Stores the instances of [Callable] defined in a program
  */
 class FunctionStorage {
-    class Function(override val name: String, override var args: Map<String, String>, private var body: Expression) :
+    class Function(override val name: String, override var args: Map<String, Type>, private var body: Expression) :
         Callable {
         override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Any? {
             return Interpreter(listOf(this.body), variableStorage, functionStorage).returnedValue
@@ -24,7 +25,7 @@ class FunctionStorage {
      * @param args The arguments the function will take
      * @param body The [List] of [Expression] representing the body
      */
-    fun addFunction(name: Token, args: Map<String, String>, body: Expression) {
+    fun addFunction(name: Token, args: Map<String, Type>, body: Expression) {
         if (functions.any { it.name == name.substring && it.args == args }) {
             Main.error(name.line, name.index, null, "A function with the specified name and argument size already exists")
         } else {
@@ -77,7 +78,7 @@ class FunctionStorage {
      * @param name The name of the function
      * @param arguments The arguments of the function
      */
-    fun removeFunction(name: Token, arguments: Map<String, String>) {
+    fun removeFunction(name: Token, arguments: Map<String, Type>) {
         functions.remove(functions.firstOrNull { it.name == name.substring && it.args == arguments })
     }
 

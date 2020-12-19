@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.parser
 
+import com.cubearrow.cubelang.compiler.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import kotlin.test.Test
@@ -16,8 +17,8 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 6)
         )
         val actual = Parser(tokens).parse()[0] as Expression.Assignment
-        assert((actual.expression1 as Expression.Literal).any1 == 2)
-        assert(actual.identifier1 == token)
+        assert((actual.expression as Expression.Literal).any == 2)
+        assert(actual.identifier == token)
     }
 
     @Test
@@ -32,13 +33,13 @@ class ParserTest {
             Token("=", TokenType.EQUALS, 1, 7),
             Token("2", TokenType.DOUBLE, 1, 8),
             Token(";", TokenType.SEMICOLON, 1, 9),
-            Token("", TokenType.EOF, 1, 10)
+            Token("", TokenType.EOF, 1, 0)
         )
         val actual = Parser(tokens).parse()[0] as Expression.VarInitialization
-        assert((actual.expressionNull1 as Expression.Literal).any1 == 2)
+        assert((actual.expressionNull as Expression.Literal).any == 2)
 
-        assert(actual.identifierNull1!! == typeToken)
-        assert(actual.identifier1 == nameToken)
+        assert(actual.typeNull!! == NormalType(typeToken.substring))
+        assert(actual.identifier == nameToken)
     }
 
     @Test
@@ -50,7 +51,7 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 4)
         )
         val actual = Parser(tokens).parse()[0] as Expression.VarCall
-        assert(actual.identifier1 == token)
+        assert(actual.identifier == token)
     }
 
     @Test
@@ -66,10 +67,10 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 6)
         )
         val actual = Parser(tokens).parse()[0] as Expression.Comparison
-        assert((actual.expression2 as Expression.Literal).any1 == 2)
+        assert((actual.expression2 as Expression.Literal).any == 2)
 
-        assert((actual.expression1 as Expression.VarCall).identifier1 == first)
-        assert(actual.comparator1 == comparator)
+        assert((actual.expression as Expression.VarCall).identifier == first)
+        assert(actual.comparator == comparator)
     }
 
     @Test
@@ -83,6 +84,6 @@ class ParserTest {
             Token("", TokenType.EOF, 1, 5)
         )
         val actual = Parser(tokens).parse()[0] as Expression.BlockStatement
-        assert((actual.expressionLst1[0] as Expression.VarCall).identifier1 == varCallToken)
+        assert((actual.expressionLst[0] as Expression.VarCall).identifier == varCallToken)
     }
 }

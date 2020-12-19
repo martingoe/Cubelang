@@ -1,5 +1,8 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.compiler.NormalType
+import com.cubearrow.cubelang.compiler.Type
+import com.cubearrow.cubelang.parser.Expression
 import kotlin.collections.HashMap
 
 /**
@@ -32,12 +35,12 @@ class VariableStorage {
     /**
      * Adds a variable to the current scope, if there is no scope, one is added
      */
-    fun addVariableToCurrentScope(name: String, type: String, value: Any?) {
+    fun addVariableToCurrentScope(name: String, type: Type, value: Any?) {
         if (this.variables.isEmpty()) addScope()
         setValue(value, name, type, variables.size - 1)
     }
 
-    private fun setValue(value: Any?, name: String, type: String, index: Int) {
+    private fun setValue(value: Any?, name: String, type: Type, index: Int) {
         if (value == null) {
             variables[index][name] = Variable(name, null, type, VariableState.UNDEFINED)
         } else {
@@ -46,12 +49,12 @@ class VariableStorage {
         }
     }
 
-    private fun castValue(value: Any?, type: String): Any? {
+    private fun castValue(value: Any?, type: Type): Any? {
         return try {
             when (type) {
-                "int" -> value as Int
-                "double" -> value as Double
-                "string" -> value as String
+                NormalType("int") -> value as Int
+                NormalType("double") -> value as Double
+                NormalType("string") -> value as String
                 else -> {
                     if (value is ClassInstance) value else throw ClassCastException()
                 }

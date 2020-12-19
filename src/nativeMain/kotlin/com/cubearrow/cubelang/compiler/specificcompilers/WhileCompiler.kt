@@ -9,7 +9,7 @@ class WhileCompiler(var context: CompilerContext) : SpecificCompiler<Expression.
         val contextLIndex = ++context.lIndex
         context.lIndex++
         val x = """$.L${contextLIndex}:
-                |${expression.expression1.accept(context.compilerInstance)}
+                |${expression.expression.accept(context.compilerInstance)}
                 |${expression.expression2.accept(context.compilerInstance)}
                 |jmp .L${contextLIndex}
                 |.L${contextLIndex + 1}:""".trimMargin()

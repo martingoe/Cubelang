@@ -23,53 +23,51 @@ printChar:
     ret
 main:
 mov rbp, rsp
-sub rsp, 4
-
-call getCurrentTime 
-mov DWORD [rbp - 4], eax
-mov edi, 40 
-call fib 
-mov edi, eax 
-call printInt
-mov eax, DWORD [rbp-4]
-mov rbx, rax
-call getCurrentTime
-sub eax, ebx 
-mov edi, eax 
-call printInt
+sub rsp, 8
 
 
 
-fib:
-push rbp
-mov rbp, rsp
-sub rsp, 4
-mov DWORD[rbp - 4], edi
-cmp DWORD [rbp-4], 2
-jge .L1
-mov eax, DWORD [rbp-4]
-jmp .L2
+mov DWORD [rbp - 4], 72
 
+mov DWORD [rbp - 0], 101
+
+mov DWORD [rbp - -4], 108
+
+mov DWORD [rbp - -8], 108
+
+mov DWORD [rbp - -12], 111
+
+mov DWORD [rbp - -16], 32
+
+mov DWORD [rbp - -20], 87
+
+mov DWORD [rbp - -24], 111
+
+mov DWORD [rbp - -28], 114
+
+mov DWORD [rbp - -32], 108
+
+mov DWORD [rbp - -36], 100
+
+mov DWORD [rbp - -40], 10
+mov DWORD [rbp - 8], 0
 .L1:
-
-push rbx
-mov eax, 1
-mov r12, rax
-mov eax, DWORD [rbp-4]
-sub eax, r12d 
-mov edi, eax 
-call fib
+cmp DWORD [rbp-8], 13
+jge .L2
+mov eax, DWORD [rbp-8]
 mov rbx, rax
-mov eax, 2
-mov r12, rax
-mov eax, DWORD [rbp-4]
-sub eax, r12d 
-mov edi, eax 
-call fib
-add eax, ebx
-pop rbx
 
+mov edi, DWORD [rbp-4+rbx*4]
+call putchar
+
+mov eax, 1
+mov rbx, rax
+mov eax, DWORD [rbp-8]
+add eax, ebx 
+mov DWORD [rbp - 8], eax
+jmp .L1
 .L2:
-leave
-ret
+
+
+
 

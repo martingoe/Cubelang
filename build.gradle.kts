@@ -1,10 +1,12 @@
 plugins {
     kotlin("multiplatform") version "1.4.10"
+    id("org.jetbrains.dokka") version "1.4.20"
 }
 
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 kotlin {

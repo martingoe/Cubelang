@@ -1,30 +1,49 @@
 package com.cubearrow.cubelang.compiler
 
-import com.cubearrow.cubelang.lexer.Token
-import Main
 import com.cubearrow.cubelang.parser.Expression
 import kotlin.math.max
 
 
 class CompilerUtils {
     companion object {
-        fun getOperationDepth(expression: Expression): Int{
-            return when (expression){
-                is Expression.Operation -> max(getOperationDepth(expression.expression1), getOperationDepth(expression.expression2)) + 1
-                is Expression.Comparison -> max(getOperationDepth(expression.expression1), getOperationDepth(expression.expression2))
-                is Expression.Grouping -> getOperationDepth(expression.expression1)
-                is Expression.Call -> expression.expressionLst1.fold(0) {acc, arg -> max(acc, getOperationDepth(arg)) }
-                is Expression.Unary -> getOperationDepth(expression.expression1)
-                is Expression.Logical -> max(getOperationDepth(expression.expression1), getOperationDepth(expression.expression2))
+        fun getOperationDepth(expression: Expression): Int {
+            return when (expression) {
+                is Expression.Operation -> max(
+                    getOperationDepth(expression.expression),
+                    getOperationDepth(expression.expression2)
+                ) + 1
+                is Expression.Comparison -> max(
+                    getOperationDepth(expression.expression),
+                    getOperationDepth(expression.expression2)
+                )
+                is Expression.Grouping -> getOperationDepth(expression.expression)
+                is Expression.Call -> expression.expressionLst.fold(0) { acc, arg -> max(acc, getOperationDepth(arg)) }
+                is Expression.Unary -> getOperationDepth(expression.expression)
+                is Expression.Logical -> max(
+                    getOperationDepth(expression.expression),
+                    getOperationDepth(expression.expression2)
+                )
                 else -> 0
             }
         }
 
-        fun moveAXToVariable(length: Int, context: CompilerContext): String =
-                "mov ${getASMPointerLength(length)} [rbp - ${context.stackIndex.last()}], ${getRegister("ax", length)}"
+        fun getVariableFromArrayGet(expression: Expression, context: CompilerContext): Compiler.LocalVariable? {
+            if (expression is Expression.ArrayGet) {
+                return getVariableFromArrayGet(expression.expression, context)
+            } else if (expression is Expression.VarCall) {
+                return context.variables.last()[expression.identifier.substring]
+            }
+            return null
+        }
 
-        fun assignVariableToVariable(variableToAssignTo: Compiler.LocalVariable, variableToAssign: Compiler.LocalVariable): String {
-            val length = Compiler.LENGTHS_OF_TYPES[variableToAssignTo.type]!!
+        fun moveAXToVariable(length: Int, context: CompilerContext): String =
+            "mov ${getASMPointerLength(length)} [rbp - ${context.stackIndex.last()}], ${getRegister("ax", length)}"
+
+        fun assignVariableToVariable(
+            variableToAssignTo: Compiler.LocalVariable,
+            variableToAssign: Compiler.LocalVariable
+        ): String {
+            val length = variableToAssign.type.getLength()
             val register = getRegister("ax", length)
             return """
                 |mov $register, ${getASMPointerLength(length)} [rbp - ${variableToAssign.index}]
@@ -32,8 +51,9 @@ class CompilerUtils {
             """.trimMargin()
         }
 
-        fun checkMatchingTypes(type1: Token, type2: String) {
-            if (type1.substring != type2) Main.error(type1.line, type1.index, null, "The types do not match")
+
+        fun checkMatchingTypes(type: Type, type2: Type) {
+            if (type != type2) Main.error(-1, -1, null, "The types do not match")
         }
 
         fun getASMPointerLength(length: Int): String {
@@ -88,5 +108,29 @@ class CompilerUtils {
                 }
             }
         }
+
+        fun moveArrayGetToSth(arrayGet: Expression.ArrayGet, toMoveTo: String, context: CompilerContext): String {
+            val (before, pointer) = beforeAndPointerArrayGet(arrayGet, context)
+            return "$before\n" +
+                    "$toMoveTo $pointer\n"
+        }
+
+        fun beforeAndPointerArrayGet(arrayGet: Expression.ArrayGet, context: CompilerContext): Pair<String, String>{
+            val before: String
+            val pointer: String
+
+            if (arrayGet.expression2 !is Expression.Literal) {
+                val string = arrayGet.accept(context.compilerInstance)
+                val indexOf = string.indexOf("[", string.indexOf("[") + 1)
+                before = string.substring(0 until indexOf)
+                pointer = string.substring(indexOf until string.length)
+            } else {
+                before = ""
+                pointer = arrayGet.accept(context.compilerInstance)
+            }
+            return Pair(before, pointer)
+        }
+
+
     }
 }

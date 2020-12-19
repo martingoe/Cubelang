@@ -3,28 +3,29 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
 import Main
+import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
         context.separateReturnSegment = false
-        val args = ExpressionUtils.mapArgumentDefinitions(expression.expressionLst1)
+        val args = ExpressionUtils.mapArgumentDefinitions(expression.expressionLst)
         if (args.size > 5)
-            Main.error(expression.identifier1.line, expression.identifier1.index, null, "The function must only have 5 arguments")
-        context.functions[expression.identifier1.substring] = Compiler.Function(expression.identifier1.substring, args, expression.identifierNull1?.substring)
+            Main.error(expression.identifier.line, expression.identifier.index, null, "The function must only have 5 arguments")
+        context.functions[expression.identifier.substring] = Compiler.Function(expression.identifier.substring, args, expression.typeNull)
 
         context.stackIndex.add(0)
         context.variables.add(HashMap())
-        context.currentReturnLength = Compiler.LENGTHS_OF_TYPES[expression.identifierNull1?.substring]
+        context.currentReturnLength = expression.typeNull?.getLength() // TODO: Figure out how to handle returning arrays
         context.argumentIndex = 0
         var statements = ""
-        expression.expressionLst1.forEach { statements += it.accept(context.compilerInstance) + "\n" }
-        statements += expression.expression1.accept(context.compilerInstance)
+        expression.expressionLst.forEach { statements += it.accept(context.compilerInstance) + "\n" }
+        statements += expression.expression.accept(context.compilerInstance)
         context.variables.removeLast()
         context.currentReturnLength = null
 
-        return """${expression.identifier1.substring}:
+        return """${expression.identifier.substring}:
             |push rbp
             |mov rbp, rsp
             |sub rsp, ${context.stackIndex.removeLast()}

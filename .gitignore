@@ -5,3 +5,5 @@ out
 build
 stdio-build
 stdio.klib
+output.o
+a.out

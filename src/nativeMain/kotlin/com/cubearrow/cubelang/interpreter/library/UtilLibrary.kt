@@ -1,5 +1,7 @@
 package com.cubearrow.cubelang.interpreter.library
 
+import Main
+import com.cubearrow.cubelang.compiler.NormalType
 import com.cubearrow.cubelang.interpreter.Callable
 import com.cubearrow.cubelang.interpreter.FunctionStorage
 import com.cubearrow.cubelang.interpreter.VariableStorage
@@ -8,11 +10,11 @@ import kotlin.math.absoluteValue
 class UtilLibrary {
     class Len : Callable {
         override val name = "len"
-        override val args = mapOf("string" to "string")
+        override val args = mapOf("string" to NormalType("string"))
 
-        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Int {
+        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Int {
             val any = variableStorage.getCurrentVariables()["string"]
-            if(any?.value is String){
+            if (any?.value is String) {
                 return any.value.length
             }
             Main.error(-1, -1, null, "The function len() can only be called on strings.")
@@ -20,13 +22,14 @@ class UtilLibrary {
         }
 
     }
+
     class Abs : Callable {
         override val name = "abs"
-        override val args = mapOf("string" to "string")
+        override val args = mapOf("string" to NormalType("string"))
 
-        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage):Double {
+        override fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Double {
             val any = variableStorage.getCurrentVariables()["string"]
-            if(any?.value is Double){
+            if (any?.value is Double) {
                 return any.value.absoluteValue
             }
             Main.error(-1, -1, null, "The function abs() can only be called on numbers.")

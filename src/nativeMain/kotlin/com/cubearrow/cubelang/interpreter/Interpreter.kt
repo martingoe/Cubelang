@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.compiler.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
@@ -20,22 +21,22 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     class Return : RuntimeException()
 
     override fun visitAssignment(assignment: Expression.Assignment) {
-        val value = assignment.expression1.accept(this)
+        val value = assignment.expression.accept(this)
         try {
-            variableStorage.updateVariable(assignment.identifier1.substring, value)
+            variableStorage.updateVariable(assignment.identifier.substring, value)
         } catch (error: VariableNotFoundException) {
-            Main.error(assignment.identifier1.line, assignment.identifier1.index, null, "The variable with the name '${assignment.identifier1.substring}' has not been found")
+            Main.error(assignment.identifier.line, assignment.identifier.index, null, "The variable with the name '${assignment.identifier.substring}' has not been found")
         }
     }
 
     override fun visitOperation(operation: Expression.Operation): Any? {
         val right = evaluate(operation.expression2)
-        val left = evaluate(operation.expression1)
+        val left = evaluate(operation.expression)
 
         if (right is Number && left is Number) {
             val rightDouble = right.toDouble()
             val leftDouble = left.toDouble()
-            val value =  when (operation.operator1.substring) {
+            val value =  when (operation.operator.substring) {
                 "-" -> leftDouble - rightDouble
                 "+" -> leftDouble + rightDouble
                 "/" -> leftDouble / rightDouble
@@ -46,38 +47,37 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 else -> null
             }
             return if(left is Int) value?.toInt() else value
-        } else if (right is String && left is String && operation.operator1.substring == "+") {
+        } else if (right is String && left is String && operation.operator.substring == "+") {
             return left + right
         }
-        UsualErrorMessages.onlyNumberError(operation.operator1)
+        UsualErrorMessages.onlyNumberError(operation.operator)
         return null
     }
 
     override fun visitCall(call: Expression.Call): Any? {
-        if(call.expression1 is Expression.VarCall) {
-            val varCall = call.expression1 as Expression.VarCall
-            val function = functionStorage.getFunction(varCall.identifier1.substring, call.expressionLst1.size)
+        if(call.expression is Expression.VarCall) {
+            val function = functionStorage.getFunction(call.expression.identifier.substring, call.expressionLst.size)
             if (function == null) {
-                Main.error(varCall.identifier1.line, varCall.identifier1.index, null, "The called function is not defined")
+                Main.error(call.expression.identifier.line, call.expression.identifier.index, null, "The called function is not defined")
                 return null
             }
 
-            return function.call(call.expressionLst1.map(this::evaluate), variableStorage, functionStorage)
+            return function.call(call.expressionLst.map(this::evaluate), variableStorage, functionStorage)
         }
         TODO("")
     }
 
     override fun visitLiteral(literal: Expression.Literal): Any? {
-        return literal.any1
+        return literal.any
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Any? {
-        return getVariableFromVariableStorage(variableStorage, varCall.identifier1).value
+        return getVariableFromVariableStorage(variableStorage, varCall.identifier).value
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
-        val args = ExpressionUtils.mapArgumentDefinitions(functionDefinition.expressionLst1)
-        functionStorage.addFunction(functionDefinition.identifier1, args, functionDefinition.expression1)
+        val args = ExpressionUtils.mapArgumentDefinitions(functionDefinition.expressionLst)
+        functionStorage.addFunction(functionDefinition.identifier, args, functionDefinition.expression)
     }
 
     fun evaluate(expression: Expression) = expression.accept(this)
@@ -93,11 +93,11 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
 
 
     override fun visitComparison(comparison: Expression.Comparison): Boolean {
-        val left = evaluate(comparison.expression1)
+        val left = evaluate(comparison.expression)
         val right = evaluate(comparison.expression2)
         try {
             if(left is Double && right is Double) {
-                return when (comparison.comparator1.substring) {
+                return when (comparison.comparator.substring) {
                     "==" -> left == right
                     "!=" -> left != right
                     "<" -> left < right
@@ -108,7 +108,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                     else -> return false
                 }
             } else if(left is Int && right is Int){
-                return when (comparison.comparator1.substring) {
+                return when (comparison.comparator.substring) {
                     "==" -> left == right
                     "!=" -> left != right
                     "<" -> left < right
@@ -120,30 +120,30 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
                 }
             }
         } catch (error: TypeCastException) {
-            UsualErrorMessages.onlyNumberError(comparison.comparator1)
+            UsualErrorMessages.onlyNumberError(comparison.comparator)
             return false
         }
         return false
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
-        val isTrue = evaluate(ifStmnt.expression1) as Boolean
+        val isTrue = evaluate(ifStmnt.expression) as Boolean
         if (isTrue) {
             ifStmnt.expression2.accept(this)
             if (this.returnedValue != null) throw Return()
-        } else if(ifStmnt.expressionNull1 != null){
-            ifStmnt.expressionNull1!!.accept(this)
+        } else if(ifStmnt.expressionNull != null){
+            ifStmnt.expressionNull.accept(this)
         }
     }
 
     override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt): Any? {
-        this.returnedValue = returnStmnt.expressionNull1?.let { evaluate(it) }
+        this.returnedValue = returnStmnt.expressionNull?.let { evaluate(it) }
         throw Return()
     }
 
     override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt): Any? {
         try {
-            while (evaluate(whileStmnt.expression1) as Boolean) {
+            while (evaluate(whileStmnt.expression) as Boolean) {
                 variableStorage.addScope()
                 whileStmnt.expression2.accept(this)
                 variableStorage.popScope()
@@ -157,12 +157,12 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitForStmnt(forStmnt: Expression.ForStmnt) {
-        if (forStmnt.expressionLst1.size == 3) {
+        if (forStmnt.expressionLst.size == 3) {
             variableStorage.addScope()
-            evaluate(forStmnt.expressionLst1[0])
-            while (evaluate(forStmnt.expressionLst1[1]) as Boolean) {
-                forStmnt.expression1.accept(this)
-                evaluate(forStmnt.expressionLst1[2])
+            evaluate(forStmnt.expressionLst[0])
+            while (evaluate(forStmnt.expressionLst[1]) as Boolean) {
+                forStmnt.expression.accept(this)
+                evaluate(forStmnt.expressionLst[2])
             }
             variableStorage.popScope()
         }
@@ -173,16 +173,16 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
-        val klass = Klass(classDefinition.identifier1.substring,
-                functionStorage.functions.firstOrNull { it.name == classDefinition.identifierNull1?.substring } as Klass?,
-                classDefinition.expressionLst1)
+        val klass = Klass(classDefinition.identifier.substring,
+                functionStorage.functions.firstOrNull { it.name == (classDefinition.typeNull as NormalType).typeName } as Klass?,
+                classDefinition.expressionLst)
         functionStorage.addFunction(klass)
         klass.initializeVariables(this)
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Any? {
-        val instance = evaluate(instanceGet.expression1) as ClassInstance
-        val expression = instanceGet.identifier1
+        val instance = evaluate(instanceGet.expression) as ClassInstance
+        val expression = instanceGet.identifier
         return getVariableFromVariableStorage(instance.variableStorage, expression).value
     }
 
@@ -196,10 +196,10 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {
-        val instance = evaluate(instanceSet.expression1) as ClassInstance
+        val instance = evaluate(instanceSet.expression) as ClassInstance
         val expression = instanceSet.expression2
         if (expression is Expression.Assignment) {
-            instance.variableStorage.updateVariable(expression.identifier1.substring, evaluate(expression.expression1))
+            instance.variableStorage.updateVariable(expression.identifier.substring, evaluate(expression.expression))
         }
     }
 
@@ -208,7 +208,7 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitBlockStatement(blockStatement: Expression.BlockStatement){
-        for(expression in blockStatement.expressionLst1){
+        for(expression in blockStatement.expressionLst){
             expression.accept(this)
         }
     }
@@ -222,8 +222,17 @@ class Interpreter(expressions: List<Expression>, previousVariables: VariableStor
     }
 
     override fun visitGrouping(grouping: Expression.Grouping): Any? {
-        return evaluate(grouping.expression1)
+        return evaluate(grouping.expression)
     }
 
     override fun visitEmpty(empty: Expression.Empty){}
+
+
+    override fun visitArrayGet(arrayGet: Expression.ArrayGet): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitArraySet(arraySet: Expression.ArraySet): Any? {
+        TODO("Not yet implemented")
+    }
 }

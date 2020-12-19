@@ -24,6 +24,8 @@
 <identifierNull> ::= "TODO"
 <expressionNull> ::= "TODO"
 <any> ::= "TODO"
+<type> ::= "TODO"
+<typeNull> ::= "TODO"
 <line_comment> ::= "#"
 <var> ::= "var"
 <class> ::= "class"
@@ -33,5 +35,7 @@
 <or> ::= "\|\|"
 <and> ::= "\&\&"
 <bang> ::= "\!"
+<closedl> ::= "\["
+<closedr> ::= "\]"
 
 <identifier> ::= "[a-zA-Z][a-zA-Z0-9]*"

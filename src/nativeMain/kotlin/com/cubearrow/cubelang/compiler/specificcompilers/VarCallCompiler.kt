@@ -8,12 +8,12 @@ import com.cubearrow.cubelang.utils.UsualErrorMessages
 
 class VarCallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.VarCall> {
     override fun accept(expression: Expression.VarCall): String {
-        val x: Compiler.LocalVariable? = context.variables.last()[expression.identifier1.substring]
+        val x: Compiler.LocalVariable? = context.variables.last()[expression.identifier.substring]
         if (x != null) {
-            val lengthAsString = CompilerUtils.getASMPointerLength(x.length)
+            val lengthAsString = CompilerUtils.getASMPointerLength(x.type.getRawLength())
             return "$lengthAsString [rbp-${x.index}]"
         }
-        UsualErrorMessages.xNotFound("requested variable", expression.identifier1)
+        UsualErrorMessages.xNotFound("requested variable", expression.identifier)
         return ""
     }
 }

@@ -1,8 +1,10 @@
 package com.cubearrow.cubelang.interpreter
 
+import com.cubearrow.cubelang.compiler.Type
+
 interface Callable {
     val name: String
-    val args: Map<String, String>
+    val args: Map<String, Type>
     fun call(variableStorage: VariableStorage, functionStorage: FunctionStorage): Any?
 
     /**
@@ -14,7 +16,11 @@ interface Callable {
 
         //Add the argument variables to the variable stack
         for (i in this.args.keys.indices) {
-            variableStorage.addVariableToCurrentScope(this.args.keys.elementAt(i), this.args[this.args.keys.elementAt(i)]!!, args[i])
+            variableStorage.addVariableToCurrentScope(
+                this.args.keys.elementAt(i),
+                this.args[this.args.keys.elementAt(i)]!!,
+                args[i]
+            )
         }
         val value = this.call(variableStorage, functionStorage)
         variableStorage.popScope()

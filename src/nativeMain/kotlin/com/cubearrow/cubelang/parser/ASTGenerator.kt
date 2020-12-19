@@ -9,16 +9,6 @@ import com.cubearrow.cubelang.utils.IOUtils.Companion.readAllText
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
 import kotlin.system.exitProcess
 
-/**
- * Initializes an [ASTGenerator] if the arguments are correct. If this is not the case, the correct program usage is printed and the program exits with error code 64.
- */
-fun main(args: Array<String>) {
-    if (args.size != 3) {
-        println("Argument usage: <outputDirectory> <SyntaxGrammarFile> <TokenGrammarFile>")
-        exitProcess(64)
-    }
-    ASTGenerator(args[0], args[1], args[2])
-}
 
 /**
  * A generator for the AST from BNF grammar files
@@ -73,10 +63,12 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
         return """
                 package com.cubearrow.cubelang.parser
                 
+                
+                import com.cubearrow.cubelang.compiler.Type
                 import com.cubearrow.cubelang.lexer.Token
                 
                 /**
-                 * This class is generated automatically by the [com.cubearrow.cubelang.parser.ASTGenerator]
+                 * This class is generated automatically by the [ASTGenerator]
                  **/
                 abstract class Expression {
             """.trimIndent() + "\n"
@@ -114,6 +106,7 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
                 handleRuleCount(ruleCount, term)
                 result += parseSingleParameter(term, ruleCount)
             }
+
         }
         // Returns the result while removing ", " from the end
         return result.substring(0, result.length - 2)
@@ -139,28 +132,34 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String, tok
      * A [MutableList] is used if the name ends with "Lst"
      */
     private fun parseSingleParameter(term: BnfRule, ruleCount: Map<BnfRule, Int>): String {
-        val ruleName: String
         val type: String
-        // Handle the names that end with "Lst" to become a MutableList
         when {
+            term.name == "typeNull" -> {
+                type = "Type?"
+            }
+            term.name == "type" -> {
+                type = "Type"
+            }
+
             term.name.indexOf("Lst") == term.name.length - 3 -> {
-                ruleName = term.name.substring(0, term.name.length - 3)
+                val ruleName = term.name.substring(0, term.name.length - 3)
                 val rule = syntaxGrammarParser.getRuleFromString(ruleName)
                 type = "List<${rule?.name?.capitalize() ?: "Token"}>"
             }
             term.name.endsWith("Null") -> {
-                ruleName = term.name.substring(0, term.name.length - 4)
+                val ruleName = term.name.substring(0, term.name.length - 4)
                 val rule = syntaxGrammarParser.getRuleFromString(ruleName)
                 type = "${rule?.name?.capitalize() ?: "Token"}?"
             }
             term.name == "any" -> {
                 type = "Any?"
             }
+
             else -> {
                 val rule = syntaxGrammarParser.getRuleFromString(term.name)
                 type = rule?.name?.capitalize() ?: "Token"
             }
         }
-        return "var ${term.name}${ruleCount[term]}: ${type}, "
+        return "val ${term.name}${if(ruleCount[term] != 1)  ruleCount[term] else ""}: ${type}, "
     }
 }

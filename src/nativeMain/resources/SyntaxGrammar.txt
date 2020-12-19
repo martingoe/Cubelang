@@ -1,24 +1,28 @@
 <expression> ::= <assignment> | <operation> | <call> | <literal>
 <assignment> ::= <identifier> <expression>
-<varInitialization> ::= <identifier> <identifierNull> <expressionNull>
+<varInitialization> ::= <identifier> <typeNull> <expressionNull>
 <operation> ::= <expression> <operator> <expression>
 <call> ::= <expression> <expressionLst>
 <literal> ::= <any>
 <varCall> ::= <identifier>
-<functionDefinition> ::= <identifier> <expressionLst> <identifierNull> <expression>
+<functionDefinition> ::= <identifier> <expressionLst> <typeNull> <expression>
 <comparison> ::= <expression> <comparator> <expression>
 
 <ifStmnt> ::= <expression> <expression> <expressionNull>
 <returnStmnt> ::= <expressionNull>
 <whileStmnt> ::= <expression> <expression>
 <forStmnt> ::= <expressionLst> <expression>
-<classDefinition> ::= <identifier> <identifierNull> <expressionLst>
+<classDefinition> ::= <identifier> <typeNull> <expressionLst>
 <instanceGet> ::= <expression> <identifier>
 <instanceSet> ::= <expression> <identifier> <expression>
-<argumentDefinition> ::= <identifier> <identifier>
+<argumentDefinition> ::= <identifier> <type>
 <blockStatement> ::= <expressionLst>
 <logical> ::= <expression> <identifier> <expression>
 <unary> ::= <identifier> <expression>
 <grouping> ::= <expression>
+
+<arrayGet> ::= <expression> <expression>
+<arraySet> ::= <arrayGet> <expression>
+
 
 <empty> ::= <identifierNull>

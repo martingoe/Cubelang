@@ -7,7 +7,7 @@ import com.cubearrow.cubelang.parser.Expression
 
 class ArgumentDefinitionCompiler(var context: CompilerContext): SpecificCompiler<Expression.ArgumentDefinition> {
     override fun accept(expression: Expression.ArgumentDefinition): String {
-        val length: Int = Compiler.LENGTHS_OF_TYPES[expression.identifier2.substring]!!
+        val length: Int = expression.type.getLength()
 
         context.stackIndex.add(context.stackIndex.removeLast() + length)
         context.variables.last()[expression.identifier1.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.identifier2.substring, length)
