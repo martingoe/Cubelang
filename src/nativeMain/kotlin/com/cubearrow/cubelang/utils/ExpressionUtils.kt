@@ -1,7 +1,5 @@
 package com.cubearrow.cubelang.utils
 
-import com.cubearrow.cubelang.compiler.NormalType
-import com.cubearrow.cubelang.compiler.Type
 import com.cubearrow.cubelang.interpreter.Interpreter
 import com.cubearrow.cubelang.interpreter.VariableStorage
 import com.cubearrow.cubelang.parser.Expression

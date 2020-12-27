@@ -3,6 +3,8 @@ package com.cubearrow.cubelang.compiler
 import com.cubearrow.cubelang.compiler.specificcompilers.*
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
+import com.cubearrow.cubelang.utils.NormalType
+import com.cubearrow.cubelang.utils.Type
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
     companion object {

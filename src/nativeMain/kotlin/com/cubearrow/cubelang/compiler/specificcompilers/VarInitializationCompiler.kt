@@ -5,7 +5,7 @@ import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
 import Main
-import com.cubearrow.cubelang.compiler.NormalType
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.moveExpressionToX
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
@@ -15,10 +15,9 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
             return initializeValueNotNull(expression)
         }
 
-        context.stackIndex.add(context.stackIndex.removeLast() + (expression.type?.getRawLength() ?: error("Unreachable")))
+        context.stackIndex.add(context.stackIndex.removeLast() + (expression.type?.getLength() ?: error("Unreachable")))
         context.variables.last()[expression.name.substring] =
-                Compiler.LocalVariable(context.stackIndex.last(), ExpressionUtils.getType(expression.type, null),
-                        expression.type.getLength())
+                Compiler.LocalVariable(context.stackIndex.last(), expression.type)
         return ""
     }
 
@@ -29,7 +28,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
             is Expression.Literal -> {
                 val type = ExpressionUtils.getType(expression.type, expression.valueExpression.value)
                 val length = type.getLength()
-                initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.last() + length, type, length))
+                initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.last() + length, type))
                 "mov ${CompilerUtils.getASMPointerLength(type.getRawLength())} [rbp - ${context.stackIndex.last()}], $value"
             }
             is Expression.VarCall -> {
@@ -39,19 +38,17 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
                 initializeVariableWithCall(expression, value)
             }
             is Expression.Operation -> {
-                initializeVariable(context.operationResultSize, expression,
-                        Compiler.LocalVariable(context.stackIndex.last() + context.operationResultSize,
-                            NormalType("any"),
-                                context.operationResultSize)) // TODO actual type
+                initializeVariable(context.operationResultType!!.getLength(), expression,
+                        Compiler.LocalVariable(context.stackIndex.last() + context.operationResultType!!.getLength(),
+                                context.operationResultType!!))
 
-                "$value \n" + CompilerUtils.moveAXToVariable(context.operationResultSize, context)
+                "$value \n" + CompilerUtils.moveAXToVariable(context.operationResultType!!.getRawLength(), context)
             }
             else -> {
-                val length = 8
-                initializeVariable(length, expression, Compiler.LocalVariable(context.stackIndex.last() + length,
-                    NormalType("any"), length))
-
-                "$value \n" + CompilerUtils.moveAXToVariable(length, context)
+                val (first, pointer, type) = moveExpressionToX(expression.valueExpression!!, context)
+                initializeVariable(type.getLength(), expression, Compiler.LocalVariable(context.stackIndex.last() + type.getLength(),
+                    type))
+                "$first\nmov ${CompilerUtils.getASMPointerLength(type.getRawLength())} [rbp - ${context.stackIndex.last()}], $pointer"
             }
         }
     }
@@ -62,7 +59,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
                 ?: error("Variable not found")
         expression.type?.let { checkMatchingTypes(it, variableToAssign.type) }
         val length = variableToAssign.type.getLength()
-        val variable = Compiler.LocalVariable(context.stackIndex.last() + length, variableToAssign.type, length)
+        val variable = Compiler.LocalVariable(context.stackIndex.last() + length, variableToAssign.type)
 
         initializeVariable(length, expression, variable)
         return CompilerUtils.assignVariableToVariable(variable, variableToAssign)
@@ -85,7 +82,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
             varInitialization.type?.let { checkMatchingTypes(it, function.returnType!!) }
 
             val length = function.returnType!!.getLength()
-            initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.last() + length, function.returnType!!, length))
+            initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.last() + length, function.returnType!!))
             return "$value \n" + CompilerUtils.moveAXToVariable(function.returnType!!.getRawLength(), context)
         }
         TODO()

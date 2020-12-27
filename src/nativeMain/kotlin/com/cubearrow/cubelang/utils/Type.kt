@@ -1,6 +1,8 @@
-package com.cubearrow.cubelang.compiler
+package com.cubearrow.cubelang.utils
 
-class ArrayType(var subType: Type, var count: Int) : Type{
+import com.cubearrow.cubelang.compiler.Compiler
+
+class ArrayType(var subType: Type, var count: Int) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
 
@@ -19,7 +21,7 @@ class ArrayType(var subType: Type, var count: Int) : Type{
     }
 }
 
-class NormalType(var typeName: String) : Type{
+class NormalType(var typeName: String) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
 

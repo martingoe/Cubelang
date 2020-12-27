@@ -1,8 +1,7 @@
 package com.cubearrow.cubelang.interpreter
 
-import com.cubearrow.cubelang.compiler.NormalType
-import com.cubearrow.cubelang.compiler.Type
-import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.NormalType
+import com.cubearrow.cubelang.utils.Type
 import kotlin.collections.HashMap
 
 /**

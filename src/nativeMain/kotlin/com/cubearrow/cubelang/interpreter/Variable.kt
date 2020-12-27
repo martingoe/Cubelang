@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
-import com.cubearrow.cubelang.compiler.Type
+import com.cubearrow.cubelang.utils.Type
 import com.cubearrow.cubelang.utils.NullValue
 
 enum class VariableState{

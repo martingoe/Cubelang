@@ -1,6 +1,5 @@
 package com.cubearrow.cubelang.utils
 
-import com.cubearrow.cubelang.compiler.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.parser.Expression

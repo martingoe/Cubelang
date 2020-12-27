@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.parser
 
-import com.cubearrow.cubelang.compiler.NormalType
+import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import kotlin.test.Test
