@@ -10,7 +10,7 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     companion object {
         val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
         val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
-        val LENGTHS_OF_TYPES = mapOf("int" to 4, "char" to 1)
+        val LENGTHS_OF_TYPES = mapOf("int" to 4, "char" to 1, "short" to 1)
     }
 
     private var context = CompilerContext(this)
@@ -23,6 +23,8 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
         context.functions["putchar"] = Function("putchar", mapOf("value" to NormalType("char")), null)
         context.functions["getCurrentTime"] = Function("getCurrentTime", mapOf(), NormalType("int"))
         context.functions["printInt"] = Function("printInt", mapOf("value" to NormalType("int")), null)
+        context.functions["printShort"] = Function("printShort", mapOf("value" to NormalType("short")), null)
+
 
         context.variables.add(HashMap())
         context.stackIndex.add(0)
