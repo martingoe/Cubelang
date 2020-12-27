@@ -10,7 +10,7 @@ class ArgumentDefinitionCompiler(var context: CompilerContext): SpecificCompiler
         val length: Int = expression.type.getLength()
 
         context.stackIndex.add(context.stackIndex.removeLast() + length)
-        context.variables.last()[expression.name.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.type, length)
+        context.variables.last()[expression.name.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.type)
 
         val register = Compiler.ARGUMENT_INDEXES[context.argumentIndex++]!!
         return if (length > 2) {

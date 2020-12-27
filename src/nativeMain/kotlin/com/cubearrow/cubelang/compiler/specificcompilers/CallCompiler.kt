@@ -9,6 +9,9 @@ import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.UsualErrorMessages
 import kotlin.math.max
 
+/**
+ *
+ */
 class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Call> {
     override fun accept(expression: Expression.Call): String {
         if (expression.callee is Expression.VarCall) {
@@ -71,14 +74,9 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
             if (variable != null) {
                 moveArrayGetToSth(
                     argumentExpression,
-                    "mov ${
-                        CompilerUtils.getRegister(
-                            Compiler.ARGUMENT_INDEXES[argumentIndex]!!,
-                            variable.type.getRawLength()
-                        )
-                    }, " +
-                            CompilerUtils.getASMPointerLength(variable.type.getRawLength()), context
-                )
+                    "mov ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[argumentIndex]!!, variable.type.getRawLength())}, " +
+                            CompilerUtils.getASMPointerLength(variable.type.getRawLength())
+                    , context)
             } else {
                 ""
             }
@@ -96,7 +94,6 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
                         "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 8)}, $axRegister\n"
             }
             else -> {
-                println("Test")
                 "${argumentExpression.accept(context.compilerInstance)} \n" +
                         "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 8)}, $axRegister\n"
             }

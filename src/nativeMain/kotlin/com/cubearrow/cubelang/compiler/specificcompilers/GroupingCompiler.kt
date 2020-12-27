@@ -25,11 +25,10 @@ class GroupingCompiler(var context: CompilerContext) : SpecificCompiler<Expressi
                     UsualErrorMessages.xNotFound("variable", varCall.varName)
                     return ""
                 }
-                context.operationResultSize = variable.type.getRawLength()
-                "mov ${CompilerUtils.getRegister("ax", variable.length)} ${varCall.accept(context.compilerInstance)}"
+                context.operationResultType = variable.type
+                "mov ${CompilerUtils.getRegister("ax", variable.type.getRawLength())} ${varCall.accept(context.compilerInstance)}"
             }
             else -> expression.expression.accept(context.compilerInstance)
         }
     }
-
 }

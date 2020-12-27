@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.compiler
 
 import com.cubearrow.cubelang.compiler.specificcompilers.ForLoopCompiler
+import com.cubearrow.cubelang.utils.Type
 
 /**
  * A context class for the variables used in the [Compiler].
@@ -25,7 +26,7 @@ data class CompilerContext(
     var inIfStatement: Boolean = false,
     var separateReturnSegment: Boolean = false,
     var argumentIndex: Int = 0,
-    var operationResultSize: Int = 0,
+    var operationResultType: Type? = null,
     var variables: MutableList<MutableMap<String, Compiler.LocalVariable>> = ArrayList(),
     var functions: MutableMap<String, Compiler.Function> = HashMap(),
     var inJmpCondition: Boolean = false

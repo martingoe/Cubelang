@@ -1,6 +1,11 @@
 package com.cubearrow.cubelang.compiler
 
+import Main
 import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.ExpressionUtils.Companion.getType
+import com.cubearrow.cubelang.utils.NormalType
+import com.cubearrow.cubelang.utils.Type
+import com.cubearrow.cubelang.utils.UsualErrorMessages
 import kotlin.math.max
 
 
@@ -115,9 +120,10 @@ class CompilerUtils {
                     "$toMoveTo $pointer\n"
         }
 
-        fun beforeAndPointerArrayGet(arrayGet: Expression.ArrayGet, context: CompilerContext): Pair<String, String>{
+        private fun beforeAndPointerArrayGet(arrayGet: Expression.ArrayGet, context: CompilerContext): Triple<String, String, Type> {
             val before: String
             val pointer: String
+            val variable = getVariableFromArrayGet(arrayGet, context)
 
             if (arrayGet.inBrackets !is Expression.Literal) {
                 val string = arrayGet.accept(context.compilerInstance)
@@ -128,7 +134,65 @@ class CompilerUtils {
                 before = ""
                 pointer = arrayGet.accept(context.compilerInstance)
             }
-            return Pair(before, pointer)
+            return Triple(before, pointer, variable!!.type)
+        }
+
+        fun moveExpressionToX(expression: Expression, context: CompilerContext): Triple<String, String, Type> {
+            return when (expression) {
+                is Expression.VarCall -> {
+                    val localVariable = context.variables.last()[expression.varName.substring]
+                    if (localVariable == null) {
+                        UsualErrorMessages.xNotFound("variable", expression.varName)
+                        error("")
+                    }
+                    Triple("", expression.accept(context.compilerInstance), localVariable.type)
+                }
+                is Expression.ArrayGet -> {
+                    beforeAndPointerArrayGet(expression, context)
+                }
+                is Expression.Call -> {
+                    moveCallToX(expression, context)
+                }
+                is Expression.Grouping, is Expression.Operation, is Expression.Comparison -> {
+                    val first = expression.accept(context.compilerInstance)
+                    if(context.operationResultType == null){
+                        Main.error(-1, -1, null, "The expression does not return a type.")
+                    }
+                    Triple(first, getRegister("ax", context.operationResultType!!.getRawLength()), context.operationResultType!!)
+                }
+                is Expression.Literal -> {
+                    val type = getType(null, expression.value)
+                    Triple("", expression.accept(context.compilerInstance), type)
+                }
+
+
+                else -> Triple("", "", NormalType("any"))
+            }
+        }
+
+        private fun moveCallToX(call: Expression.Call, context: CompilerContext, ): Triple<String, String, Type> {
+            if (call.callee is Expression.VarCall) {
+                val function = context.functions[call.callee.varName.substring]
+                if (function == null) {
+                    UsualErrorMessages.xNotFound("called function", call.callee.varName)
+                    error("Could not find the function")
+                }
+                if (function.returnType == null) {
+                    Main.error(
+                        call.callee.varName.line,
+                        call.callee.varName.index,
+                        null,
+                        "The called function does not return a value."
+                    )
+                    error("")
+                }
+                return Triple(
+                    call.accept(context.compilerInstance),
+                    getRegister("ax", function.returnType!!.getRawLength()),
+                    function.returnType!!
+                )
+            }
+            error("Cannot yet compile the requested call")
         }
 
 

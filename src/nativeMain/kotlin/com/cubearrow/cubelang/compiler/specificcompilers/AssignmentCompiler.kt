@@ -28,7 +28,7 @@ class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expres
             }
             else -> {
                 "${expression.valueExpression.accept(context.compilerInstance)} \n" +
-                        "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ${CompilerUtils.getRegister("ax", variable.length)}"
+                        "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ${CompilerUtils.getRegister("ax", variable.type.getRawLength())}"
             }
         }
     }

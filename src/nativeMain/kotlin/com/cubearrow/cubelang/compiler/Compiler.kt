@@ -15,7 +15,7 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
 
     private var context = CompilerContext(this)
 
-    data class LocalVariable(var index: Int, var type: Type, var length: Int)
+    data class LocalVariable(var index: Int, var type: Type)
     data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
 
     init {
@@ -55,6 +55,13 @@ section .data
 section .text
     global main
 printInt:
+    mov esi, edi
+    mov edi, intPrintFormat
+    xor al, al
+    call printf
+    ret
+    
+printShort:
     mov esi, edi
     mov edi, intPrintFormat
     xor al, al
