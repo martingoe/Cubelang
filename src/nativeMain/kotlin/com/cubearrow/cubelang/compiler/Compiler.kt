@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.compiler
 
+import Main
 import com.cubearrow.cubelang.compiler.specificcompilers.*
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
@@ -11,6 +12,17 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
         val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
         val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
         val LENGTHS_OF_TYPES = mapOf("int" to 4, "char" to 1, "short" to 1)
+        val stdlib = mapOf(
+            "stdio" to mapOf(
+                "printChar" to Function("printChar", mapOf("value" to NormalType("char")), null),
+                "printInt" to Function("printInt", mapOf("value" to NormalType("int")), null),
+                "printShort" to Function("printShort", mapOf("value" to NormalType("short")), null)
+            ),
+            "time" to mapOf(
+                "getCurrentTime" to Function("getCurrentTime", mapOf(), NormalType("int"))
+            )
+        )
+        const val LIBRARY_PATH = "library/"
     }
 
     private var context = CompilerContext(this)
@@ -18,66 +30,32 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     data class LocalVariable(var index: Int, var type: Type)
     data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
 
+
     init {
-        context.functions["printChar"] = Function("printChar", mapOf("value" to NormalType("char")), null)
-        context.functions["putchar"] = Function("putchar", mapOf("value" to NormalType("char")), null)
-        context.functions["getCurrentTime"] = Function("getCurrentTime", mapOf(), NormalType("int"))
-        context.functions["printInt"] = Function("printInt", mapOf("value" to NormalType("int")), null)
-        context.functions["printShort"] = Function("printShort", mapOf("value" to NormalType("short")), null)
-
-
         context.variables.add(HashMap())
         context.stackIndex.add(0)
 
-        var statements = ""
+        var importStatements = ""
         var functions = ""
+        expressions.filterIsInstance<Expression.ImportStmnt>().forEach { importStatements += it.accept(this) + "\n" }
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { functions += it.accept(this) + "\n" }
-        expressions.filter { it !is Expression.FunctionDefinition }.forEach { statements += it.accept(this) + "\n" }
+        repeat(expressions.filter { it !is Expression.FunctionDefinition && it !is Expression.ClassDefinition && it !is Expression.ImportStmnt }.size) {
+            Main.error(
+                -1,
+                -1,
+                "Expected a function definition at top level"
+            )
+        }
 
-        val result = """${getBasicStructure()}
-main:
-mov rbp, rsp
-sub rsp, ${context.stackIndex.removeLast()}
-
-$statements
-
-
+        val result = """${getBasicStructure(importStatements)}
 $functions"""
         writeAllLines(path, result)
     }
 
-    private fun getBasicStructure(): String {
-        return """
-extern printf
-extern putchar
-section .data
-    intPrintFormat db "%d", 10, 0
+    private fun getBasicStructure(importStatements: String): String {
+        return """$importStatements
 section .text
     global main
-printInt:
-    mov esi, edi
-    mov edi, intPrintFormat
-    xor al, al
-    call printf
-    ret
-    
-printShort:
-    mov esi, edi
-    mov edi, intPrintFormat
-    xor al, al
-    call printf
-    ret
-getCurrentTime:
-    mov rax, 201
-    xor rdi, rdi        
-    syscall
-    ret
-    
-printChar:
-    call putchar
-    mov rdi, 10
-    call putchar 
-    ret
  """.trimIndent()
     }
 
@@ -174,5 +152,9 @@ printChar:
 
     override fun visitArraySet(arraySet: Expression.ArraySet): String {
         return ArraySetCompiler(context).accept(arraySet)
+    }
+
+    override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): String {
+        return ImportStmntCompiler(context).accept(importStmnt)
     }
 }

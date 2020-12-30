@@ -17,7 +17,7 @@ class UtilLibrary {
             if (any?.value is String) {
                 return any.value.length
             }
-            Main.error(-1, -1, null, "The function len() can only be called on strings.")
+            Main.error(-1, -1, "The function len() can only be called on strings.")
             return -1
         }
 
@@ -32,7 +32,7 @@ class UtilLibrary {
             if (any?.value is Double) {
                 return any.value.absoluteValue
             }
-            Main.error(-1, -1, null, "The function abs() can only be called on numbers.")
+            Main.error(-1, -1, "The function abs() can only be called on numbers.")
             return -1.0
         }
 

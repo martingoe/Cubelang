@@ -141,6 +141,12 @@ abstract class Expression {
         }
     }
 
+    class ImportStmnt (val identifier: Token) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitImportStmnt(this)
+        }
+    }
+
     class Empty (val any: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitEmpty(this)
@@ -169,6 +175,7 @@ abstract class Expression {
         fun visitGrouping(grouping: Grouping): R
         fun visitArrayGet(arrayGet: ArrayGet): R
         fun visitArraySet(arraySet: ArraySet): R
+        fun visitImportStmnt(importStmnt: ImportStmnt): R
         fun visitEmpty(empty: Empty): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R

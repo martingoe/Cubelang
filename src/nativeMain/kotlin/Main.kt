@@ -19,6 +19,8 @@ fun main(args: Array<String>) {
 var containsError = false
 @ThreadLocal
 var exitAfterError = false
+@ThreadLocal
+var lines: List<String> = ArrayList()
 
 class Main {
     companion object {
@@ -32,15 +34,14 @@ class Main {
          *
          * @param line The line at which the error is located
          * @param index The character index at which the error is located/starts
-         * @param fullLine The full line of code, if available
          * @param message The error message itself
          */
-        fun error(line: Int, index: Int, fullLine: String?, message: String) {
-            if (fullLine != null) {
+        fun error(line: Int, index: Int, message: String) {
+            if (line >= 0 || index >= 0) {
                 val indicator = " ".repeat(index - 1) + "^"
                 println(
                     """
-                ${ConsoleColor.ANSI_RED}${fullLine}
+                ${ConsoleColor.ANSI_RED}${lines[line - 1]}
                 $indicator
                 Error [$line:$index]: $message ${ConsoleColor.ANSI_WHITE}
             """.trimIndent()
@@ -63,6 +64,7 @@ class Main {
 //        ASTGenerator("src/nativeMain/kotlin/com/cubearrow/cubelang/parser/", "src/nativeMain/resources/SyntaxGrammar.txt")
         val startTime = getTimeMicros()
         val sourceCode = readAllText(sourceFile)
+        lines = sourceCode.split("\n")
         val tokenSequence = TokenSequence(sourceCode)
         val tokenSequenceTime = getTimeMicros()
         val expressions = Parser(tokenSequence.tokenSequence).parse()

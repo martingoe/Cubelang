@@ -3,10 +3,11 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getVariableFromArrayGet
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.moveArrayGetToSth
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getASMPointerLength
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.moveExpressionToX
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.UsualErrorMessages
+import com.cubearrow.cubelang.utils.CommonErrorMessages
 import kotlin.math.max
 
 /**
@@ -22,7 +23,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
                 val args = getFunctionCallArguments(expression, function)
                 return "${args}call ${varCall.varName.substring}"
             }
-            UsualErrorMessages.xNotFound("called function", varCall.varName)
+            CommonErrorMessages.xNotFound("called function", varCall.varName)
         }
         return ""
     }
@@ -49,54 +50,13 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
 
     private fun getSingleArgument(function: Compiler.Function, index: Int, argumentExpression: Expression): String {
         val expectedArgumentType = function.args[function.args.keys.elementAt(index)] ?: error("Unreachable")
-        val argumentLength = expectedArgumentType.getRawLength()
-        val axRegister = CompilerUtils.getRegister("ax", argumentLength)
-        return if (argumentLength >= 4 || argumentExpression is Expression.Literal || argumentExpression is Expression.ArrayGet) {
-            getHigherSizedArgument(argumentLength, argumentExpression, axRegister, index)
-        } else {
-            getLowSizedArgument(argumentExpression, axRegister, index)
+        val triple = moveExpressionToX(argumentExpression, context)
+        checkMatchingTypes(expectedArgumentType, triple.third, -1, -1)
+        if(triple.third.getRawLength() < 4 && argumentExpression !is Expression.Literal){
+            return "${triple.first}\n" +
+                    "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 4)}, ${getASMPointerLength(triple.third.getRawLength())} ${triple.second}\n"
         }
-    }
-
-    private fun getHigherSizedArgument(
-        argumentLength: Int,
-        argumentExpression: Expression,
-        axRegister: String,
-        argumentIndex: Int
-    ): String {
-        val argumentLength1 = max(argumentLength, 4)
-        val baseString =
-            "mov ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[argumentIndex]!!, argumentLength1)}, "
-        return if (argumentExpression is Expression.Literal || argumentExpression is Expression.VarCall) {
-            "$baseString${argumentExpression.accept(context.compilerInstance)} \n"
-        } else if (argumentExpression is Expression.ArrayGet) {
-            val variable = getVariableFromArrayGet(argumentExpression, context)
-            if (variable != null) {
-                moveArrayGetToSth(
-                    argumentExpression,
-                    "mov ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[argumentIndex]!!, variable.type.getRawLength())}, " +
-                            CompilerUtils.getASMPointerLength(variable.type.getRawLength())
-                    , context)
-            } else {
-                ""
-            }
-        } else {
-            "${argumentExpression.accept(context.compilerInstance)} \n" +
-                    "$baseString$axRegister \n"
-        }
-    }
-
-
-    private fun getLowSizedArgument(argumentExpression: Expression, axRegister: String, index: Int): String {
-        return when (argumentExpression) {
-            is Expression.VarCall -> {
-                "mov $axRegister, ${argumentExpression.accept(context.compilerInstance)} \n" +
-                        "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 8)}, $axRegister\n"
-            }
-            else -> {
-                "${argumentExpression.accept(context.compilerInstance)} \n" +
-                        "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 8)}, $axRegister\n"
-            }
-        }
+        return "${triple.first}\n" +
+                "mov ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, max(4, triple.third.getRawLength()))}, ${triple.second}\n"
     }
 }

@@ -6,7 +6,8 @@ class ArrayType(var subType: Type, var count: Int) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
 
-        other as ArrayType
+
+        if(other !is ArrayType) return false
 
         if (subType != other.subType) return false
         if (count != other.count) return false
@@ -19,13 +20,17 @@ class ArrayType(var subType: Type, var count: Int) : Type {
         result = 31 * result + count.hashCode()
         return result
     }
+
+    override fun toString(): String {
+        return "[$subType : $count]"
+    }
+
 }
 
 class NormalType(var typeName: String) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-
-        other as NormalType
+        if(other !is NormalType) return false
 
         if (typeName != other.typeName) return false
 
@@ -36,9 +41,11 @@ class NormalType(var typeName: String) : Type {
         return typeName.hashCode()
     }
 
+    override fun toString(): String {
+        return typeName
+    }
 }
 interface Type {
-
     fun getLength(): Int {
         if (this is NormalType) {
             return Compiler.LENGTHS_OF_TYPES[this.typeName]!!

@@ -7,7 +7,7 @@ import com.cubearrow.cubelang.utils.Type
  * A context class for the variables used in the [Compiler].
  *
  * @param compilerInstance The instance to operate on. An example would be compiling the statements in a for loop from [ForLoopCompiler].
- * @param currentReturnLength The register size of the returned value of a function. The domain is 2^n for 0<=n<=3.
+ * @param currentReturnType The register size of the returned value of a function. The domain is 2^n for 0<=n<=3.
  * @param isInSubOperation Is used to find out weather an operation should push and pop the used registers for the other operation(s).
  * @param operationIndex The depth of the operation
  * @param stackIndex The index of the lowest variable saved on the stack in the current scope.
@@ -18,7 +18,7 @@ import com.cubearrow.cubelang.utils.Type
  */
 data class CompilerContext(
     var compilerInstance: Compiler,
-    var currentReturnLength: Int? = null,
+    var currentReturnType: Type? = null,
     var isInSubOperation: Boolean = false,
     var operationIndex: Int = -1,
     var stackIndex: MutableList<Int> = ArrayList(),

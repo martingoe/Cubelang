@@ -4,6 +4,7 @@ import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.isAXRegister
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.NormalType
 
@@ -14,7 +15,7 @@ class ComparisonCompiler(var context: CompilerContext) : SpecificCompiler<Expres
                         |${CompilerUtils.getComparisonOperation(expression.comparator.substring)} .L${context.lIndex}
                     """.trimMargin()
         } else {
-            context.operationResultType = NormalType("char")
+            context.operationResultType = NormalType("short")
             getBase(expression) + "\n" + getMoveComparisonOperator(expression.comparator.substring) + " al"
         }
     }
@@ -34,12 +35,12 @@ class ComparisonCompiler(var context: CompilerContext) : SpecificCompiler<Expres
     private fun getBase(expression: Expression.Comparison): String {
         val right = CompilerUtils.moveExpressionToX(expression.rightExpression, context)
         val left = CompilerUtils.moveExpressionToX(expression.leftExpression, context)
-        checkMatchingTypes(right.third, left.third)
+        checkMatchingTypes(right.third, left.third, -1, -1)
         val rightRegister = getRegister("bx", right.third.getRawLength())
         val leftRegister = getRegister("ax", left.third.getRawLength())
 
         return """push rbx
-                    |${left.first}${if (!left.second.endsWith("ax")) "\nmov $leftRegister, " + left.second else ""}
+                    |${left.first}${if (!isAXRegister(left.second)) "\nmov $leftRegister, " + left.second else ""}
                     |${right.first}
                     |mov $rightRegister, ${right.second}
                     |cmp $leftRegister, $rightRegister

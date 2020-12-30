@@ -22,6 +22,7 @@ class Parser(private var tokens: List<Token>) {
 
     private fun statement(): Expression {
         return when (advance().tokenType) {
+            TokenType.IMPORT -> importStatement()
             TokenType.VAR -> variableDefinition()
             TokenType.IF -> ifStatement()
             TokenType.WHILE -> whileStatement()
@@ -35,6 +36,12 @@ class Parser(private var tokens: List<Token>) {
                 return expressionStatement()
             }
         }
+    }
+
+    private fun importStatement(): Expression {
+        val name = consume(TokenType.STRING, "Expected a string after the import keyword.")
+        consume(TokenType.SEMICOLON, "Expected a ; after the import statement")
+        return Expression.ImportStmnt(name)
     }
 
     private fun expressionStatement(): Expression {
@@ -326,9 +333,9 @@ class Parser(private var tokens: List<Token>) {
         }
         return null
     }
-    private fun type(): ArrayType {
+    private fun type(): Type {
         return if(peek(TokenType.IDENTIFIER))
-            ArrayType(NormalType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring), 1)
+            NormalType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring)
         else{
             consume(TokenType.CLOSEDL, "Expected '['.")
             val name = type()

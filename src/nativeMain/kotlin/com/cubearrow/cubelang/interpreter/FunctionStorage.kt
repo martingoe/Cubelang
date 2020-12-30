@@ -27,7 +27,7 @@ class FunctionStorage {
      */
     fun addFunction(name: Token, args: Map<String, Type>, body: Expression) {
         if (functions.any { it.name == name.substring && it.args == args }) {
-            Main.error(name.line, name.index, null, "A function with the specified name and argument size already exists")
+            Main.error(name.line, name.index, "A function with the specified name and argument size already exists")
         } else {
             functions.add(Function(name.substring, args, body))
         }
@@ -40,7 +40,7 @@ class FunctionStorage {
      */
     fun addFunction(callable: Callable) {
         if (functions.any { it.name == callable.name && it.args == callable.args }) {
-            Main.error(-1, -1, null, "A function with the specified name and argument size already exists")
+            Main.error(-1, -1, "A function with the specified name and argument size already exists")
         } else {
             functions.add(callable)
         }

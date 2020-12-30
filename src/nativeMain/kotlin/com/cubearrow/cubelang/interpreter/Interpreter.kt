@@ -5,7 +5,7 @@ import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
-import com.cubearrow.cubelang.utils.UsualErrorMessages
+import com.cubearrow.cubelang.utils.CommonErrorMessages
 
 /**
  * The interpreter for the AST, it runs the program. Implements the [Expression.ExpressionVisitor]
@@ -32,7 +32,6 @@ class Interpreter(
             Main.error(
                 assignment.name.line,
                 assignment.name.index,
-                null,
                 "The variable with the name '${assignment.name.substring}' has not been found"
             )
         }
@@ -58,7 +57,7 @@ class Interpreter(
         } else if (right is String && left is String && operation.operator.substring == "+") {
             return left + right
         }
-        UsualErrorMessages.onlyNumberError(operation.operator)
+        CommonErrorMessages.onlyNumberError(operation.operator)
         return null
     }
 
@@ -69,7 +68,6 @@ class Interpreter(
                 Main.error(
                     call.callee.varName.line,
                     call.callee.varName.index,
-                    null,
                     "The called function is not defined"
                 )
                 return null
@@ -133,7 +131,7 @@ class Interpreter(
                 }
             }
         } catch (error: TypeCastException) {
-            UsualErrorMessages.onlyNumberError(comparison.comparator)
+            CommonErrorMessages.onlyNumberError(comparison.comparator)
             return false
         }
         return false
@@ -162,7 +160,7 @@ class Interpreter(
                 variableStorage.popScope()
             }
         } catch (error: TypeCastException) {
-            Main.error(-1, -1, null, "The condition of the while statement is not a boolean.")
+            Main.error(-1, -1, "The condition of the while statement is not a boolean.")
         } catch (returnError: Return) {
             return returnedValue
         }
@@ -203,7 +201,7 @@ class Interpreter(
         val returnValue = variables.getCurrentVariables()[expression.substring]
         if (returnValue == null) {
             Main.error(
-                expression.line, expression.index, null,
+                expression.line, expression.index,
                 "The variable with the name \"${expression.substring}\" is not defined or out of scope."
             )
         }
@@ -248,6 +246,10 @@ class Interpreter(
     }
 
     override fun visitArraySet(arraySet: Expression.ArraySet): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): Any? {
         TODO("Not yet implemented")
     }
 }

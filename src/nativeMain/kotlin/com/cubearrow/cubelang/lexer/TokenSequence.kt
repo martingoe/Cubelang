@@ -81,7 +81,7 @@ class TokenSequence(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            Main.error(line, lineIndex, null, "Unterminated char.")
+            Main.error(line, lineIndex, "Unterminated char.")
             return
         }
 
@@ -108,6 +108,7 @@ class TokenSequence(private val fileContent: String) {
 
         when (buffer) {
             "fun" -> addToken(TokenType.FUN, buffer)
+            "import" -> addToken(TokenType.IMPORT, buffer)
             "class" -> addToken(TokenType.CLASS, buffer)
             "return" -> addToken(TokenType.RETURN, buffer)
             "var" -> addToken(TokenType.VAR, buffer)
@@ -134,7 +135,7 @@ class TokenSequence(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            Main.error(line, lineIndex, null, "Unterminated string.")
+            Main.error(line, lineIndex, "Unterminated string.")
             return
         }
 
@@ -183,8 +184,7 @@ class TokenSequence(private val fileContent: String) {
 
     private fun catchTokenError(substring: String) {
         if (substring != " " && substring.isNotBlank()) {
-            val fullLine = fileContent.split("\n")[line - 1]
-            Main.error(line, lineIndex, fullLine, "Unexpected token \"$substring\"")
+            Main.error(line, lineIndex, "Unexpected token \"$substring\"")
         }
     }
 

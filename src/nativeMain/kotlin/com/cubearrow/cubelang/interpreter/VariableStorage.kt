@@ -59,7 +59,7 @@ class VariableStorage {
                 }
             }
         } catch (e: ClassCastException) {
-            Main.error(-1, -1, null, "Could not cast $value to the type $type")
+            Main.error(-1, -1, "Could not cast $value to the type $type")
             null
         }
     }

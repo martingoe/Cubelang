@@ -57,7 +57,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
         val varCall = expression.valueExpression as Expression.VarCall
         val variableToAssign = context.variables.last()[varCall.varName.substring]
                 ?: error("Variable not found")
-        expression.type?.let { checkMatchingTypes(it, variableToAssign.type) }
+        expression.type?.let { checkMatchingTypes(it, variableToAssign.type, -1, -1) }
         val length = variableToAssign.type.getLength()
         val variable = Compiler.LocalVariable(context.stackIndex.last() + length, variableToAssign.type)
 
@@ -76,10 +76,10 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
             val name = call.callee.varName
             val function = context.functions[name.substring] ?: error("The called function does not exist")
             if (function.returnType == null) {
-                Main.error(name.line, name.line, null, "The function does not return a value")
+                Main.error(name.line, name.line, "The function does not return a value")
                 return ""
             }
-            varInitialization.type?.let { checkMatchingTypes(it, function.returnType!!) }
+            varInitialization.type?.let { checkMatchingTypes(it, function.returnType!!, -1, -1) }
 
             val length = function.returnType!!.getLength()
             initializeVariable(length, varInitialization, Compiler.LocalVariable(context.stackIndex.last() + length, function.returnType!!))

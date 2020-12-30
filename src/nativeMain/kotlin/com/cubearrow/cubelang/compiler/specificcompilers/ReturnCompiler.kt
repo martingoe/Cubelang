@@ -7,15 +7,15 @@ import com.cubearrow.cubelang.parser.Expression
 
 class ReturnCompiler (var context: CompilerContext): SpecificCompiler<Expression.ReturnStmnt>{
     override fun accept(expression: Expression.ReturnStmnt): String {
-        if (context.currentReturnLength == null) {
-            Main.error(-1, -1, null, "You cannot return from the current function or are not in one.")
-            return ""
+        if(expression.returnValue != null) {
+            val (before, pointer, type) = CompilerUtils.moveExpressionToX(expression.returnValue, context)
+            CompilerUtils.checkMatchingTypes(type, context.currentReturnType, -1, -1)
+            return if (before.isNotBlank()) before + "\n" else "" +
+                    if(!CompilerUtils.isAXRegister(pointer)) "mov ${CompilerUtils.getRegister("ax", type.getRawLength())}, $pointer" else ""
         }
-
-        if (expression.returnValue is Expression.Literal || expression.returnValue is Expression.VarCall) {
-            return "mov ${CompilerUtils.getRegister("ax", context.currentReturnLength!!)}, " +
-                    expression.returnValue.accept(context.compilerInstance)
+        if(context.currentReturnType != null){
+            Main.error(-1, -1, "Expected a return value of the type ${context.currentReturnType}")
         }
-        return expression.returnValue?.accept(context.compilerInstance) ?: ""
+        return ""
     }
 }

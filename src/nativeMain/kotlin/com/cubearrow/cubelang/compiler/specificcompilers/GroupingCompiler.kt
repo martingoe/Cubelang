@@ -2,33 +2,14 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.isAXRegister
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.ExpressionUtils
-import com.cubearrow.cubelang.utils.UsualErrorMessages
 
 class GroupingCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Grouping> {
     override fun accept(expression: Expression.Grouping): String {
-        return when (expression.expression) {
-            is Expression.Literal -> "mov ${
-                CompilerUtils.getRegister(
-                    "ax",
-                    ExpressionUtils.getType(
-                        null,
-                        expression.expression.value
-                    ).getRawLength()
-                )
-            }"
-            is Expression.VarCall -> {
-                val varCall = expression.expression
-                val variable = context.variables.last()[varCall.varName.substring]
-                if (variable == null) {
-                    UsualErrorMessages.xNotFound("variable", varCall.varName)
-                    return ""
-                }
-                context.operationResultType = variable.type
-                "mov ${CompilerUtils.getRegister("ax", variable.type.getRawLength())} ${varCall.accept(context.compilerInstance)}"
-            }
-            else -> expression.expression.accept(context.compilerInstance)
-        }
+        val triple = CompilerUtils.moveExpressionToX(expression.expression, context)
+        return if (triple.first.isNotBlank()) triple.first + "\n" else "" +
+                if (!isAXRegister(triple.second)) "mov ${getRegister("ax", triple.third.getRawLength())}, ${triple.second}" else ""
     }
 }
