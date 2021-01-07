@@ -5,6 +5,7 @@ import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.utils.Type
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
+import com.cubearrow.cubelang.utils.PointerType
 import kotlin.system.exitProcess
 
 class Parser(private var tokens: List<Token>) {
@@ -142,7 +143,6 @@ class Parser(private var tokens: List<Token>) {
         val value = if (match(TokenType.EQUALS)) expression() else null
         consume(TokenType.SEMICOLON, "Expected a ';' after the variable definition.")
         return Expression.VarInitialization(name, type, value)
-
     }
 
     private fun assignment(): Expression {
@@ -209,7 +209,7 @@ class Parser(private var tokens: List<Token>) {
 
     private fun multiplication(): Expression {
         var expression = unary()
-        while (match(TokenType.OPERATOR))
+        while (match(listOf(TokenType.SLASH, TokenType.STAR)))
             expression = Expression.Operation(expression, current(), unary())
         return expression
     }
@@ -250,6 +250,8 @@ class Parser(private var tokens: List<Token>) {
 
     private fun primary(): Expression {
         return when (advance().tokenType) {
+            TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
+            TokenType.STAR -> Expression.ValueFromPointer(primary())
             TokenType.NULLVALUE -> Expression.Literal(null)
             TokenType.STRING -> Expression.Literal(current())
             TokenType.IDENTIFIER -> {
@@ -334,8 +336,13 @@ class Parser(private var tokens: List<Token>) {
         return null
     }
     private fun type(): Type {
-        return if(peek(TokenType.IDENTIFIER))
+        return if(peek(TokenType.IDENTIFIER) && tokens[current + 2].tokenType == TokenType.STAR){
+            val substring = consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring
+            advance()
+            PointerType(NormalType(substring))
+        } else if(peek(TokenType.IDENTIFIER)) {
             NormalType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring)
+        }
         else{
             consume(TokenType.CLOSEDL, "Expected '['.")
             val name = type()

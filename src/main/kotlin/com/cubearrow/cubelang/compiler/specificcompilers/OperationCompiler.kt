@@ -34,13 +34,13 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         expression: Expression.Operation,
         register: String
     ): Pair<Triple<String, String, Type>, String> {
-        val rightTriple = CompilerUtils.moveExpressionToX(expression.rightExpression, context)
+        val rightTriple = context.moveExpressionToX(expression.rightExpression)
         val rightSide = "${rightTriple.first}\nmov ${getRegister(register, rightTriple.third.getRawLength())}, ${rightTriple.second}"
         return Pair(rightTriple, rightSide)
     }
 
     private fun getRightSide(expression: Expression.Operation): Pair<Triple<String, String, Type>, String> {
-        val leftTriple = CompilerUtils.moveExpressionToX(expression.leftExpression, context)
+        val leftTriple = context.moveExpressionToX(expression.leftExpression)
         val leftSide = "${leftTriple.first}${
             if (!isAXRegister(leftTriple.second)) "\nmov ${
                 getRegister(

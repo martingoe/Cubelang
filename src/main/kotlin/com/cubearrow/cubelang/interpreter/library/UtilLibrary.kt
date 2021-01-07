@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.interpreter.library
 
-import Main
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.interpreter.Callable
 import com.cubearrow.cubelang.interpreter.FunctionStorage

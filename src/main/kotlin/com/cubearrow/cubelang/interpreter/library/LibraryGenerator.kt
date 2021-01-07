@@ -18,7 +18,7 @@ class LibraryGenerator(private var outputDir: String) {
     private fun generateBaseClass() {
         resultClassSource += """package com.cubearrow.cubelang.interpreter
             |
-            |import com.cubearrow.cubelang.interpreter.Callable
+            |import Callable
             |
             |class Library {
             |    val classes = ArrayList<Callable>()

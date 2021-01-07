@@ -8,7 +8,7 @@ import com.cubearrow.cubelang.utils.CommonErrorMessages
 
 class VarCallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.VarCall> {
     override fun accept(expression: Expression.VarCall): String {
-        val x: Compiler.LocalVariable? = CompilerUtils.getVariable(expression.varName.substring, context)
+        val x: Compiler.LocalVariable? = context.getVariable(expression.varName.substring)
         if (x != null) {
             val lengthAsString = CompilerUtils.getASMPointerLength(x.type.getRawLength())
             return "$lengthAsString [rbp-${x.index}]"

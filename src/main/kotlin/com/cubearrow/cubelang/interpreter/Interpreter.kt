@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
-import Main
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.parser.Expression
@@ -250,6 +250,14 @@ class Interpreter(
     }
 
     override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPointerGet(pointerGet: Expression.PointerGet): Any? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Any? {
         TODO("Not yet implemented")
     }
 }

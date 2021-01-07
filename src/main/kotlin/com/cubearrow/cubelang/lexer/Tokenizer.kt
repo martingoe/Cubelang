@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.lexer
 
-import Main
+import com.cubearrow.cubelang.main.Main
 
 
 /**
@@ -11,7 +11,7 @@ import Main
  */
 
 
-class TokenSequence(private val fileContent: String) {
+class Tokenizer(private val fileContent: String) {
     private var lineIndex = 0
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
@@ -39,7 +39,15 @@ class TokenSequence(private val fileContent: String) {
                 '.' -> addToken(TokenType.DOT)
                 '-', '+' -> addToken(TokenType.PLUSMINUS)
                 ';' -> addToken(TokenType.SEMICOLON)
-                '*', '/' -> addToken(TokenType.OPERATOR)
+                '*' -> addToken(TokenType.STAR)
+                '/' -> addToken(TokenType.SLASH)
+                '&' -> {
+                    if(match('&'))
+                        addToken(TokenType.AND, "&&")
+                    else
+                        addToken(TokenType.POINTER, "&")
+                }
+
                 '#' -> comment()
                 '!', '<', '>' -> {
                     if(match('='))
