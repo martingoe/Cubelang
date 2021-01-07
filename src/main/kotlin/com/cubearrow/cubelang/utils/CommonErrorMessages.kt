@@ -1,7 +1,7 @@
 package com.cubearrow.cubelang.utils
 
 import com.cubearrow.cubelang.lexer.Token
-import Main
+import com.cubearrow.cubelang.main.Main
 
 class CommonErrorMessages {
     companion object {

@@ -1,19 +1,18 @@
 package com.cubearrow.cubelang.compiler.specificcompilers
 
-import Main
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getTokenFromArrayGet
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getVariableFromArrayGet
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ArrayType
 import com.cubearrow.cubelang.utils.CommonErrorMessages
 
 class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expression.ArraySet> {
     override fun accept(expression: Expression.ArraySet): String {
-        val variable = getVariableFromArrayGet(expression.arrayGet, context)
-        val (before, pointer, type) = CompilerUtils.moveExpressionToX(expression.arrayGet, context)
+        val variable = context.getVariableFromArrayGet(expression.arrayGet)
+        val (before, pointer, type) = context.moveExpressionToX(expression.arrayGet)
         if (variable == null) {
             Main.error(-1, -1, "Could not find the requested array-variable.")
             return ""
@@ -22,7 +21,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
         return when (expression.value) {
             is Expression.VarCall,
             is Expression.ArrayGet -> {
-                val localVariable = getVariableFromArrayGet(expression.value, context)
+                val localVariable = context.getVariableFromArrayGet(expression.value)
                 if (localVariable != null) {
                     checkMatchingTypes((variable.type as ArrayType).subType, localVariable.type, token.line, token.index)
                     val length = localVariable.type.getRawLength()
@@ -37,7 +36,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
                 ""
             }
             else -> {
-                val triple = CompilerUtils.moveExpressionToX(expression.value, context)
+                val triple = context.moveExpressionToX(expression.value)
                 checkMatchingTypes(triple.third, type, token.line, token.index)
                 if (before.isNotBlank()) "$before\n" else "" + if (triple.first.isNotBlank()) "${triple.first}\n" else "" + "mov ${
                     CompilerUtils.getASMPointerLength(

@@ -33,8 +33,8 @@ class ComparisonCompiler(var context: CompilerContext) : SpecificCompiler<Expres
     }
 
     private fun getBase(expression: Expression.Comparison): String {
-        val right = CompilerUtils.moveExpressionToX(expression.rightExpression, context)
-        val left = CompilerUtils.moveExpressionToX(expression.leftExpression, context)
+        val right = context.moveExpressionToX(expression.rightExpression)
+        val left = context.moveExpressionToX(expression.leftExpression)
         checkMatchingTypes(right.third, left.third, -1, -1)
         val rightRegister = getRegister("bx", right.third.getRawLength())
         val leftRegister = getRegister("ax", left.third.getRawLength())

@@ -1,44 +1,26 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
-    kotlin("multiplatform") version "1.4.10"
+    kotlin("jvm") version "1.4.10"
     id("org.jetbrains.dokka") version "1.4.20"
 }
-
-
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
-kotlin {
-    val hostOs = System.getProperty("os.name")
-    val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" -> macosX64("native")
-        hostOs == "Linux" -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
-    }
-
-    nativeTarget.apply {
-        binaries {
-            executable {
-                entryPoint = "main"
-            }
-        }
-    }
-    sourceSets {
-        val nativeMain by getting
-        val nativeTest by getting
-    }
-}
-
 
 group = "com.cubearrow"
 version = "1.0-SNAPSHOT"
 
-
-tasks.withType<Wrapper> {
-    gradleVersion = "6.7.1"
-    distributionType = Wrapper.DistributionType.BIN
+repositories {
+    mavenCentral()
 }
 
+dependencies {
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.withType<KotlinCompile>() {
+    kotlinOptions.jvmTarget = "1.8"
+}

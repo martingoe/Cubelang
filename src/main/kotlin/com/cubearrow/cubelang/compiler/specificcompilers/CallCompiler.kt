@@ -5,7 +5,6 @@ import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getASMPointerLength
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.moveExpressionToX
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.CommonErrorMessages
 import kotlin.math.max
@@ -17,7 +16,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
     override fun accept(expression: Expression.Call): String {
         if (expression.callee is Expression.VarCall) {
             val varCall = expression.callee
-            val function = context.functions[varCall.varName.substring]
+            val function = context.getFunction(expression.callee.varName.substring, expression.arguments.size)
             if (function != null) {
                 context.argumentIndex = 0
                 val args = getFunctionCallArguments(expression, function)
@@ -50,7 +49,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
 
     private fun getSingleArgument(function: Compiler.Function, index: Int, argumentExpression: Expression): String {
         val expectedArgumentType = function.args[function.args.keys.elementAt(index)] ?: error("Unreachable")
-        val triple = moveExpressionToX(argumentExpression, context)
+        val triple = context.moveExpressionToX(argumentExpression)
         checkMatchingTypes(expectedArgumentType, triple.third, -1, -1)
         if(triple.third.getRawLength() < 4 && argumentExpression !is Expression.Literal){
             return "${triple.first}\n" +

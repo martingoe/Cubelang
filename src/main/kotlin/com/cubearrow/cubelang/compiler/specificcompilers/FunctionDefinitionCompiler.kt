@@ -2,7 +2,7 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
-import Main
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
 
@@ -12,7 +12,7 @@ class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompile
         val args = ExpressionUtils.mapArgumentDefinitions(expression.args)
         if (args.size > 5)
             Main.error(expression.name.line, expression.name.index, "The function must only have 5 arguments")
-        context.functions[expression.name.substring] = Compiler.Function(expression.name.substring, args, expression.type)
+        context.addFunction(Compiler.Function(expression.name.substring, args, expression.type))
 
         context.stackIndex.add(0)
         context.variables.add(HashMap())

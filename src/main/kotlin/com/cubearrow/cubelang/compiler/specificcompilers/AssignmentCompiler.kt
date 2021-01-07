@@ -2,13 +2,12 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getVariable
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.CommonErrorMessages
 
 class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Assignment> {
     override fun accept(expression: Expression.Assignment): String {
-        val variable = getVariable(expression.name.substring, context)
+        val variable = context.getVariable(expression.name.substring)
         if (variable == null) {
             CommonErrorMessages.xNotFound("variable '${expression.name.substring}'", expression.name)
             //Unreachable
@@ -20,7 +19,7 @@ class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expres
                 "mov ${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ${expression.valueExpression.accept(context.compilerInstance)}"
             }
             is Expression.VarCall -> {
-                val localVariable = getVariable(expression.valueExpression.varName.substring, context)
+                val localVariable = context.getVariable(expression.valueExpression.varName.substring)
                 if (localVariable != null) {
                     CompilerUtils.assignVariableToVariable(variable, localVariable)
                 }

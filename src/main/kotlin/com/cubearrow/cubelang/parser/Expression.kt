@@ -147,6 +147,18 @@ abstract class Expression {
         }
     }
 
+    class PointerGet (val varCall: VarCall) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitPointerGet(this)
+        }
+    }
+
+    class ValueFromPointer (val expression: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitValueFromPointer(this)
+        }
+    }
+
     class Empty (val any: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitEmpty(this)
@@ -176,6 +188,8 @@ abstract class Expression {
         fun visitArrayGet(arrayGet: ArrayGet): R
         fun visitArraySet(arraySet: ArraySet): R
         fun visitImportStmnt(importStmnt: ImportStmnt): R
+        fun visitPointerGet(pointerGet: PointerGet): R
+        fun visitValueFromPointer(valueFromPointer: ValueFromPointer): R
         fun visitEmpty(empty: Empty): R
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R

@@ -5,7 +5,7 @@ import kotlin.test.Test
 class TokenSequenceTest {
     @Test
     internal fun testTokenSequence() {
-        val tokenSequence = TokenSequence("a = call(1);")
+        val tokenSequence = Tokenizer("a = call(1);")
 
         val expected = listOf(
             Token("a", TokenType.IDENTIFIER, 1, 1),

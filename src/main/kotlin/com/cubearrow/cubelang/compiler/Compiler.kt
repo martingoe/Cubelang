@@ -1,10 +1,14 @@
 package com.cubearrow.cubelang.compiler
 
-import Main
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getASMPointerLength
+import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
 import com.cubearrow.cubelang.compiler.specificcompilers.*
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.CommonErrorMessages
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
 import com.cubearrow.cubelang.utils.NormalType
+import com.cubearrow.cubelang.utils.PointerType
 import com.cubearrow.cubelang.utils.Type
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
@@ -13,13 +17,14 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
         val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
         val LENGTHS_OF_TYPES = mapOf("int" to 4, "char" to 1, "short" to 1)
         val stdlib = mapOf(
-            "stdio" to mapOf(
-                "printChar" to Function("printChar", mapOf("value" to NormalType("char")), null),
-                "printInt" to Function("printInt", mapOf("value" to NormalType("int")), null),
-                "printShort" to Function("printShort", mapOf("value" to NormalType("short")), null)
+            "stdio" to listOf(
+                  Function("printChar", mapOf("value" to NormalType("char")), null),
+                 Function("printInt", mapOf("value" to NormalType("int")), null),
+                Function("printShort", mapOf("value" to NormalType("short")), null),
+                Function("printPointer", mapOf("value" to PointerType(NormalType("any"))), null)
             ),
-            "time" to mapOf(
-                "getCurrentTime" to Function("getCurrentTime", mapOf(), NormalType("int"))
+            "time" to listOf(
+                Function("getCurrentTime", mapOf(), NormalType("int"))
             )
         )
         const val LIBRARY_PATH = "library/"
@@ -156,5 +161,26 @@ section .text
 
     override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): String {
         return ImportStmntCompiler(context).accept(importStmnt)
+    }
+
+    override fun visitPointerGet(pointerGet: Expression.PointerGet): String {
+        val string = pointerGet.varCall.accept(context.compilerInstance)
+        val variable = context.getVariable(pointerGet.varCall.varName.substring)
+        if (variable == null) {
+            CommonErrorMessages.xNotFound("requested variable '${pointerGet.varCall.varName.substring}'", pointerGet.varCall.varName)
+            return ""
+        }
+        context.operationResultType = PointerType(variable.type as NormalType)
+        return "lea rax, ${string.substring(string.indexOf("["))}"
+    }
+
+    override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): String {
+        val firstTriple = context.moveExpressionToX(valueFromPointer.expression)
+        val pointerType = firstTriple.third as PointerType
+        context.operationResultType = pointerType.normalType
+
+        return (if (firstTriple.first.isNotBlank()) "${firstTriple.first}\n" else "") +
+                (if (!CompilerUtils.isAXRegister(firstTriple.second)) "mov rax, ${firstTriple.second}\n" else "") +
+                "mov ${getRegister("ax", pointerType.normalType.getRawLength())}, ${getASMPointerLength(pointerType.normalType.getRawLength())} [rax]"
     }
 }

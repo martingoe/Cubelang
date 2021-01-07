@@ -32,7 +32,7 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String) {
         var visitorClassContent = "    interface ExpressionVisitor<R> {\n"
 
         for (line in syntaxGrammar.lines()) {
-            if (line.isBlank() || line.isEmpty()) continue
+            if (line.isBlank() || line.isBlank()) continue
             val split = line.split(" = ")
             visitorClassContent += "        fun visit${split[0].capitalize()}(${split[0]}: ${split[0].capitalize()}): R\n"
         }
@@ -54,8 +54,8 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String) {
                 package com.cubearrow.cubelang.parser
                 
                 
-                import com.cubearrow.cubelang.utils.Type
-                import com.cubearrow.cubelang.lexer.Token
+                import Type.kt
+                import Token
                 
                 /**
                  * This class is generated automatically by the [ASTGenerator]
@@ -70,7 +70,7 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String) {
     private fun generateSubclasses(): String {
         var expressionFileContent1 = ""
         for (line in syntaxGrammar.lines()) {
-            if (line.isBlank() || line.isEmpty()) continue
+            if (line.isBlank()) continue
             val split = line.split(" = ")
             val parameters = getParameters(split[1])
             expressionFileContent1 += """
