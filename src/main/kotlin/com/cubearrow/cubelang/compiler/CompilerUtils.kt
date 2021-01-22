@@ -9,7 +9,6 @@ import kotlin.math.max
 
 class CompilerUtils {
     companion object {
-        private val axRegisters = listOf("rax", "eax", "al", "ah")
 
         /**
          * Returns the maximum mathematical operation depth in an expression.
@@ -38,8 +37,6 @@ class CompilerUtils {
             }
         }
 
-
-
         fun getTokenFromArrayGet(expression: Expression): Token {
             return when(expression){
                 is Expression.VarCall -> expression.varName
@@ -60,10 +57,6 @@ class CompilerUtils {
             """.trimMargin()
         }
 
-
-        fun isAXRegister(string: String): Boolean{
-            return axRegisters.contains(string)
-        }
         fun checkMatchingTypes(type: Type?, type2: Type?, line: Int = -1, index: Int = -1) {
             if (type != type2) Main.error(line, index, "The types do not match: $type and $type2")
         }
@@ -79,17 +72,7 @@ class CompilerUtils {
             }
         }
 
-        fun getComparisonOperation(comparator: String): String {
-            return when (comparator) {
-                "==" -> "jne"
-                "!=" -> "je"
-                "<" -> "jge"
-                "<=" -> "jg"
-                ">" -> "jle"
-                ">=" -> "jl"
-                else -> error("Comparison operator not expected")
-            }
-        }
+
 
         fun getOperator(operatorString: String): String {
             return when (operatorString) {

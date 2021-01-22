@@ -1,21 +1,8 @@
 import "stdlib/stdio";
 
 fun main(){
-    var string: [char: 11];
-    string[0] = 'H';
-    string[1] = 'e';
-    string[2] = 'l';
-    string[3] = 'l';
-    string[4] = 'o';
-    string[5] = ' ';
-    string[6] = 'W';
-    string[7] = 'o';
-    string[8] = 'r';
-    string[9] = 'l';
-    string[10] = 'd';
-    for(var i = 0; i < 11; i = i + 1){
-        printChar(string[i]);
+    var i = 0;
+    if(i == 0 && 1 == 3 ){
+        printInt(5);
     }
-    printChar('H');
-    printInt(3);
 }

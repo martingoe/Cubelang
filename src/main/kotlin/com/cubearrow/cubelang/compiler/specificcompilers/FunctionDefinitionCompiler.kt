@@ -16,11 +16,9 @@ class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompile
 
         context.stackIndex.add(0)
         context.variables.add(HashMap())
-        context.currentReturnType = expression.type // TODO: Figure out how to handle returning arrays
+        context.currentReturnType = expression.type
         context.argumentIndex = 0
-        var statements = ""
-        expression.args.forEach { statements += it.accept(context.compilerInstance) + "\n" }
-        statements += expression.body.accept(context.compilerInstance)
+        val statements = expression.args.fold("", {acc, it ->  acc + context.evaluate(it)}) + context.evaluate(expression.body)
         context.variables.removeLast()
         context.currentReturnType = null
 

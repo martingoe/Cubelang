@@ -23,7 +23,7 @@ class ExpressionUtilsTest {
             Expression.ArgumentDefinition(Token("name1", TokenType.IDENTIFIER, -1, -1), NormalType("type1")),
             Expression.ArgumentDefinition(Token("name2", TokenType.IDENTIFIER, -1, -1), NormalType("type2")),
         )
-        val expected = mapOf("name1" to "type1", "name2" to "type2")
+        val expected = mapOf("name1" to NormalType("type1"), "name2" to NormalType("type2"))
         assert(ExpressionUtils.mapArgumentDefinitions(argumentDefinitions) == expected)
     }
 }

@@ -1,15 +1,11 @@
 package com.cubearrow.cubelang.compiler
 
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getASMPointerLength
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
 import com.cubearrow.cubelang.compiler.specificcompilers.*
+import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.CommonErrorMessages
+import com.cubearrow.cubelang.utils.*
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
-import com.cubearrow.cubelang.utils.NormalType
-import com.cubearrow.cubelang.utils.PointerType
-import com.cubearrow.cubelang.utils.Type
 
 class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
     companion object {
@@ -136,7 +132,7 @@ section .text
     }
 
     override fun visitLogical(logical: Expression.Logical): String {
-        TODO("Not yet implemented")
+        return LogicalCompiler(context).accept(logical)
     }
 
     override fun visitUnary(unary: Expression.Unary): String {
@@ -164,23 +160,10 @@ section .text
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): String {
-        val string = pointerGet.varCall.accept(context.compilerInstance)
-        val variable = context.getVariable(pointerGet.varCall.varName.substring)
-        if (variable == null) {
-            CommonErrorMessages.xNotFound("requested variable '${pointerGet.varCall.varName.substring}'", pointerGet.varCall.varName)
-            return ""
-        }
-        context.operationResultType = PointerType(variable.type as NormalType)
-        return "lea rax, ${string.substring(string.indexOf("["))}"
+       return PointerGetCompiler(context).accept(pointerGet)
     }
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): String {
-        val firstTriple = context.moveExpressionToX(valueFromPointer.expression)
-        val pointerType = firstTriple.third as PointerType
-        context.operationResultType = pointerType.normalType
-
-        return (if (firstTriple.first.isNotBlank()) "${firstTriple.first}\n" else "") +
-                (if (!CompilerUtils.isAXRegister(firstTriple.second)) "mov rax, ${firstTriple.second}\n" else "") +
-                "mov ${getRegister("ax", pointerType.normalType.getRawLength())}, ${getASMPointerLength(pointerType.normalType.getRawLength())} [rax]"
+        return ValueFromPointerCompiler(context).accept(valueFromPointer)
     }
 }

@@ -172,7 +172,7 @@ class Parser(private var tokens: List<Token>) {
     private fun orExpression(): Expression {
         var expression = andExpression()
         while (match(TokenType.OR))
-            expression = Expression.Logical(expression, previous(), andExpression())
+            expression = Expression.Logical(expression, current(), andExpression())
         return expression
     }
 
@@ -182,7 +182,7 @@ class Parser(private var tokens: List<Token>) {
     private fun andExpression(): Expression {
         var expression = equality()
         while (match(TokenType.AND))
-            expression = Expression.Logical(expression, previous(), equality())
+            expression = Expression.Logical(expression, current(), equality())
         return expression
     }
 

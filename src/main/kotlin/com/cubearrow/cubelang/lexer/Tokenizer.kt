@@ -41,6 +41,10 @@ class Tokenizer(private val fileContent: String) {
                 ';' -> addToken(TokenType.SEMICOLON)
                 '*' -> addToken(TokenType.STAR)
                 '/' -> addToken(TokenType.SLASH)
+                '|' -> {
+                    if(match('|'))
+                        addToken(TokenType.OR, "||")
+                }
                 '&' -> {
                     if(match('&'))
                         addToken(TokenType.AND, "&&")

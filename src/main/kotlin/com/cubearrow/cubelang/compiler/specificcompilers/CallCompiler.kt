@@ -49,13 +49,12 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
 
     private fun getSingleArgument(function: Compiler.Function, index: Int, argumentExpression: Expression): String {
         val expectedArgumentType = function.args[function.args.keys.elementAt(index)] ?: error("Unreachable")
-        val triple = context.moveExpressionToX(argumentExpression)
-        checkMatchingTypes(expectedArgumentType, triple.third, -1, -1)
-        if(triple.third.getRawLength() < 4 && argumentExpression !is Expression.Literal){
-            return "${triple.first}\n" +
-                    "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 4)}, ${getASMPointerLength(triple.third.getRawLength())} ${triple.second}\n"
+        val moveInformation = context.moveExpressionToX(argumentExpression)
+        checkMatchingTypes(expectedArgumentType, moveInformation.type, -1, -1)
+        if(moveInformation.type.getRawLength() < 4 && argumentExpression !is Expression.Literal){
+            return "${moveInformation.before}\n" +
+                    "movsx ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, 4)}, ${getASMPointerLength(moveInformation.type.getRawLength())} ${moveInformation.pointer}\n"
         }
-        return "${triple.first}\n" +
-                "mov ${CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, max(4, triple.third.getRawLength()))}, ${triple.second}\n"
+        return moveInformation.moveTo(CompilerUtils.getRegister(Compiler.ARGUMENT_INDEXES[index]!!, max(4, moveInformation.type.getRawLength())))
     }
 }

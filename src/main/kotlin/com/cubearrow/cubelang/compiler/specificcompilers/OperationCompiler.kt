@@ -5,9 +5,8 @@ import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.checkMatchingTypes
 import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
-import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.isAXRegister
+import com.cubearrow.cubelang.compiler.MoveInformation
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.Type
 
 class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Operation> {
     override fun accept(expression: Expression.Operation): String {
@@ -16,40 +15,40 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         context.operationIndex++
         val register = Compiler.OPERATION_REGISTERS[context.operationIndex]!!
 
-        val (rightTriple, rightSide) = getLeftSide(expression, register)
+        val (rightTriple, rightSide) = getRightSide(expression, register)
         val (leftTriple, leftSide) = getRightSide(expression)
 
-        val leftRegister = getRegister("ax", leftTriple.third.getRawLength())
+        val leftRegister = getRegister("ax", leftTriple.type.getRawLength())
 
-        checkMatchingTypes(rightTriple.third, leftTriple.third, -1, -1)
-        context.operationResultType = leftTriple.third
+        checkMatchingTypes(rightTriple.type, leftTriple.type, -1, -1)
+        context.operationResultType = leftTriple.type
         context.operationIndex--
         val operator = CompilerUtils.getOperator(expression.operator.substring)
         val result =
-            "$rightSide\n$leftSide\n${operator} ${if (operator != "mul" && operator != "div") "$leftRegister," else ""} ${getRegister(register, rightTriple.third.getRawLength())}"
+            """$rightSide
+              |$leftSide
+              |$operator ${if (operator != "mul" && operator != "div") "$leftRegister," else ""} ${
+                getRegister(
+                    register,
+                    rightTriple.type.getRawLength()
+                )
+            }""".trimMargin()
         return saveUsedRegisters(wasInSub, result, expression)
     }
 
-    private fun getLeftSide(
+    private fun getRightSide(
         expression: Expression.Operation,
         register: String
-    ): Pair<Triple<String, String, Type>, String> {
-        val rightTriple = context.moveExpressionToX(expression.rightExpression)
-        val rightSide = "${rightTriple.first}\nmov ${getRegister(register, rightTriple.third.getRawLength())}, ${rightTriple.second}"
-        return Pair(rightTriple, rightSide)
+    ): Pair<MoveInformation, String> {
+        val rightMoveInformation = context.moveExpressionToX(expression.rightExpression)
+        val rightSide = rightMoveInformation.moveTo(getRegister(register, rightMoveInformation.type.getRawLength()))
+        return Pair(rightMoveInformation, rightSide)
     }
 
-    private fun getRightSide(expression: Expression.Operation): Pair<Triple<String, String, Type>, String> {
-        val leftTriple = context.moveExpressionToX(expression.leftExpression)
-        val leftSide = "${leftTriple.first}${
-            if (!isAXRegister(leftTriple.second)) "\nmov ${
-                getRegister(
-                    "ax",
-                    leftTriple.third.getRawLength()
-                )
-            }, ${leftTriple.second}" else ""
-        }"
-        return Pair(leftTriple, leftSide)
+    private fun getRightSide(expression: Expression.Operation): Pair<MoveInformation, String> {
+        val leftMoveInfo = context.moveExpressionToX(expression.leftExpression)
+        val leftSide = leftMoveInfo.moveTo(getRegister("ax", leftMoveInfo.type.getRawLength()))
+        return Pair(leftMoveInfo, leftSide)
     }
 
     private fun saveUsedRegisters(wasInSub: Boolean, result: String, expression: Expression): String {

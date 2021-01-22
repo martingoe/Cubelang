@@ -26,13 +26,10 @@ class ArrayType(var subType: Type, var count: Int) : Type {
     }
 }
 
-class PointerType(var normalType: NormalType): Type{
+class PointerType(var normalType: Type): Type{
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if(other !is PointerType) return false
-
-        if (normalType != other.normalType) return false
-
+        if(other !is PointerType || normalType != other.normalType) return false
         return true
     }
 

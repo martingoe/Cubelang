@@ -24,10 +24,10 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
                 initializeVarCall(expression)
             }
             else -> {
-                val (first, pointer, type) = context.moveExpressionToX(expression.valueExpression!!)
-                initializeVariable(type.getLength(), expression, Compiler.LocalVariable(context.stackIndex.last() + type.getLength(),
-                    type))
-                "$first\nmov ${CompilerUtils.getASMPointerLength(type.getRawLength())} [rbp - ${context.stackIndex.last()}], $pointer"
+                val moveInformation = context.moveExpressionToX(expression.valueExpression!!)
+                initializeVariable(moveInformation.type.getLength(), expression, Compiler.LocalVariable(context.stackIndex.last() + moveInformation.type.getLength(),
+                    moveInformation.type))
+                moveInformation.moveTo(CompilerUtils.getASMPointerLength(moveInformation.type.getRawLength()) + " [rbp - ${context.stackIndex.last()}]")
             }
         }
     }

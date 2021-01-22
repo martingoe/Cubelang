@@ -3,19 +3,19 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.parser.Expression
 
+/**
+ * Compiles the context of a block of code. A new map of variables is created and popped again.
+ *
+ * Stops after the first [Expression.ReturnStmnt].
+ * @param context The needed [CompilerContext].
+ */
 class BlockCompiler (var context: CompilerContext): SpecificCompiler<Expression.BlockStatement>{
     override fun accept(expression: Expression.BlockStatement): String {
         var result = ""
         context.variables.add(HashMap())
         for (it in expression.statements) {
-            result += it.accept(context.compilerInstance) + "\n"
-            if (it is Expression.ReturnStmnt ) {
-                if(context.inIfStatement) {
-                    result += "jmp .L${context.lIndex + 1}\n"
-                    context.separateReturnSegment = true
-                }
-                break
-            }
+            result += context.evaluate(it) + "\n"
+            if (it is Expression.ReturnStmnt) break
         }
         context.variables.removeLast()
         return result
