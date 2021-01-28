@@ -216,7 +216,7 @@ class Parser(private var tokens: List<Token>) {
 
     private fun unary(): Expression {
         while (match(listOf(TokenType.BANG, TokenType.PLUSMINUS)))
-            return Expression.Unary(previous(), unary())
+            return Expression.Unary(current(), unary())
         return call()
     }
 

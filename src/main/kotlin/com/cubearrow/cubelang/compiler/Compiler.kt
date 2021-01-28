@@ -1,7 +1,6 @@
 package com.cubearrow.cubelang.compiler
 
 import com.cubearrow.cubelang.compiler.specificcompilers.*
-import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.*
@@ -136,7 +135,7 @@ section .text
     }
 
     override fun visitUnary(unary: Expression.Unary): String {
-        TODO("Not yet implemented")
+        return UnaryCompiler(context).accept(unary)
     }
 
     override fun visitGrouping(grouping: Expression.Grouping): String {

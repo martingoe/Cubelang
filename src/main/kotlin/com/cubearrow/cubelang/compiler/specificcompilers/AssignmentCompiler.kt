@@ -27,7 +27,7 @@ class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expres
                 ""
             }
             else -> {
-                context.moveExpressionToX(expression.valueExpression).moveTo("${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}], ")
+                context.moveExpressionToX(expression.valueExpression).moveTo("${CompilerUtils.getASMPointerLength(variable.type.getRawLength())} [rbp - ${variable.index}]")
             }
         }
     }

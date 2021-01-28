@@ -150,7 +150,7 @@ data class CompilerContext(
             is Expression.Call -> {
                 moveCallToX(expression)
             }
-            is Expression.Grouping, is Expression.Operation, is Expression.Comparison -> {
+            is Expression.Grouping, is Expression.Operation, is Expression.Comparison, is Expression.Unary -> {
                 if (operationResultType == null) {
                     Main.error(-1, -1, "The expression does not return a type.")
                 }
