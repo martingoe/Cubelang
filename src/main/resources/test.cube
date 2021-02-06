@@ -1,7 +1,21 @@
-import "stdlib/stdio";
+import stdio;
+import IntMath;
+
+struct ie {
+    var x: int;
+    var y: int;
+    var z: int;
+    var ie: int;
+}
+
+fun test(structi: ie): int{
+    return structi.ie;
+}
 
 fun main(){
-    var i = 1;
-    i = -i;
-    printInt(i);
+    var test: ie;
+    test.x = 4;
+    test.ie = 10;
+    printInt(test(test));
 }
+

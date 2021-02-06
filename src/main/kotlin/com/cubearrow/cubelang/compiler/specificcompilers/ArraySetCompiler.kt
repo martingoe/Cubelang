@@ -25,7 +25,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
             else -> {
                 val moveInformation = context.moveExpressionToX(expression.value)
                 CompilerUtils.checkMatchingTypes(moveInformation.type, arrayGetMoveInformation.type, token.line, token.index)
-                return moveInformation.moveTo(CompilerUtils.getASMPointerLength(variable.type.getRawLength()) + arrayGetMoveInformation.pointer)
+                return arrayGetMoveInformation.before + moveInformation.moveTo(CompilerUtils.getASMPointerLength(variable.type.getRawLength()) + arrayGetMoveInformation.pointer)
             }
         }
     }

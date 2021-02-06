@@ -5,6 +5,7 @@ import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.Type
 import kotlin.math.max
+import kotlin.math.pow
 
 
 class CompilerUtils {
@@ -38,7 +39,7 @@ class CompilerUtils {
         }
 
         fun getTokenFromArrayGet(expression: Expression): Token {
-            return when(expression){
+            return when (expression) {
                 is Expression.VarCall -> expression.varName
                 is Expression.ArrayGet -> getTokenFromArrayGet(expression.expression)
                 else -> error("unreachable")
@@ -72,6 +73,16 @@ class CompilerUtils {
             }
         }
 
+        fun splitLengthIntoRegisterLengths(length: Int): List<Pair<Int, Int>> {
+            var remainder = length
+            val resultingMap: MutableList<Pair<Int, Int>> = ArrayList()
+            for (i in 3 downTo 0) {
+                val size = 2.0.pow(i).toInt()
+                resultingMap.add(Pair(size, remainder / size))
+                remainder %= size
+            }
+            return resultingMap
+        }
 
 
         fun getOperator(operatorString: String): String {

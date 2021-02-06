@@ -7,7 +7,6 @@ import com.cubearrow.cubelang.utils.CommonErrorMessages
 import com.cubearrow.cubelang.utils.ExpressionUtils
 import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.utils.Type
-import kotlin.collections.ArrayList
 
 /**
  * A context class for the variables used in the [Compiler]. This class also contains some utility functions which use the variables of the class.
@@ -19,7 +18,7 @@ data class CompilerContext(
     var compilerInstance: Compiler,
     /**
      * The return type of the current function.
-    */
+     */
     var currentReturnType: Type? = null,
     /**
      * A [Boolean] used to find out whether an operation should push and pop the used registers for the other operation(s).
@@ -66,7 +65,15 @@ data class CompilerContext(
      */
     var inJmpCondition: Boolean = false,
 
-    var isOR: Boolean = false
+    /**
+     * Evaluates whether or not the comparison is in an or expression.
+     */
+    var isOR: Boolean = false,
+
+    /**
+     * A list of structs.
+     */
+    var structs: MutableMap<String, Compiler.Struct> = HashMap()
 ) {
 
 
@@ -124,7 +131,7 @@ data class CompilerContext(
      * @param argumentSize The number of arguments in the requested function.
      */
     fun getFunction(functionName: String, argumentSize: Int): Compiler.Function? =
-         functions.firstOrNull { functionName == it.name && it.args.values.size == argumentSize }
+        functions.firstOrNull { functionName == it.name && it.args.values.size == argumentSize }
 
 
     private fun beforeAndPointerArrayGet(arrayGet: Expression.ArrayGet): MoveInformation {
@@ -144,6 +151,7 @@ data class CompilerContext(
             is Expression.VarCall -> {
                 moveVarCallToX(expression, accept)
             }
+            is Expression.InstanceGet -> moveInstanceGetToX(expression, accept)
             is Expression.ArrayGet -> {
                 beforeAndPointerArrayGet(expression)
             }
@@ -171,6 +179,16 @@ data class CompilerContext(
         }
     }
 
+    private fun moveInstanceGetToX(expression: Expression.InstanceGet,
+    accept: String): MoveInformation{
+        val varCall = expression.expression as Expression.VarCall
+        val localVariable = getVariable(varCall.varName.substring)
+        if (localVariable == null) {
+            CommonErrorMessages.xNotFound("variable", varCall.varName)
+            error("")
+        }
+        return MoveInformation("", accept, operationResultType!!)
+    }
     private fun moveVarCallToX(
         expression: Expression.VarCall,
         accept: String

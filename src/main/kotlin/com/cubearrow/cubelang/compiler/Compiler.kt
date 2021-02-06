@@ -10,7 +10,8 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
     companion object {
         val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
         val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
-        val LENGTHS_OF_TYPES = mapOf("int" to 4, "char" to 1, "short" to 1)
+        val lengthsOfTypes = mutableMapOf("int" to 4, "char" to 1, "short" to 1)
+        val PRIMARY_TYPES = listOf("int", "char", "short")
         val stdlib = mapOf(
             "stdio" to listOf(
                   Function("printChar", mapOf("value" to NormalType("char")), null),
@@ -33,6 +34,7 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
 
     data class LocalVariable(var index: Int, var type: Type)
     data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
+    data class Struct(var name: String, var vars: MutableList<Pair<String, Type>>)
 
 
     init {
@@ -41,9 +43,9 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
 
         var importStatements = ""
         var functions = ""
-        expressions.filterIsInstance<Expression.ImportStmnt>().forEach { importStatements += it.accept(this) + "\n" }
+        expressions.filter{it is Expression.ImportStmnt || it is Expression.StructDefinition}.forEach { importStatements += it.accept(this) + "\n" }
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { functions += it.accept(this) + "\n" }
-        repeat(expressions.filter { it !is Expression.FunctionDefinition && it !is Expression.ClassDefinition && it !is Expression.ImportStmnt }.size) {
+        repeat(expressions.filter { it !is Expression.FunctionDefinition && it !is Expression.StructDefinition && it !is Expression.ImportStmnt }.size) {
             Main.error(
                 -1,
                 -1,
@@ -114,16 +116,12 @@ section .text
         return ForLoopCompiler(context).accept(forStmnt)
     }
 
-    override fun visitClassDefinition(classDefinition: Expression.ClassDefinition): String {
-        TODO("Not yet implemented")
-    }
-
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): String {
-        TODO("Not yet implemented")
+        return InstanceGetCompiler(context).accept(instanceGet)
     }
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet): String {
-        TODO("Not yet implemented")
+        return context.moveExpressionToX(instanceSet.value).moveTo(context.evaluate(instanceSet.instanceGet))
     }
 
     override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition): String {
@@ -168,5 +166,9 @@ section .text
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): String {
         return ValueFromPointerCompiler(context).accept(valueFromPointer)
+    }
+
+    override fun visitStructDefinition(structDefinition: Expression.StructDefinition): String {
+        return StructDefinitionCompiler(context).accept(structDefinition)
     }
 }
