@@ -29,7 +29,7 @@ class Parser(private var tokens: List<Token>) {
             TokenType.WHILE -> whileStatement()
             TokenType.FOR -> forStatement()
             TokenType.CURLYL -> blockStatement()
-            TokenType.CLASS -> classStatement()
+            TokenType.STRUCT -> structDefinition()
             TokenType.FUN -> functionStatement()
             TokenType.RETURN -> returnStatement()
             else -> {
@@ -79,19 +79,23 @@ class Parser(private var tokens: List<Token>) {
         return Expression.FunctionDefinition(name, args, type, statement())
     }
 
-    private fun classStatement(): Expression {
+    private fun structDefinition(): Expression {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier as the class name")
-        val implements = getType()
-        consume(TokenType.BRCKTL, "Expected '{' starting the class body")
-        val methods: MutableList<Expression> = ArrayList()
-        while (!peek(TokenType.BRCKTR) && !isAtEnd()) {
+        consume(TokenType.CURLYL, "Expected '{' starting the class body")
+        val methods: MutableList<Expression.VarInitialization> = ArrayList()
+        while (!peek(TokenType.CURLYR) && !isAtEnd()) {
             when {
-                match(TokenType.FUN) -> methods.add(functionStatement())
-                match(TokenType.VAR) -> methods.add(variableDefinition())
-                else -> throw ParseException("Wrong statement type for a class", previous())
+                match(TokenType.VAR) -> {
+                    methods.add(variableDefinition())
+                    if(methods.last().valueExpression != null){
+                        throw ParseException("Variables inside a struct can not be initialized.", previous())
+                    }
+                }
+                else -> throw ParseException("Wrong statement type for a struct", previous())
             }
         }
-        return Expression.ClassDefinition(name, implements, methods)
+        consume(TokenType.CURLYR, "")
+        return Expression.StructDefinition(name, methods)
     }
 
     private fun blockStatement(): Expression {
@@ -137,7 +141,7 @@ class Parser(private var tokens: List<Token>) {
         return Expression.IfStmnt(condition, thenBranch, elseBranch)
     }
 
-    private fun variableDefinition(): Expression {
+    private fun variableDefinition(): Expression.VarInitialization {
         val name = consume(TokenType.IDENTIFIER, "Expected a name for the variable")
         val type = getType()
         val value = if (match(TokenType.EQUALS)) expression() else null
@@ -156,7 +160,7 @@ class Parser(private var tokens: List<Token>) {
                     Expression.Assignment(expression.varName, value)
                 }
                 is Expression.InstanceGet -> {
-                    Expression.InstanceSet(expression.expression, expression.identifier, value)
+                    Expression.InstanceSet(expression, value)
                 }
                 is Expression.ArrayGet -> {
                     Expression.ArraySet(expression, value)
@@ -295,7 +299,7 @@ class Parser(private var tokens: List<Token>) {
 
     private fun synchronize(){
         advance()
-        val list = listOf(TokenType.IF, TokenType.VAR, TokenType.FOR, TokenType.WHILE, TokenType.CLASS, TokenType.RETURN)
+        val list = listOf(TokenType.IF, TokenType.VAR, TokenType.FOR, TokenType.WHILE, TokenType.STRUCT, TokenType.RETURN)
         while (!isAtEnd()){
             if(previous().tokenType == TokenType.SEMICOLON)
                 return
