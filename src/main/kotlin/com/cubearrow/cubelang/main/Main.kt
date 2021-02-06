@@ -59,7 +59,7 @@ class Main {
 
 
     fun compileFile(sourceFile: String) {
-//        ASTGenerator("src/nativeMain/kotlin/com/cubearrow/cubelang/parser/", "src/nativeMain/resources/SyntaxGrammar.txt")
+//        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val sourceCode = readAllText(sourceFile)
         lines = sourceCode.split("\n")
         val tokenSequence = Tokenizer(sourceCode)
