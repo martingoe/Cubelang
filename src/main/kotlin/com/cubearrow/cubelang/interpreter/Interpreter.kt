@@ -1,7 +1,6 @@
 package com.cubearrow.cubelang.interpreter
 
 import com.cubearrow.cubelang.main.Main
-import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
@@ -183,12 +182,10 @@ class Interpreter(
         ExpressionUtils.computeVarInitialization(varInitialization, variableStorage, this)
     }
 
-    override fun visitClassDefinition(classDefinition: Expression.ClassDefinition) {
-        val klass = Klass(classDefinition.name.substring,
-            functionStorage.functions.firstOrNull { it.name == (classDefinition.type as NormalType).typeName } as Klass?,
-            classDefinition.body)
-        functionStorage.addFunction(klass)
-        klass.initializeVariables(this)
+    override fun visitStructDefinition(structDefinition: Expression.StructDefinition) {
+        val struct = Struct(structDefinition.name.substring, structDefinition.body)
+        functionStorage.addFunction(struct)
+        struct.initializeVariables(this)
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Any? {
@@ -209,7 +206,7 @@ class Interpreter(
     }
 
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet) {
-        val instance = evaluate(instanceSet.expression) as ClassInstance
+        val instance = evaluate(instanceSet.instanceGet.expression) as ClassInstance
         val expression = instanceSet.value
         if (expression is Expression.Assignment) {
             instance.variableStorage.updateVariable(expression.name.substring, evaluate(expression.valueExpression))
