@@ -54,8 +54,8 @@ class ASTGenerator(private val outputDir: String, syntaxGrammarFile: String) {
                 package com.cubearrow.cubelang.parser
                 
                 
-                import Type.kt
-                import Token
+                import com.cubearrow.cubelang.utils.Type
+                import com.cubearrow.cubelang.lexer.Token
                 
                 /**
                  * This class is generated automatically by the [ASTGenerator]
