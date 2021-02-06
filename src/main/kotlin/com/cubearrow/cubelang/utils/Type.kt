@@ -65,7 +65,7 @@ interface Type {
     fun getLength(): Int {
         return when (this) {
             is NormalType -> {
-                Compiler.LENGTHS_OF_TYPES[this.typeName]!!
+                Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
             }
             is PointerType -> 8
             is ArrayType -> {
@@ -77,7 +77,7 @@ interface Type {
 
     fun getRawLength(): Int {
         return when (this) {
-            is NormalType -> Compiler.LENGTHS_OF_TYPES[this.typeName]!!
+            is NormalType -> Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
             is PointerType -> 8
             is ArrayType -> {
                 this.subType.getRawLength()
