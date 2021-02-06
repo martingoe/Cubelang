@@ -20,6 +20,10 @@ class Compiler(expressions: List<Expression>, path: String) : Expression.Express
             ),
             "time" to listOf(
                 Function("getCurrentTime", mapOf(), NormalType("int"))
+            ),
+            "IntMath" to listOf(
+                Function("min", mapOf("first" to NormalType("int"), "sec" to NormalType("int")), NormalType("int")),
+                Function("max", mapOf("first" to NormalType("int"), "sec" to NormalType("int")), NormalType("int"))
             )
         )
         const val LIBRARY_PATH = "library/"
