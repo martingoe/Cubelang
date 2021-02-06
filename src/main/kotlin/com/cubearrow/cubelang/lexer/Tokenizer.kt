@@ -129,7 +129,7 @@ class Tokenizer(private val fileContent: String) {
         when (buffer) {
             "fun" -> addToken(TokenType.FUN, buffer)
             "import" -> addToken(TokenType.IMPORT, buffer)
-            "class" -> addToken(TokenType.CLASS, buffer)
+            "struct" -> addToken(TokenType.STRUCT, buffer)
             "return" -> addToken(TokenType.RETURN, buffer)
             "var" -> addToken(TokenType.VAR, buffer)
             "if" -> addToken(TokenType.IF, buffer)
