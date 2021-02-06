@@ -1,11 +1,11 @@
 package com.cubearrow.cubelang.interpreter
 
-import com.cubearrow.cubelang.utils.Type
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ExpressionUtils
+import com.cubearrow.cubelang.utils.Type
 
 
-class Klass(override val name: String, private var inheritsFrom: Klass?, private var classBody: List<Expression>) :
+class Struct(override val name: String, private var classBody: List<Expression.VarInitialization>) :
     Callable {
     private val functionStorage = FunctionStorage()
     private val variableStorage = VariableStorage()
@@ -29,9 +29,10 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
         this.functionStorage.getFunction("init", args.size)?.call(instance.variableStorage, instance.functionStorage)
         return instance
     }
-    init{
+
+    init {
         classBody.filterIsInstance<Expression.FunctionDefinition>().filter { it.name.substring == "init" }
-                .forEach {ExpressionUtils.mapArgumentDefinitions(it.args)}
+            .forEach { ExpressionUtils.mapArgumentDefinitions(it.args) }
     }
 
     /**
@@ -39,19 +40,8 @@ class Klass(override val name: String, private var inheritsFrom: Klass?, private
      */
     fun initializeVariables(interpreter: Interpreter) {
         variableStorage.addScope()
-        if(inheritsFrom != null){
-            functionStorage.addFunctions(inheritsFrom!!.functionStorage.functions)
-            variableStorage.addVariablesToCurrentScope(inheritsFrom!!.variableStorage.getCurrentVariables())
-        }
         for (expression in classBody) {
-            if (expression is Expression.FunctionDefinition) {
-                val expressionArgs = expression.args.map { (it as Expression.ArgumentDefinition).name.substring to it.type }.toMap()
-                this.functionStorage.removeFunction(expression.name, expressionArgs)
-                this.functionStorage.addFunction(expression.name, expressionArgs, expression.body)
-            }
-            if (expression is Expression.VarInitialization) {
-                ExpressionUtils.computeVarInitialization(expression, variableStorage, interpreter)
-            }
+            ExpressionUtils.computeVarInitialization(expression, variableStorage, interpreter)
         }
     }
 }
