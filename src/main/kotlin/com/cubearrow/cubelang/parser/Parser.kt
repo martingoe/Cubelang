@@ -40,7 +40,7 @@ class Parser(private var tokens: List<Token>) {
     }
 
     private fun importStatement(): Expression {
-        val name = consume(TokenType.STRING, "Expected a string after the import keyword.")
+        val name = advance()
         consume(TokenType.SEMICOLON, "Expected a ; after the import statement")
         return Expression.ImportStmnt(name)
     }
