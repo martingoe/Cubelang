@@ -37,7 +37,15 @@ class Tokenizer(private val fileContent: String) {
                 ']' -> addToken(TokenType.CLOSEDR)
                 ',' -> addToken(TokenType.COMMA)
                 '.' -> addToken(TokenType.DOT)
-                '-', '+' -> addToken(TokenType.PLUSMINUS)
+                '-', '+' -> {
+                    if(isDigit(fileContent[index + 1])){
+                        advance()
+                        number("-")
+                        index--
+                    } else {
+                        addToken(TokenType.PLUSMINUS)
+                    }
+                }
                 ';' -> addToken(TokenType.SEMICOLON)
                 '*' -> addToken(TokenType.STAR)
                 '/' -> addToken(TokenType.SLASH)
@@ -73,7 +81,7 @@ class Tokenizer(private val fileContent: String) {
                 }
                 else -> {
                     when {
-                        isDigit(char) -> {number();index--}
+                        isDigit(char) -> {number("");index--}
                         isAlpha(char) -> {keyword(); index--}
                         else -> catchTokenError(char.toString())
                     }
@@ -157,8 +165,8 @@ class Tokenizer(private val fileContent: String) {
         addToken(TokenType.STRING, value)
     }
 
-    private fun number() {
-        var buffer = ""
+    private fun number(start: String) {
+        var buffer = start
         while (isDigit(peek())) buffer += advance()
 
         if (peek() == '.' && isDigit(fileContent[index + 1])) {
