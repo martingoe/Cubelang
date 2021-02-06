@@ -81,9 +81,9 @@ abstract class Expression {
         }
     }
 
-    class ClassDefinition (val name: Token, val type: Type?, val body: List<Expression>) : Expression() {
+    class StructDefinition (val name: Token, val body: List<Expression.VarInitialization>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
-            return visitor.visitClassDefinition(this)
+            return visitor.visitStructDefinition(this)
         }
     }
 
@@ -93,7 +93,7 @@ abstract class Expression {
         }
     }
 
-    class InstanceSet (val expression: Expression, val identifier: Token, val value: Expression) : Expression() {
+    class InstanceSet (val instanceGet: Expression.InstanceGet, val value: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitInstanceSet(this)
         }
@@ -177,7 +177,7 @@ abstract class Expression {
         fun visitReturnStmnt(returnStmnt: ReturnStmnt): R
         fun visitWhileStmnt(whileStmnt: WhileStmnt): R
         fun visitForStmnt(forStmnt: ForStmnt): R
-        fun visitClassDefinition(classDefinition: ClassDefinition): R
+        fun visitStructDefinition(structDefinition: StructDefinition): R
         fun visitInstanceGet(instanceGet: InstanceGet): R
         fun visitInstanceSet(instanceSet: InstanceSet): R
         fun visitArgumentDefinition(argumentDefinition: ArgumentDefinition): R
@@ -194,4 +194,3 @@ abstract class Expression {
     }
     abstract fun <R> accept(visitor: ExpressionVisitor<R>): R
 }
-

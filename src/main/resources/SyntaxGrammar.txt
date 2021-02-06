@@ -11,9 +11,9 @@ ifStmnt = condition: Expression, ifBody: Expression, elseBody: Expression?
 returnStmnt = returnValue: Expression?
 whileStmnt = condition: Expression, body: Expression
 forStmnt = inBrackets: List<Expression>, body: Expression
-classDefinition = name: Token, type: Type?, body: List<Expression>
+structDefinition = name: Token, body: List<Expression.VarInitialization>
 instanceGet = expression: Expression, identifier: Token
-instanceSet = expression: Expression, identifier: Token, value: Expression
+instanceSet = instanceGet: Expression.InstanceGet, value: Expression
 argumentDefinition = name: Token, type: Type
 blockStatement = statements: List<Expression>
 logical = leftExpression: Expression, logical: Token, rightExpression: Expression
@@ -24,5 +24,7 @@ arrayGet = expression: Expression, inBrackets: Expression
 arraySet = arrayGet: ArrayGet, value: Expression
 
 importStmnt = identifier: Token
+pointerGet = varCall: VarCall
+valueFromPointer = expression: Expression
 
 empty = any: Any?
