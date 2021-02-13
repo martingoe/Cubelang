@@ -38,6 +38,12 @@ class CompilerUtils {
             }
         }
 
+        /**
+         * Returns a [Token] to eg. return an error from in an [Expression.ArrayGet] by getting to the [Expression.VarCall].
+         *
+         * @param expression The expression to get the [Token] from. Is supposed to be either [Expression.ArrayGet] or [Expression.VarCall]
+         * @throws Error Throws an error if the passed expression is not valid.
+         */
         fun getTokenFromArrayGet(expression: Expression): Token {
             return when (expression) {
                 is Expression.VarCall -> expression.varName
@@ -46,6 +52,14 @@ class CompilerUtils {
             }
         }
 
+        /**
+         * Returns the asm code to assign an existing variable to a variable.
+         *
+         * @param variableToAssign The variable to be assigned to the other one.
+         * @param variableToAssignTo The variable to be assigned to.
+         *
+         * @return Returns the required x86_64 NASM code.
+         */
         fun assignVariableToVariable(
             variableToAssignTo: Compiler.LocalVariable,
             variableToAssign: Compiler.LocalVariable
@@ -58,11 +72,17 @@ class CompilerUtils {
             """.trimMargin()
         }
 
-        fun checkMatchingTypes(type: Type?, type2: Type?, line: Int = -1, index: Int = -1) {
-            if (type != type2) Main.error(line, index, "The types do not match: $type and $type2")
+        /**
+         * Checks if the given types match. If not, an error is thrown on the given line and index.
+         */
+        fun checkMatchingTypes(expected: Type?, actual: Type?, line: Int = -1, index: Int = -1) {
+            if (expected != actual) Main.error(line, index, "The types do not match: $expected and $actual")
         }
 
 
+        /**
+         * Returns the ASM pointer size for getting a value from a pointer.
+         */
         fun getASMPointerLength(length: Int): String {
             return when (length) {
                 1 -> "BYTE"
@@ -73,6 +93,11 @@ class CompilerUtils {
             }
         }
 
+        /**
+         * Splits a length into the minimal amount of registers.
+         * @param length The length to split up.
+         * @return Returns a [List] of [Pair]s where the first element is the size and the second element is the amount of that size.
+         */
         fun splitLengthIntoRegisterLengths(length: Int): List<Pair<Int, Int>> {
             var remainder = length
             val resultingMap: MutableList<Pair<Int, Int>> = ArrayList()
@@ -85,16 +110,9 @@ class CompilerUtils {
         }
 
 
-        fun getOperator(operatorString: String): String {
-            return when (operatorString) {
-                "+" -> "add"
-                "-" -> "sub"
-                "*" -> "mul"
-                "/" -> "div"
-                else -> error("Unexpected operator")
-            }
-        }
-
+        /**
+         * Returns the register for the appropriate name and length.
+         */
         fun getRegister(baseName: String, length: Int): String {
             return try {
                 baseName.toInt()
