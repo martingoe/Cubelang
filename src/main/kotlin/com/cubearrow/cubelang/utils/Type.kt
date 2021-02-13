@@ -2,6 +2,12 @@ package com.cubearrow.cubelang.utils
 
 import com.cubearrow.cubelang.compiler.Compiler
 
+/**
+ * The Type used to define arrays.
+ *
+ * @param subType The type of which an array is defined.
+ * @param count The amount of arrays elements.
+ */
 class ArrayType(var subType: Type, var count: Int) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

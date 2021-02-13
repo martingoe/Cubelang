@@ -5,6 +5,9 @@ import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.Type
 
+/**
+ * Reads the definition of a struct and adds it to [CompilerContext.structs].
+ */
 class StructDefinitionCompiler(val context: CompilerContext): SpecificCompiler<Expression.StructDefinition> {
     override fun accept(expression: Expression.StructDefinition): String {
         val length = expression.body.fold(0, { acc, varInitialization -> acc + varInitialization.type!!.getLength()})

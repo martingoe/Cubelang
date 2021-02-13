@@ -13,7 +13,9 @@ import com.cubearrow.cubelang.utils.NormalType
 import kotlin.math.max
 
 /**
+ * The compiler needed for calling functions in the source code.
  *
+ * The arguments use the appropriate registers and the returned result is stored in the 'ax' register.
  */
 class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Call> {
     var registerIndex = 0

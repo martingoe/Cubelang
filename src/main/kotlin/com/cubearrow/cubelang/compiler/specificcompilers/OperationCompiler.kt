@@ -8,6 +8,13 @@ import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
 import com.cubearrow.cubelang.compiler.MoveInformation
 import com.cubearrow.cubelang.parser.Expression
 
+/**
+ * Compiles mathematical operations while saving the used registers if needed.
+ *
+ * The result is saved in the 'ax' register and [CompilerContext.operationResultType] is updated to the result type.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Operation> {
     override fun accept(expression: Expression.Operation): String {
         val wasInSub = context.isInSubOperation

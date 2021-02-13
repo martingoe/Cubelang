@@ -6,6 +6,9 @@ import com.cubearrow.cubelang.compiler.CompilerUtils.Companion.getRegister
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.NormalType
 
+/**
+ * Compiles comparisons with the cmp command in asm.
+ */
 class ComparisonCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Comparison> {
     override fun accept(expression: Expression.Comparison): String {
         return if (context.inJmpCondition) {

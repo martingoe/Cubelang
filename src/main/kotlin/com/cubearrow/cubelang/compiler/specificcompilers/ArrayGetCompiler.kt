@@ -15,6 +15,7 @@ import com.cubearrow.cubelang.utils.Type
  *
  * @param context The needed [CompilerContext].
  */
+
 class ArrayGetCompiler(val context: CompilerContext) : SpecificCompiler<Expression.ArrayGet> {
     override fun accept(expression: Expression.ArrayGet): String {
         val variable = context.getVariableFromArrayGet(expression)

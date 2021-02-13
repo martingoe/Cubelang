@@ -3,6 +3,13 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.parser.Expression
 
+/**
+ * Compiles if-statements by using the l-labels.
+ *
+ * The [IfStatementCompiler.accept] is not pure and uses various variables from [CompilerContext] to control following evaluations.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class IfStatementCompiler(var context: CompilerContext): SpecificCompiler<Expression.IfStmnt> {
     override fun accept(expression: Expression.IfStmnt): String {
         var ifBlock = ""

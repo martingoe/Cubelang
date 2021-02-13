@@ -5,6 +5,11 @@ import com.cubearrow.cubelang.compiler.CompilerUtils
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.NormalType
 
+/**
+ * Compiles getting from a struct instance.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class InstanceGetCompiler(val context: CompilerContext): SpecificCompiler<Expression.InstanceGet> {
     override fun accept(expression: Expression.InstanceGet): String {
         val variable = context.getVariable((expression.expression as Expression.VarCall).varName.substring)!!

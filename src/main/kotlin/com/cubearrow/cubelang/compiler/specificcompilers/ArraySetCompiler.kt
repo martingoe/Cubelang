@@ -10,6 +10,12 @@ import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.ArrayType
 import com.cubearrow.cubelang.utils.CommonErrorMessages
 
+
+/**
+ *  Compiles setting a value to an array or a pointer element.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expression.ArraySet> {
     override fun accept(expression: Expression.ArraySet): String {
         val variable = context.getVariableFromArrayGet(expression.arrayGet)

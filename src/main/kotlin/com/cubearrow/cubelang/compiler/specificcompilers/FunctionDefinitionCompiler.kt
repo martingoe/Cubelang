@@ -4,8 +4,14 @@ import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.ExpressionUtils
 
+/**
+ * Compiles defining a function by using a frame pointer.
+ *
+ * The [FunctionDefinitionCompiler.accept] function is not pure and has multiple side effects.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
         context.separateReturnSegment = false

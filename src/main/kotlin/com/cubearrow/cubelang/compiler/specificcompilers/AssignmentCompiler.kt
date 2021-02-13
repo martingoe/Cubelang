@@ -6,6 +6,11 @@ import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.CommonErrorMessages
 
+/**
+ * Compiles assigning to a variable.
+ *
+ * @param context The needed [CompilerContext].
+ */
 class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Assignment> {
     override fun accept(expression: Expression.Assignment): String {
         val variable = context.getVariable(expression.name.substring)

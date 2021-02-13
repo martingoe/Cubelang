@@ -8,8 +8,12 @@ import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.utils.PointerType
 import kotlin.system.exitProcess
 
+/**
+ * This class creates a [List] of [Expression]s that form an abstract syntax tree.
+ */
 class Parser(private var tokens: List<Token>) {
     private var current = -1
+
 
     fun parse(): List<Expression> {
         val statements: MutableList<Expression> = ArrayList()
