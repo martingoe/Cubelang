@@ -29,16 +29,16 @@ class ArrayType(var subType: Type, var count: Int) : Type {
 class PointerType(var normalType: Type): Type{
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if(other !is PointerType || normalType != other.normalType) return false
+        if(other !is PointerType || subtype != other.subtype) return false
         return true
     }
 
     override fun hashCode(): Int {
-        return normalType.hashCode()
+        return subtype.hashCode()
     }
 
     override fun toString(): String {
-        return "$normalType*"
+        return "$subtype*"
     }
 }
 

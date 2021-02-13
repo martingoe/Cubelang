@@ -33,7 +33,7 @@ class ArrayGetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
 
     private fun getPointerType(expression: Expression.ArrayGet, type: PointerType): String {
         val firstTriple = context.moveExpressionToX(expression.expression)
-        context.operationResultType = type.normalType
+        context.operationResultType = type.subtype
         return firstTriple.moveTo("rax") + "&[rax+${context.evaluate(expression.inBrackets)}]"
     }
 

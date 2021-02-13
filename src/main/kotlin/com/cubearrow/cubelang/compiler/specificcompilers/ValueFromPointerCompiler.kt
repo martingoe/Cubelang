@@ -14,9 +14,9 @@ class ValueFromPointerCompiler(val context: CompilerContext): SpecificCompiler<E
             return ""
         }
         val pointerType = moveInformation.type
-        context.operationResultType = pointerType.normalType
+        context.operationResultType = pointerType.subtype
 
         return moveInformation.moveTo("rax") +
-                "&${CompilerUtils.getASMPointerLength(pointerType.normalType.getRawLength())} [rax]"
+                "&${CompilerUtils.getASMPointerLength(pointerType.subtype.getRawLength())} [rax]"
     }
 }
