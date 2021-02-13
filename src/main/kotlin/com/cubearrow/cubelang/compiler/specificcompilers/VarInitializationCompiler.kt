@@ -36,7 +36,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
         val varCall = expression.valueExpression as Expression.VarCall
         val variableToAssign = context.variables.last()[varCall.varName.substring]
                 ?: error("Variable not found")
-        expression.type?.let { checkMatchingTypes(it, variableToAssign.type, -1, -1) }
+        expression.type?.let { checkMatchingTypes(it, variableToAssign.type, -1, -1, context) }
         val length = variableToAssign.type.getLength()
         val variable = Compiler.LocalVariable(context.stackIndex.last() + length, variableToAssign.type)
 

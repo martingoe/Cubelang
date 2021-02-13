@@ -9,7 +9,7 @@ class ReturnCompiler(var context: CompilerContext) : SpecificCompiler<Expression
     override fun accept(expression: Expression.ReturnStmnt): String {
         if (expression.returnValue != null) {
             val moveInformation = context.moveExpressionToX(expression.returnValue)
-            CompilerUtils.checkMatchingTypes(moveInformation.type, context.currentReturnType, -1, -1)
+            CompilerUtils.checkMatchingTypes(moveInformation.type, context.currentReturnType, -1, -1, context)
             var result = moveInformation.moveTo(CompilerUtils.getRegister("ax", moveInformation.type.getRawLength()))
             if (context.jmpOnReturn) {
                 context.separateReturnSegment = true
@@ -18,7 +18,7 @@ class ReturnCompiler(var context: CompilerContext) : SpecificCompiler<Expression
             return result
         }
         if (context.currentReturnType != null) {
-            Main.error(-1, -1, "Expected a return value of the type ${context.currentReturnType}")
+            context.error(-1, -1, "Expected a return value of the type ${context.currentReturnType}")
         }
         return ""
     }

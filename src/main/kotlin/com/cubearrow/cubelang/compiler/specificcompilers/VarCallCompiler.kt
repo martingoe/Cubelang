@@ -13,7 +13,7 @@ class VarCallCompiler(var context: CompilerContext) : SpecificCompiler<Expressio
             val lengthAsString = CompilerUtils.getASMPointerLength(x.type.getRawLength())
             return "$lengthAsString [rbp-${x.index}]"
         }
-        CommonErrorMessages.xNotFound("requested variable", expression.varName)
+        CommonErrorMessages.xNotFound("requested variable", expression.varName, context)
         return ""
     }
 }

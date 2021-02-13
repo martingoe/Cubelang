@@ -48,7 +48,7 @@ class CompilerUtils {
             return when (expression) {
                 is Expression.VarCall -> expression.varName
                 is Expression.ArrayGet -> getTokenFromArrayGet(expression.expression)
-                else -> error("unreachable")
+                else -> error("Inappropriate expression.")
             }
         }
 
@@ -75,8 +75,8 @@ class CompilerUtils {
         /**
          * Checks if the given types match. If not, an error is thrown on the given line and index.
          */
-        fun checkMatchingTypes(expected: Type?, actual: Type?, line: Int = -1, index: Int = -1) {
-            if (expected != actual) Main.error(line, index, "The types do not match: $expected and $actual")
+        fun checkMatchingTypes(expected: Type?, actual: Type?, line: Int = -1, index: Int = -1, context: CompilerContext) {
+            if (expected != actual) context.error(line, index, "The types do not match: $expected and $actual")
         }
 
 

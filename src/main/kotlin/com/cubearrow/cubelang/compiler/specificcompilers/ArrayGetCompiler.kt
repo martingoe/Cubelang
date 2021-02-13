@@ -20,7 +20,7 @@ class ArrayGetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
     override fun accept(expression: Expression.ArrayGet): String {
         val variable = context.getVariableFromArrayGet(expression)
         if(variable == null){
-            CommonErrorMessages.xNotFound("requested array-variable", getTokenFromArrayGet(expression))
+            CommonErrorMessages.xNotFound("requested array-variable", getTokenFromArrayGet(expression), context)
             return ""
         }
         if(variable.type is ArrayType) {
@@ -28,7 +28,7 @@ class ArrayGetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
         } else if(variable.type is PointerType && expression.inBrackets is Expression.Literal){
             return getPointerType(expression, variable.type as PointerType)
         }
-        Main.error(-1, -1, "Unable to compile the requested type of array access. This may be changed in the future.")
+        context.error(-1, -1, "Unable to compile the requested type of array access. This may be changed in the future.")
         return ""
     }
 

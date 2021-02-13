@@ -21,7 +21,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
         val variable = context.getVariableFromArrayGet(expression.arrayGet)
         val arrayGetMoveInformation = context.moveExpressionToX(expression.arrayGet)
         if (variable == null) {
-            Main.error(-1, -1, "Could not find the requested array-variable.")
+            context.error(-1, -1, "Could not find the requested array-variable.")
             return ""
         }
         val token = CompilerUtils.getTokenFromArrayGet(expression.arrayGet)
@@ -30,7 +30,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
             is Expression.ArrayGet -> setVariableToArray(expression, variable, token, arrayGetMoveInformation)
             else -> {
                 val moveInformation = context.moveExpressionToX(expression.value)
-                CompilerUtils.checkMatchingTypes(moveInformation.type, arrayGetMoveInformation.type, token.line, token.index)
+                CompilerUtils.checkMatchingTypes(moveInformation.type, arrayGetMoveInformation.type, token.line, token.index, context)
                 return arrayGetMoveInformation.before + moveInformation.moveTo(CompilerUtils.getASMPointerLength(variable.type.getRawLength()) + arrayGetMoveInformation.pointer)
             }
         }
@@ -44,7 +44,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
     ): String {
         val localVariable = context.getVariableFromArrayGet(expression.value)
         if (localVariable != null) {
-            CompilerUtils.checkMatchingTypes((variable.type as ArrayType).subType, localVariable.type, token.line, token.index)
+            CompilerUtils.checkMatchingTypes((variable.type as ArrayType).subType, localVariable.type, token.line, token.index, context)
             val length = localVariable.type.getRawLength()
             val register = CompilerUtils.getRegister("ax", length)
 
@@ -52,7 +52,7 @@ class ArraySetCompiler(val context: CompilerContext) : SpecificCompiler<Expressi
                             |mov $register, ${CompilerUtils.getASMPointerLength(length)} [rbp - ${localVariable.index}]
                             |mov ${CompilerUtils.getASMPointerLength(length)} ${arrayGetMoveInformation.pointer}, $register""".trimMargin()
         }
-        CommonErrorMessages.xNotFound("variable", token)
+        CommonErrorMessages.xNotFound("variable", token, context)
         return ""
     }
 }

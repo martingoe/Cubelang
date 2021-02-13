@@ -8,7 +8,7 @@ import com.cubearrow.cubelang.parser.Expression
 class LogicalCompiler(val context: CompilerContext): SpecificCompiler<Expression.Logical> {
     override fun accept(expression: Expression.Logical): String {
         if(!context.inJmpCondition)
-            Main.error(expression.logical.index, expression.logical.index, "Cannot compile assigning logical expressions yet.")
+            context.error(expression.logical.index, expression.logical.index, "Cannot compile assigning logical expressions yet.")
         if(expression.logical.tokenType == TokenType.AND){
             if(context.inJmpCondition){
                 return context.evaluate(expression.leftExpression) + context.evaluate(expression.rightExpression) + "\n"

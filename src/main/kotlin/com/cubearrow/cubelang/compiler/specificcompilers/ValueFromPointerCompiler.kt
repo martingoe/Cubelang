@@ -10,7 +10,7 @@ class ValueFromPointerCompiler(val context: CompilerContext): SpecificCompiler<E
     override fun accept(expression: Expression.ValueFromPointer): String {
         val moveInformation = context.moveExpressionToX(expression.expression)
         if(moveInformation.type !is PointerType){
-            Main.error(-1, -1, "Expected a pointer type when getting the value from a type.")
+            context.error(-1, -1, "Expected a pointer type when getting the value from a type.")
             return ""
         }
         val pointerType = moveInformation.type

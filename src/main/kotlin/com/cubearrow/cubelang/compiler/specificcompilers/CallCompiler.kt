@@ -28,7 +28,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
                 val args = getFunctionCallArguments(expression, function)
                 return "${args}call ${varCall.varName.substring}"
             }
-            CommonErrorMessages.xNotFound("called function", varCall.varName)
+            CommonErrorMessages.xNotFound("called function", varCall.varName, context)
         }
         return ""
     }
@@ -59,7 +59,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
         if(expectedArgumentType is NormalType && !Compiler.PRIMARY_TYPES.contains(expectedArgumentType.typeName))
             return moveStruct(expectedArgumentType, argumentExpression)
         val moveInformation = context.moveExpressionToX(argumentExpression)
-        checkMatchingTypes(expectedArgumentType, moveInformation.type, -1, -1)
+        checkMatchingTypes(expectedArgumentType, moveInformation.type, -1, -1, context)
         for (i in CompilerUtils.splitLengthIntoRegisterLengths(moveInformation.type.getLength()))
         if(moveInformation.type.getRawLength() < 4 && argumentExpression !is Expression.Literal){
             return "${moveInformation.before}\n" +
@@ -70,7 +70,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
 
     private fun moveStruct(expectedArgumentType: NormalType, expression: Expression): String {
         if(expression !is Expression.VarCall) {
-            Main.error(-1, -1, "Expected a variable call when passing structs.")
+            context.error(-1, -1, "Expected a variable call when passing structs.")
             return ""
         }
         val variable = context.getVariable(expression.varName.substring)!!

@@ -15,7 +15,7 @@ class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expres
     override fun accept(expression: Expression.Assignment): String {
         val variable = context.getVariable(expression.name.substring)
         if (variable == null) {
-            CommonErrorMessages.xNotFound("variable '${expression.name.substring}'", expression.name)
+            CommonErrorMessages.xNotFound("variable '${expression.name.substring}'", expression.name, context)
             //Unreachable
             return ""
         }
@@ -28,7 +28,7 @@ class AssignmentCompiler(var context: CompilerContext) : SpecificCompiler<Expres
                     CompilerUtils.assignVariableToVariable(variable, localVariable)
                 }
                 val token = CompilerUtils.getTokenFromArrayGet(expression.valueExpression)
-                Main.error(token.line, token.index, "Could not find the requested variable.")
+                context.error(token.line, token.index, "Could not find the requested variable.")
                 ""
             }
             else -> {

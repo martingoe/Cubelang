@@ -1,14 +1,15 @@
-import stdio;
+import io;
 import IntMath;
+import "test2";
 
 struct ie {
-    var x: int;
-    var y: int;
-    var z: int;
-    var ie: int;
+    var x: i32;
+    var y: i32;
+    var z: i32;
+    var ie: i32;
 }
 
-fun test(structi: ie): int{
+fun test(structi: ie): i32{
     return structi.ie;
 }
 
@@ -17,5 +18,6 @@ fun main(){
     test.x = 4;
     test.ie = 10;
     printInt(test(test));
+    printInt(test10Value());
 }
 

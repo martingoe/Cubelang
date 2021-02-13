@@ -23,14 +23,14 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val register = Compiler.OPERATION_REGISTERS[context.operationIndex]!!
 
         val (rightTriple, rightSide) = getRightSide(expression, register)
-        val (leftTriple, leftSide) = getRightSide(expression)
+        val (leftTriple, leftSide) = getLeftSide(expression)
 
         val leftRegister = getRegister("ax", leftTriple.type.getRawLength())
 
-        checkMatchingTypes(rightTriple.type, leftTriple.type, -1, -1)
+        checkMatchingTypes(rightTriple.type, leftTriple.type, -1, -1, context)
         context.operationResultType = leftTriple.type
         context.operationIndex--
-        val operator = CompilerUtils.getOperator(expression.operator.substring)
+        val operator = getOperator(expression.operator.substring)
         val result =
             """$rightSide
               |$leftSide
@@ -52,7 +52,7 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         return Pair(rightMoveInformation, rightSide)
     }
 
-    private fun getRightSide(expression: Expression.Operation): Pair<MoveInformation, String> {
+    private fun getLeftSide(expression: Expression.Operation): Pair<MoveInformation, String> {
         val leftMoveInfo = context.moveExpressionToX(expression.leftExpression)
         val leftSide = leftMoveInfo.moveTo(getRegister("ax", leftMoveInfo.type.getRawLength()))
         return Pair(leftMoveInfo, leftSide)
@@ -67,5 +67,17 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
             }
         }
         return result1
+    }
+    /**
+     * Returns the mathematical operation to use from the token string.
+     */
+    private fun getOperator(operatorString: String): String {
+        return when (operatorString) {
+            "+" -> "add"
+            "-" -> "sub"
+            "*" -> "mul"
+            "/" -> "div"
+            else -> error("Unexpected operator")
+        }
     }
 }

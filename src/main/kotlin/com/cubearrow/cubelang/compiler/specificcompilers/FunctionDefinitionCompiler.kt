@@ -1,8 +1,6 @@
 package com.cubearrow.cubelang.compiler.specificcompilers
 
-import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
-import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
 /**
@@ -15,10 +13,6 @@ import com.cubearrow.cubelang.parser.Expression
 class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompiler<Expression.FunctionDefinition> {
     override fun accept(expression: Expression.FunctionDefinition): String {
         context.separateReturnSegment = false
-        val args = ExpressionUtils.mapArgumentDefinitions(expression.args)
-        if (args.size > 5)
-            Main.error(expression.name.line, expression.name.index, "The function must only have 5 arguments")
-        context.addFunction(Compiler.Function(expression.name.substring, args, expression.type))
 
         context.stackIndex.add(0)
         context.variables.add(HashMap())

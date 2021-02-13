@@ -11,7 +11,7 @@ import com.cubearrow.cubelang.main.Main
  */
 
 
-class Tokenizer(private val fileContent: String) {
+class Tokenizer(private val fileContent: String, val fileName: String) {
     private var lineIndex = 0
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
@@ -101,7 +101,7 @@ class Tokenizer(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            Main.error(line, lineIndex, "Unterminated char.")
+            Main.error(line, lineIndex, "Unterminated char.", fileName)
             return
         }
 
@@ -155,7 +155,7 @@ class Tokenizer(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            Main.error(line, lineIndex, "Unterminated string.")
+            Main.error(line, lineIndex, "Unterminated string.", fileName)
             return
         }
 
@@ -204,7 +204,7 @@ class Tokenizer(private val fileContent: String) {
 
     private fun catchTokenError(substring: String) {
         if (substring != " " && substring.isNotBlank()) {
-            Main.error(line, lineIndex, "Unexpected token \"$substring\"")
+            Main.error(line, lineIndex, "Unexpected token \"$substring\"", fileName)
         }
     }
 

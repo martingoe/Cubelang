@@ -6,47 +6,34 @@ import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.*
 import com.cubearrow.cubelang.utils.IOUtils.Companion.writeAllLines
 
-class Compiler(expressions: List<Expression>, path: String) : Expression.ExpressionVisitor<String> {
+class Compiler(private val expressions: List<Expression>, private val definedFunctions: MutableList<Function>, private val path: String) : Expression.ExpressionVisitor<String> {
     companion object {
         val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
         val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
-        val lengthsOfTypes = mutableMapOf("int" to 4, "char" to 1, "short" to 1)
-        val PRIMARY_TYPES = listOf("int", "char", "short")
-        val stdlib = mapOf(
-            "stdio" to listOf(
-                  Function("printChar", mapOf("value" to NormalType("char")), null),
-                 Function("printInt", mapOf("value" to NormalType("int")), null),
-                Function("printShort", mapOf("value" to NormalType("short")), null),
-                Function("printPointer", mapOf("value" to PointerType(NormalType("any"))), null)
-            ),
-            "time" to listOf(
-                Function("getCurrentTime", mapOf(), NormalType("int"))
-            ),
-            "IntMath" to listOf(
-                Function("min", mapOf("first" to NormalType("int"), "sec" to NormalType("int")), NormalType("int")),
-                Function("max", mapOf("first" to NormalType("int"), "sec" to NormalType("int")), NormalType("int"))
-            )
-        )
+        val lengthsOfTypes = mutableMapOf("i32" to 4, "i64" to 8, "i16" to 2, "char" to 1, "i8" to 1)
+        val PRIMARY_TYPES = listOf("i64", "i32","i16", "i8", "char")
+
         const val LIBRARY_PATH = "library/"
     }
 
-    private var context = CompilerContext(this)
+    var context = CompilerContext(this)
 
     data class LocalVariable(var index: Int, var type: Type)
     data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
     data class Struct(var name: String, var vars: MutableList<Pair<String, Type>>)
 
 
-    init {
+    fun compile() {
         context.variables.add(HashMap())
         context.stackIndex.add(0)
+        context.functions.addAll(definedFunctions)
 
         var importStatements = ""
         var functions = ""
         expressions.filter{it is Expression.ImportStmnt || it is Expression.StructDefinition}.forEach { importStatements += it.accept(this) + "\n" }
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { functions += it.accept(this) + "\n" }
         repeat(expressions.filter { it !is Expression.FunctionDefinition && it !is Expression.StructDefinition && it !is Expression.ImportStmnt }.size) {
-            Main.error(
+            context.error(
                 -1,
                 -1,
                 "Expected a function definition at top level"

@@ -3,15 +3,15 @@ package com.cubearrow.cubelang.utils
 import com.cubearrow.cubelang.lexer.Token
 import com.cubearrow.cubelang.lexer.TokenType
 import com.cubearrow.cubelang.parser.Expression
-import com.cubearrow.cubelang.utils.ExpressionUtils.Companion.getType
-import kotlin.test.Test
+import com.cubearrow.cubelang.utils.Type.Companion.getType
+import org.junit.jupiter.api.Test
 
 class ExpressionUtilsTest {
     @Test
     internal fun getType(){
-        assert(getType(NormalType("int"), 2) == NormalType("int"))
+        assert(getType(NormalType("i32"), 2) == NormalType("i32"))
 
-        assert(getType(null, 4) == NormalType("int"))
+        assert(getType(null, 4) == NormalType("i32"))
         assert(getType(null, "Hello, World") == NormalType("string"))
         assert(getType(null, 'i') == NormalType("char"))
         assert(getType(null, null) == NormalType("any"))

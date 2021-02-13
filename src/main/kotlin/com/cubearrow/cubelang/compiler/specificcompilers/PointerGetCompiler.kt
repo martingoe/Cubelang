@@ -12,7 +12,7 @@ class PointerGetCompiler(val context: CompilerContext): SpecificCompiler<Express
         val string = expression.varCall.accept(context.compilerInstance)
         val variable = context.getVariable(expression.varCall.varName.substring)
         if (variable == null) {
-            CommonErrorMessages.xNotFound("requested variable '${expression.varCall.varName.substring}'", expression.varCall.varName)
+            CommonErrorMessages.xNotFound("requested variable '${expression.varCall.varName.substring}'", expression.varCall.varName, context)
             return ""
         }
         setOperationType(variable)

@@ -4,7 +4,6 @@ import com.cubearrow.cubelang.compiler.specificcompilers.ForLoopCompiler
 import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 import com.cubearrow.cubelang.utils.CommonErrorMessages
-import com.cubearrow.cubelang.utils.ExpressionUtils
 import com.cubearrow.cubelang.utils.NormalType
 import com.cubearrow.cubelang.utils.Type
 
@@ -107,9 +106,9 @@ data class CompilerContext(
      * Adds a [Function] to the [functions] if a function with the signature doesn't exist yet.
      * @param function The function to add.
      */
-    fun addFunction(function: Compiler.Function) {
+    private fun addFunction(function: Compiler.Function) {
         if (getFunction(function.name, function.args.size) != null) {
-            Main.error(-1, -1, "The function with the name ${function.name} and ${function.args.size} arguments has previously been defined.")
+            error(-1, -1, "The function with the name ${function.name} and ${function.args.size} arguments has previously been defined.")
         } else {
             functions.add(function)
         }
@@ -160,12 +159,12 @@ data class CompilerContext(
             }
             is Expression.Grouping, is Expression.Operation, is Expression.Comparison, is Expression.Unary -> {
                 if (operationResultType == null) {
-                    Main.error(-1, -1, "The expression does not return a type.")
+                    error(-1, -1, "The expression does not return a type.")
                 }
                 MoveInformation(accept, CompilerUtils.getRegister("ax", operationResultType!!.getRawLength()), operationResultType!!)
             }
             is Expression.Literal -> {
-                val type = ExpressionUtils.getType(null, expression.value)
+                val type = Type.getType(null, expression.value)
                 MoveInformation("", accept, type)
             }
             is Expression.PointerGet -> {
@@ -184,7 +183,7 @@ data class CompilerContext(
         val varCall = expression.expression as Expression.VarCall
         val localVariable = getVariable(varCall.varName.substring)
         if (localVariable == null) {
-            CommonErrorMessages.xNotFound("variable", varCall.varName)
+            CommonErrorMessages.xNotFound("variable", varCall.varName, this)
             error("")
         }
         return MoveInformation("", accept, operationResultType!!)
@@ -195,7 +194,7 @@ data class CompilerContext(
     ): MoveInformation {
         val localVariable = getVariable(expression.varName.substring)
         if (localVariable == null) {
-            CommonErrorMessages.xNotFound("variable", expression.varName)
+            CommonErrorMessages.xNotFound("variable", expression.varName, this)
             error("")
         }
         return MoveInformation("", accept, localVariable.type)
@@ -205,11 +204,11 @@ data class CompilerContext(
         if (call.callee is Expression.VarCall) {
             val function = getFunction(call.callee.varName.substring, call.arguments.size)
             if (function == null) {
-                CommonErrorMessages.xNotFound("called function", call.callee.varName)
+                CommonErrorMessages.xNotFound("called function", call.callee.varName, this)
                 error("Could not find the function")
             }
             if (function.returnType == null) {
-                Main.error(
+                error(
                     call.callee.varName.line,
                     call.callee.varName.index,
                     "The called function does not return a value."
@@ -232,5 +231,9 @@ data class CompilerContext(
      */
     fun evaluate(expression: Expression): String {
         return expression.accept(compilerInstance)
+    }
+
+    fun error(line: Int, index: Int, message: String) {
+        Main.error(line, index, message, compilerInstance)
     }
 }
