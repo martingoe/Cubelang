@@ -1,10 +1,11 @@
 package com.cubearrow.cubelang.lexer
 
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 
-class TokenSequenceTest {
+
+class TokenizerTest {
     @Test
-    internal fun testTokenSequence() {
+    fun testTokenSequence() {
         val tokenSequence = Tokenizer("a = call(1);")
 
         val expected = listOf(
@@ -19,6 +20,11 @@ class TokenSequenceTest {
         )
 
         assert(tokenSequence.tokenSequence == expected)
+    }
+    @Test
+    fun testChar(){
+        assert(Token("a", TokenType.CHAR, 1, 1) ==
+                Tokenizer("'a'").tokenSequence[0])
     }
 
 
