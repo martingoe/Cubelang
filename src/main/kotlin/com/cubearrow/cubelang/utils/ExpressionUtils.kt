@@ -3,6 +3,7 @@ package com.cubearrow.cubelang.utils
 import com.cubearrow.cubelang.interpreter.Interpreter
 import com.cubearrow.cubelang.interpreter.VariableStorage
 import com.cubearrow.cubelang.parser.Expression
+import com.cubearrow.cubelang.utils.Type.Companion.getType
 
 class ExpressionUtils {
     companion object {
@@ -27,18 +28,6 @@ class ExpressionUtils {
             }
         }
 
-        fun getType(type: Type?, value: Any?): Type {
-            var valueToCompare = value
-            if (value is Expression.Literal) valueToCompare = value.value
-            return type ?: when (valueToCompare) {
-                        is Int -> NormalType("int")
-                        is Double -> NormalType("double")
-                        is String -> NormalType("string")
-                        is Char -> NormalType("char")
-                        //is ClassInstance -> valueToCompare.className
-                        null -> NormalType("any")
-                        else -> NormalType("any")
-                    }
-        }
+
     }
 }

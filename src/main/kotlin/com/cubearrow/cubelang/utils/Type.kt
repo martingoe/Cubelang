@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.utils
 
 import com.cubearrow.cubelang.compiler.Compiler
+import com.cubearrow.cubelang.parser.Expression
 
 /**
  * The Type used to define arrays.
@@ -30,9 +31,19 @@ class ArrayType(var subType: Type, var count: Int) : Type {
     override fun toString(): String {
         return "[$subType : $count]"
     }
+
+    override fun getLength(): Int = this.subType.getRawLength() * this.count
+    override fun getRawLength(): Int = this.subType.getRawLength()
 }
 
-class PointerType(var normalType: Type): Type{
+/**
+ * The [Type] used to define Pointers to other types.
+ *
+ * @param subtype The type that is being pointed to.
+ */
+class PointerType(var subtype: Type): Type{
+    override fun getLength(): Int = 8
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if(other !is PointerType || subtype != other.subtype) return false
@@ -46,6 +57,10 @@ class PointerType(var normalType: Type): Type{
     override fun toString(): String {
         return "$subtype*"
     }
+
+    override fun getRawLength(): Int = 8
+
+
 }
 
 class NormalType(var typeName: String) : Type {
@@ -66,29 +81,29 @@ class NormalType(var typeName: String) : Type {
     override fun toString(): String {
         return typeName
     }
+    override fun getLength(): Int =
+        Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
+
+    override fun getRawLength(): Int =
+        Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
+
 }
 interface Type {
-    fun getLength(): Int {
-        return when (this) {
-            is NormalType -> {
-                Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
+    fun getLength(): Int
+    fun getRawLength(): Int
+    companion object {
+        fun getType(type: Type?, value: Any?): Type {
+            var valueToCompare = value
+            if (value is Expression.Literal) valueToCompare = value.value
+            return type ?: when (valueToCompare) {
+                is Int -> NormalType("i32")
+                is Double -> NormalType("double")
+                is String -> NormalType("string")
+                is Char -> NormalType("char")
+                //is ClassInstance -> valueToCompare.className
+                null -> NormalType("any")
+                else -> NormalType("any")
             }
-            is PointerType -> 8
-            is ArrayType -> {
-                this.subType.getRawLength() * this.count
-            }
-            else -> 0
-        }
-    }
-
-    fun getRawLength(): Int {
-        return when (this) {
-            is NormalType -> Compiler.lengthsOfTypes.getOrDefault(this.typeName, 8)
-            is PointerType -> 8
-            is ArrayType -> {
-                this.subType.getRawLength()
-            }
-            else -> 0
         }
     }
 }
