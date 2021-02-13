@@ -2,10 +2,13 @@ package com.cubearrow.cubelang.compiler.specificcompilers
 
 import com.cubearrow.cubelang.compiler.CompilerContext
 import com.cubearrow.cubelang.lexer.TokenType
+import com.cubearrow.cubelang.main.Main
 import com.cubearrow.cubelang.parser.Expression
 
 class LogicalCompiler(val context: CompilerContext): SpecificCompiler<Expression.Logical> {
     override fun accept(expression: Expression.Logical): String {
+        if(!context.inJmpCondition)
+            Main.error(expression.logical.index, expression.logical.index, "Cannot compile assigning logical expressions yet.")
         if(expression.logical.tokenType == TokenType.AND){
             if(context.inJmpCondition){
                 return context.evaluate(expression.leftExpression) + context.evaluate(expression.rightExpression) + "\n"
