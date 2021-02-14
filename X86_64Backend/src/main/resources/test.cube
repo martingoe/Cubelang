@@ -1,0 +1,23 @@
+import io;
+import IntMath;
+import "test2.cube";
+
+struct ie {
+    var x: i32;
+    var y: i32;
+    var z: i32;
+    var ie: i32;
+}
+
+fun test(structi: ie): i32{
+    return structi.ie;
+}
+
+fun main(){
+    var test: ie;
+    test.x = 4;
+    test.ie = 10;
+    printInt(test(test));
+    printInt(test10Value());
+}
+
