@@ -1,7 +1,0 @@
-import "stdlib/stdio";
-
-fun main(){
-    var i = 1;
-    i = -i;
-    printInt(i);
-}

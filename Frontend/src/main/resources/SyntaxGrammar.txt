@@ -1,0 +1,30 @@
+assignment = name: Token, valueExpression: Expression
+varInitialization = name: Token, type: Type?, valueExpression: Expression?
+operation = leftExpression: Expression, operator: Token, rightExpression: Expression
+call = callee: Expression, arguments: List<Expression>
+literal = value: Any?
+varCall = varName: Token
+functionDefinition = name: Token, args: List<Expression>, type: Type?, body: Expression
+comparison = leftExpression: Expression, comparator: Token, rightExpression: Expression
+
+ifStmnt = condition: Expression, ifBody: Expression, elseBody: Expression?
+returnStmnt = returnValue: Expression?
+whileStmnt = condition: Expression, body: Expression
+forStmnt = inBrackets: List<Expression>, body: Expression
+structDefinition = name: Token, body: List<Expression.VarInitialization>
+instanceGet = expression: Expression, identifier: Token
+instanceSet = instanceGet: Expression.InstanceGet, value: Expression
+argumentDefinition = name: Token, type: Type
+blockStatement = statements: List<Expression>
+logical = leftExpression: Expression, logical: Token, rightExpression: Expression
+unary = identifier: Token, expression: Expression
+grouping = expression: Expression
+
+arrayGet = expression: Expression, inBrackets: Expression
+arraySet = arrayGet: ArrayGet, value: Expression
+
+importStmnt = identifier: Token
+pointerGet = varCall: VarCall
+valueFromPointer = expression: Expression
+
+empty = any: Any?
