@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 [![Maintainability](https://api.codeclimate.com/v1/badges/b56516951e9c3a93a8b0/maintainability)](https://codeclimate.com/github/CubeArrow/Cubelang/maintainability)
 
-This is a very simple statically typed (WIP) interpreted and compiled (x86_64 NASM) programming language.
+This is a very simple statically typed (WIP) compiled (x86_64 NASM) programming language.
 
 
 ## Reasoning behind this project
