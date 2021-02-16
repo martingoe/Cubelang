@@ -5,6 +5,7 @@ import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
+import java.io.File
 
 class ImportStmntCompiler(val context: CompilerContext) : SpecificCompiler<Expression.ImportStmnt> {
     override fun accept(expression: Expression.ImportStmnt): String {
@@ -18,6 +19,6 @@ class ImportStmntCompiler(val context: CompilerContext) : SpecificCompiler<Expre
             return ""
         }
         context.addFunctions(functions)
-        return "%include \"${(if (expression.identifier.tokenType == TokenType.IDENTIFIER) Compiler.LIBRARY_PATH else "") + expression.identifier.substring}.asm\""
+        return "%include \"${if (expression.identifier.tokenType == TokenType.IDENTIFIER) Compiler.LIBRARY_PATH + expression.identifier.substring else expression.identifier.substring.substringBeforeLast(".")}.asm\""
     }
 }

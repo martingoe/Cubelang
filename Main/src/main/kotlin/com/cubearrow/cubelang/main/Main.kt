@@ -21,11 +21,6 @@ fun main(args: Array<String>) {
 
 
 class Main {
-    companion object {
-
-        var containsError = false
-        var exitAfterError = false
-    }
 
 
     fun compileFile(sourceFile: Array<String>) {
@@ -39,10 +34,7 @@ class Main {
             addFunctionsToMap(source, expressions, lines)
             expressionsList[source] = expressions
         }
-        if (containsError)
-            exitProcess(65)
 
-        exitAfterError = true
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val compiler = Compiler(

@@ -16,7 +16,7 @@ class InstanceGetCompiler(val context: CompilerContext): SpecificCompiler<Expres
         val varCall  = expression.expression as Expression.VarCall
         val variable = context.getVariable(varCall.varName.substring)
         if(variable == null){
-            context.error(varCall.varName.line, varCall.varName.index, "The requested function does not exist.")
+            context.error(varCall.varName.line, varCall.varName.index, "The requested variable '${varCall.varName.substring}' does not exist.")
             return ""
         }
         val struct = context.structs[(variable.type as NormalType).typeName]
