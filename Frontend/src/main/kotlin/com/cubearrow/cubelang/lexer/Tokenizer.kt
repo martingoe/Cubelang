@@ -12,14 +12,13 @@ import com.cubearrow.cubelang.common.tokens.TokenType
  * The tokens are saved in a list if Maps each representing a line, the Map contains the original String and the [TokenType] which it represents.
  */
 
-
 class Tokenizer(private val fileContent: String) {
-    private var lineIndex = 0
+    private var lineIndex = 1
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
     private var char: Char = ' '
     private var index = 0
-    private val errorLibray = ErrorLibrary(fileContent.split("\n"), false)
+    private val errorLibrary = ErrorLibrary(fileContent.split("\n"), false)
 
     /**
      * Walks through the line creating the tokens and saves them as a Map. This map is linked in order to preserve the order.
@@ -40,7 +39,7 @@ class Tokenizer(private val fileContent: String) {
                 ',' -> addToken(TokenType.COMMA)
                 '.' -> addToken(TokenType.DOT)
                 '-', '+' -> {
-                    if(isDigit(fileContent[index + 1])){
+                    if (isDigit(fileContent[index + 1])) {
                         advance()
                         number("-")
                         index--
@@ -52,11 +51,11 @@ class Tokenizer(private val fileContent: String) {
                 '*' -> addToken(TokenType.STAR)
                 '/' -> addToken(TokenType.SLASH)
                 '|' -> {
-                    if(match('|'))
+                    if (match('|'))
                         addToken(TokenType.OR, "||")
                 }
                 '&' -> {
-                    if(match('&'))
+                    if (match('&'))
                         addToken(TokenType.AND, "&&")
                     else
                         addToken(TokenType.POINTER, "&")
@@ -64,13 +63,13 @@ class Tokenizer(private val fileContent: String) {
 
                 '#' -> comment()
                 '!', '<', '>' -> {
-                    if(match('='))
+                    if (match('='))
                         addToken(TokenType.COMPARATOR, "$char=")
                     else
                         addToken(TokenType.COMPARATOR, char.toString())
                 }
                 '=' -> {
-                    if(match('='))
+                    if (match('='))
                         addToken(TokenType.COMPARATOR, "$char=")
                     else
                         addToken(TokenType.EQUALS, char.toString())
@@ -79,12 +78,16 @@ class Tokenizer(private val fileContent: String) {
                 '\'' -> char()
                 '\n' -> {
                     line++
-                    lineIndex = 0
+                    lineIndex = 1
                 }
                 else -> {
                     when {
-                        isDigit(char) -> {number("");index--}
-                        isAlpha(char) -> {keyword(); index--}
+                        isDigit(char) -> {
+                            number("");index--
+                        }
+                        isAlpha(char) -> {
+                            keyword(); index--
+                        }
                         else -> catchTokenError(char.toString())
                     }
                 }
@@ -103,7 +106,7 @@ class Tokenizer(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            errorLibray.error(line, lineIndex, "Unterminated char.")
+            errorLibrary.error(line, lineIndex, "Unterminated char.")
             return
         }
 
@@ -114,7 +117,7 @@ class Tokenizer(private val fileContent: String) {
     }
 
     private fun comment() {
-        while(peek() != '\n') index++
+        while (peek() != '\n') index++
     }
 
     private fun match(expected: Char): Boolean {
@@ -157,7 +160,7 @@ class Tokenizer(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            errorLibray.error(line, lineIndex, "Unterminated string.")
+            errorLibrary.error(line, lineIndex, "Unterminated string.")
             return
         }
 
@@ -188,7 +191,7 @@ class Tokenizer(private val fileContent: String) {
     }
 
     private fun addToken(tokenType: TokenType, string: String) {
-        tokenSequence.add(Token(string, tokenType, line, lineIndex))
+        tokenSequence.add(Token(string, tokenType, line, lineIndex - string.length))
     }
 
     private fun isAlpha(c: Char): Boolean {
@@ -205,8 +208,12 @@ class Tokenizer(private val fileContent: String) {
     }
 
     private fun catchTokenError(substring: String) {
-        if (substring != " " && substring.isNotBlank()) {
-            errorLibray.error(line, lineIndex, "Unexpected token \"$substring\"")
+        if(substring == " "){
+            lineIndex++
+            return
+        }
+        if (substring.isNotBlank()) {
+            errorLibrary.error(line, lineIndex, "Unexpected token \"$substring\"")
         }
     }
 
