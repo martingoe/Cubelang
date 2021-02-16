@@ -17,7 +17,7 @@ class ArgumentDefinitionCompiler(var context: CompilerContext) : SpecificCompile
         context.stackIndex.add(context.stackIndex.removeLast() + TypeUtils.getLength(expression.type))
         context.variables.last()[expression.name.substring] = Compiler.LocalVariable(context.stackIndex.last(), expression.type)
 
-        return moveStruct(expression.type)
+        return moveValue(expression.type)
     }
 
     private fun moveValue(rawLength: Int, index: Int): String {
@@ -30,7 +30,7 @@ class ArgumentDefinitionCompiler(var context: CompilerContext) : SpecificCompile
         }
     }
 
-    private fun moveStruct(type: Type): String {
+    private fun moveValue(type: Type): String {
         val sizes = CompilerUtils.splitLengthIntoRegisterLengths(TypeUtils.getLength(type))
         var indexRemoved = 0
         var resultingString = ""
