@@ -17,7 +17,7 @@ class Parser(private var tokens: List<Token>) {
 
         while (!isAtEnd()) {
             if(peek(TokenType.EOF)) break
-            statements.add(declaration())
+            statements.add(statement())
         }
         return statements
     }
@@ -88,8 +88,8 @@ class Parser(private var tokens: List<Token>) {
             when {
                 match(TokenType.VAR) -> {
                     methods.add(variableDefinition())
-                    if(methods.last().valueExpression != null){
-                        throw ParseException("Variables inside a struct can not be initialized.", previous())
+                    if(methods.last().valueExpression != null || methods.last().type == null){
+                        throw ParseException("Variables inside a struct can not be initialized and must have a valid type.", previous())
                     }
                 }
                 else -> throw ParseException("Wrong statement type for a struct", previous())
@@ -103,7 +103,7 @@ class Parser(private var tokens: List<Token>) {
         val statements: MutableList<Expression> = ArrayList()
 
         while (!peek(TokenType.CURLYR) && !isAtEnd())
-            statements.add(declaration())
+            statements.add(statement())
 
         consume(TokenType.CURLYR, "Expected a '}' closing the code block")
         return Expression.BlockStatement(statements)
@@ -220,7 +220,7 @@ class Parser(private var tokens: List<Token>) {
     }
 
     private fun unary(): Expression {
-        while (match(listOf(TokenType.BANG, TokenType.PLUSMINUS)))
+        if (match(listOf(TokenType.BANG, TokenType.PLUSMINUS)))
             return Expression.Unary(current(), unary())
         return call()
     }
@@ -283,30 +283,6 @@ class Parser(private var tokens: List<Token>) {
             }
             else -> throw ParseException("Expected an expression", previous())
 
-        }
-    }
-
-    private fun declaration(): Expression {
-        try{
-            if(match(TokenType.VAR))
-                return variableDefinition()
-            return statement()
-        } catch (error: ParseException) {
-            synchronize()
-            error.printStackTrace()
-            exitProcess(0)
-        }
-    }
-
-    private fun synchronize(){
-        advance()
-        val list = listOf(TokenType.IF, TokenType.VAR, TokenType.FOR, TokenType.WHILE, TokenType.STRUCT, TokenType.RETURN)
-        while (!isAtEnd()){
-            if(previous().tokenType == TokenType.SEMICOLON)
-                return
-            if(list.contains(peek().tokenType))
-                return
-            advance()
         }
     }
 
