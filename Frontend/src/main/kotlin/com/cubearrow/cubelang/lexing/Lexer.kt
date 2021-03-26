@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.lexer
+package com.cubearrow.cubelang.lexing
 
 import com.cubearrow.cubelang.common.errors.ErrorLibrary
 import com.cubearrow.cubelang.common.tokens.Token
@@ -8,11 +8,10 @@ import com.cubearrow.cubelang.common.tokens.TokenType
 /**
  * This initiates a sequence of tokens from the content of a source file. This lexical analysis is used in the parser when creating the abstract syntax tree.
  *
- *
- * The tokens are saved in a list if Maps each representing a line, the Map contains the original String and the [TokenType] which it represents.
+ * Regular Expressions are avoided for preformance reasons.
  */
 
-class Tokenizer(private val fileContent: String) {
+class Lexer(private val fileContent: String) {
     private var lineIndex = 1
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
@@ -62,7 +61,7 @@ class Tokenizer(private val fileContent: String) {
                 }
 
                 '#' -> comment()
-                '!', '<', '>' -> {
+                '<', '>' -> {
                     if (match('='))
                         addToken(TokenType.COMPARATOR, "$char=")
                     else
@@ -70,9 +69,15 @@ class Tokenizer(private val fileContent: String) {
                 }
                 '=' -> {
                     if (match('='))
-                        addToken(TokenType.COMPARATOR, "$char=")
+                        addToken(TokenType.EQUALITY, "$char=")
                     else
                         addToken(TokenType.EQUALS, char.toString())
+                }
+                '!' -> {
+                    if (match('='))
+                        addToken(TokenType.EQUALITY, "$char=")
+                    else
+                        addToken(TokenType.BANG, char.toString())
                 }
                 '"' -> string()
                 '\'' -> char()

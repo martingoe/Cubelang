@@ -1,7 +1,7 @@
 package com.cubearrow.cubelang.main
 
 import com.cubearrow.cubelang.compiler.Compiler
-import com.cubearrow.cubelang.lexer.Tokenizer
+import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.errors.ErrorLibrary
@@ -29,7 +29,7 @@ class Main {
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
             val lines = sourceCode.split("\n")
-            val tokenSequence = Tokenizer(sourceCode)
+            val tokenSequence = Lexer(sourceCode)
             val expressions = Parser(tokenSequence.tokenSequence).parse()
             addFunctionsToMap(source, expressions, lines)
             expressionsList[source] = expressions
