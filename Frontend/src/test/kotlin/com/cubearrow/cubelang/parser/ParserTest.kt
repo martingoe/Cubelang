@@ -4,6 +4,7 @@ import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.common.NormalType
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import org.junit.jupiter.api.Test
 
 class ParserTest {
@@ -17,7 +18,7 @@ class ParserTest {
             Token(";", TokenType.SEMICOLON, 1, 4),
             Token("", TokenType.EOF, 1, 6)
         )
-        val actual = Parser(tokens).parse()[0] as Expression.Assignment
+        val actual = Parser(tokens, ErrorManager(listOf("a=2;"), false)).parse()[0] as Expression.Assignment
         assert((actual.valueExpression as Expression.Literal).value == 2)
         assert(actual.name == token)
     }
@@ -36,7 +37,7 @@ class ParserTest {
             Token(";", TokenType.SEMICOLON, 1, 9),
             Token("", TokenType.EOF, 1, 0)
         )
-        val actual = Parser(tokens).parse()[0] as Expression.VarInitialization
+        val actual = Parser(tokens, ErrorManager(listOf("a=2;"), false)).parse()[0] as Expression.VarInitialization
         assert((actual.valueExpression as Expression.Literal).value == 2)
 
         assert(actual.type!! == NormalType(typeToken.substring))
@@ -51,7 +52,7 @@ class ParserTest {
             Token(";", TokenType.SEMICOLON, 1, 2),
             Token("", TokenType.EOF, 1, 4)
         )
-        val actual = Parser(tokens).parse()[0] as Expression.VarCall
+        val actual = Parser(tokens, ErrorManager(listOf("a;"), false)).parse()[0] as Expression.VarCall
         assert(actual.varName == token)
     }
 
@@ -67,7 +68,7 @@ class ParserTest {
             Token(";", TokenType.SEMICOLON, 1, 4),
             Token("", TokenType.EOF, 1, 6)
         )
-        val actual = Parser(tokens).parse()[0] as Expression.Comparison
+        val actual = Parser(tokens, ErrorManager(listOf("a<2;"), false)).parse()[0] as Expression.Comparison
         assert((actual.rightExpression as Expression.Literal).value == 2)
 
         assert((actual.leftExpression as Expression.VarCall).varName == first)
@@ -84,7 +85,7 @@ class ParserTest {
             Token("}", TokenType.CURLYR, 1, 4),
             Token("", TokenType.EOF, 1, 5)
         )
-        val actual = Parser(tokens).parse()[0] as Expression.BlockStatement
+        val actual = Parser(tokens, ErrorManager(listOf("{a};"), false)).parse()[0] as Expression.BlockStatement
         assert((actual.statements[0] as Expression.VarCall).varName == varCallToken)
     }
 }

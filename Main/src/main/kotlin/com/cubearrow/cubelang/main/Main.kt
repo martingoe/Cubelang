@@ -26,14 +26,18 @@ class Main {
     fun compileFile(sourceFile: Array<String>) {
 //        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
+        val errorManagers = ArrayList<ErrorManager>()
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
             val lines = sourceCode.split("\n")
             val tokenSequence = Lexer(sourceCode)
-            val expressions = Parser(tokenSequence.tokenSequence).parse()
+            val errorManager = ErrorManager(lines, false)
+            errorManagers.add(errorManager)
+            val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
             addFunctionsToMap(source, expressions, lines)
             expressionsList[source] = expressions
         }
+        errorManagers.forEach { it.exitIfError() }
 
         for (expressions in expressionsList) {
             val file = File(expressions.key)
