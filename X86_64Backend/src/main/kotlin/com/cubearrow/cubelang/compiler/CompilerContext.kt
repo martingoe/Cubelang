@@ -1,13 +1,13 @@
 package com.cubearrow.cubelang.compiler
 
 import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.compiler.utils.CompilerUtils
-import com.cubearrow.cubelang.compiler.specificcompilers.ForLoopCompiler
-import com.cubearrow.cubelang.compiler.utils.CommonErrorMessages
 import com.cubearrow.cubelang.common.NormalType
 import com.cubearrow.cubelang.common.Type
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
 import com.cubearrow.cubelang.common.definitions.Function
+import com.cubearrow.cubelang.common.errors.ErrorManager
+import com.cubearrow.cubelang.compiler.specificcompilers.ForLoopCompiler
+import com.cubearrow.cubelang.compiler.utils.CommonErrorMessages
+import com.cubearrow.cubelang.compiler.utils.CompilerUtils
 import com.cubearrow.cubelang.compiler.utils.TypeUtils
 
 /**
@@ -77,7 +77,7 @@ data class CompilerContext(
      */
     var structs: MutableMap<String, Compiler.Struct> = HashMap(),
 
-    val errorLibrary: ErrorLibrary
+    val errorManager: ErrorManager
 ) {
 
 
@@ -138,10 +138,8 @@ data class CompilerContext(
         functions.firstOrNull { functionName == it.name && it.args.values.size == argumentSize }
 
 
-    private fun beforeAndPointerArrayGet(arrayGet: Expression.ArrayGet): MoveInformation {
-        val s = arrayGet.accept(compilerInstance).split("&")
-        return MoveInformation(s[0], s[1], operationResultType!!)
-    }
+    fun getVariablePointer(variable: Compiler.LocalVariable): String = "[rbp-${variable.index}]"
+
 
     /**
      * Returns the information needed to move the specific expression to a register.
@@ -155,10 +153,9 @@ data class CompilerContext(
             is Expression.VarCall -> {
                 moveVarCallToX(expression, accept)
             }
-            is Expression.InstanceGet -> moveInstanceGetToX(expression, accept)
-            is Expression.ArrayGet -> {
-                beforeAndPointerArrayGet(expression)
-            }
+            is Expression.InstanceGet ->
+                MoveInformation("", accept, operationResultType!!)
+
             is Expression.Call -> {
                 moveCallToX(expression)
             }
@@ -175,7 +172,7 @@ data class CompilerContext(
             is Expression.PointerGet -> {
                 MoveInformation(accept, "rax", operationResultType!!)
             }
-            is Expression.ValueFromPointer -> {
+            is Expression.ValueFromPointer, is Expression.ArrayGet -> {
                 val split = accept.split("&")
                 MoveInformation(split[0], split[1], operationResultType!!)
             }
@@ -183,26 +180,12 @@ data class CompilerContext(
         }
     }
 
-    private fun moveInstanceGetToX(expression: Expression.InstanceGet,
-    accept: String): MoveInformation{
-        val varCall = expression.expression as Expression.VarCall
-        val localVariable = getVariable(varCall.varName.substring)
-        if (localVariable == null) {
-            CommonErrorMessages.xNotFound("variable", varCall.varName, this)
-            error("")
-        }
-        return MoveInformation("", accept, operationResultType!!)
-    }
     private fun moveVarCallToX(
         expression: Expression.VarCall,
         accept: String
     ): MoveInformation {
         val localVariable = getVariable(expression.varName.substring)
-        if (localVariable == null) {
-            CommonErrorMessages.xNotFound("variable", expression.varName, this)
-            error("")
-        }
-        return MoveInformation("", accept, localVariable.type)
+        return MoveInformation("", accept, localVariable!!.type)
     }
 
     private fun moveCallToX(call: Expression.Call): MoveInformation {
@@ -239,7 +222,29 @@ data class CompilerContext(
         return expression.accept(compilerInstance)
     }
 
+    /**
+     * Returns the asm code to assign an existing variable to a variable.
+     *
+     * @param variableToAssign The variable to be assigned to the other one.
+     * @param variableToAssignTo The variable to be assigned to.
+     *
+     * @return Returns the required x86_64 NASM code.
+     */
+    fun assignVariableToVariable(
+        variableToAssignTo: Compiler.LocalVariable,
+        variableToAssign: Compiler.LocalVariable
+    ): String {
+        CompilerUtils.checkMatchingTypes(variableToAssign.type, variableToAssignTo.type, context = this)
+        val length = TypeUtils.getLength(variableToAssign.type)
+        val register = CompilerUtils.getRegister("ax", length)
+        return CompilerUtils.moveLocationToLocation(
+            "${CompilerUtils.getASMPointerLength(length)} [rbp - ${variableToAssignTo.index}]",
+            "${CompilerUtils.getASMPointerLength(length)} [rbp - ${variableToAssign.index}]",
+            register
+        )
+    }
+
     fun error(line: Int, index: Int, message: String) {
-        errorLibrary.error(line, index, message)
+        errorManager.error(line, index, message)
     }
 }

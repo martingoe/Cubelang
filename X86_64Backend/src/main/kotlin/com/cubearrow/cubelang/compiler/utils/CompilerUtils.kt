@@ -1,10 +1,11 @@
 package com.cubearrow.cubelang.compiler.utils
 
 import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.compiler.Compiler
-import com.cubearrow.cubelang.compiler.CompilerContext
+import com.cubearrow.cubelang.common.PointerType
 import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.tokens.Token
+import com.cubearrow.cubelang.compiler.Compiler
+import com.cubearrow.cubelang.compiler.CompilerContext
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -53,25 +54,7 @@ class CompilerUtils {
             }
         }
 
-        /**
-         * Returns the asm code to assign an existing variable to a variable.
-         *
-         * @param variableToAssign The variable to be assigned to the other one.
-         * @param variableToAssignTo The variable to be assigned to.
-         *
-         * @return Returns the required x86_64 NASM code.
-         */
-        fun assignVariableToVariable(
-            variableToAssignTo: Compiler.LocalVariable,
-            variableToAssign: Compiler.LocalVariable
-        ): String {
-            val length = TypeUtils.getLength(variableToAssign.type)
-            val register = getRegister("ax", length)
-            return """
-                |mov $register, ${getASMPointerLength(length)} [rbp - ${variableToAssign.index}]
-                |mov ${getASMPointerLength(length)} [rbp - ${variableToAssignTo.index}], $register
-            """.trimMargin()
-        }
+
 
         /**
          * Checks if the given types match. If not, an error is thrown on the given line and index.
@@ -80,6 +63,43 @@ class CompilerUtils {
             if (expected != actual) context.error(line, index, "The types do not match: $expected and $actual")
         }
 
+        private fun pushPopRegisters(baseString: String, registers: List<String>): String {
+            var result = baseString
+            for (i in registers) {
+                result = "push r${i}\n${result}pop r${i}\n"
+            }
+            return result
+        }
+        fun setVariableToStructFromPointer(
+            pointerType: PointerType,
+            localVariable: Compiler.LocalVariable
+        ): String {
+            val splitLengths = splitLengthIntoRegisterLengths(TypeUtils.getLength(pointerType.subtype))
+            var adder = 0
+            var result = ""
+            var registersUsed = 0
+            for (length in splitLengths) {
+                for (times in 0 until length.second) {
+                    val register = getRegister(
+                        Compiler.GENERAL_PURPOSE_REGISTERS[Compiler.GENERAL_PURPOSE_REGISTERS.size - registersUsed - 1],
+                        length.first
+                    )
+
+                    result +=  moveLocationToLocation("${getASMPointerLength(length.first)} [rbp-${localVariable.index - adder}]",
+                        "${getASMPointerLength(length.first)} [rax + $adder]", register)
+                    registersUsed++
+                    adder += length.first
+                }
+            }
+            return pushPopRegisters(result, Compiler.GENERAL_PURPOSE_REGISTERS.subList(Compiler.GENERAL_PURPOSE_REGISTERS.size - registersUsed - 1, Compiler.GENERAL_PURPOSE_REGISTERS.size - 1))
+        }
+        fun getPointerTypeFromValueFromPointer(valueFromPointer: Expression.ValueFromPointer, context: CompilerContext): PointerType {
+            val innerMoveInformation = context.moveExpressionToX(valueFromPointer.expression)
+            if (innerMoveInformation.type !is PointerType) {
+                context.error(-1, -1, "Expected a pointer type when getting the value from a type.")
+            }
+            return innerMoveInformation.type as PointerType
+        }
 
         /**
          * Returns the ASM pointer size for getting a value from a pointer.
@@ -92,6 +112,11 @@ class CompilerUtils {
                 8 -> "QWORD"
                 else -> error("Unknown byte size")
             }
+        }
+
+        fun moveLocationToLocation(locationToMoveTo: String, locationToMove: String, register: String): String{
+            return "mov $register, $locationToMove \n" +
+            "mov ${locationToMoveTo}, $register \n"
         }
 
         /**

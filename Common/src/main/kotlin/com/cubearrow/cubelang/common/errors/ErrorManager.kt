@@ -3,7 +3,7 @@ package com.cubearrow.cubelang.common.errors
 import com.cubearrow.cubelang.common.ConsoleColor
 import kotlin.system.exitProcess
 
-class ErrorLibrary(private val lines: List<String>, var exitAfterError: Boolean) {
+class ErrorManager(private val lines: List<String>, var exitAfterError: Boolean) {
     var containsError = false
     /**
      * Prints an error in the console while specifying the line and character index.
@@ -16,7 +16,7 @@ class ErrorLibrary(private val lines: List<String>, var exitAfterError: Boolean)
      */
     fun error(line: Int, index: Int, message: String) {
         if (line >= 0 || index >= 0) {
-            val indicator = " ".repeat(index - 1) + "^"
+            val indicator = " ".repeat(index) + "^"
             println(
                 """${ConsoleColor.ANSI_RED}${lines[line - 1]}
                 |$indicator 
@@ -32,6 +32,10 @@ class ErrorLibrary(private val lines: List<String>, var exitAfterError: Boolean)
         }
         containsError = true
         if (exitAfterError)
+            exitProcess(65)
+    }
+    fun exitIfError(){
+        if(containsError)
             exitProcess(65)
     }
 }

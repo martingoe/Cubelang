@@ -4,20 +4,21 @@ import com.cubearrow.cubelang.compiler.specificcompilers.*
 import com.cubearrow.cubelang.compiler.utils.IOUtils.Companion.writeAllLines
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.Type
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.definitions.Function
 
 class Compiler(private val expressions: List<Expression>, private val definedFunctions: MutableList<Function>, private val path: String, lines: List<String>) : Expression.ExpressionVisitor<String> {
     companion object {
-        val ARGUMENT_INDEXES = mapOf(0 to "di", 1 to "si", 2 to "dx", 3 to "cx", 4 to "8", 5 to "9")
-        val OPERATION_REGISTERS = mapOf(0 to "bx", 1 to "12", 2 to "13", 3 to "14")
+        val ARGUMENT_INDEXES = arrayOf("di", "si", "dx", "cx", "8", "9")
+        val OPERATION_REGISTERS = arrayOf("bx", "12", "13", "14")
+        val GENERAL_PURPOSE_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx", "8")
         val lengthsOfTypes = mutableMapOf("i32" to 4, "i64" to 8, "i16" to 2, "char" to 1, "i8" to 1)
-        val PRIMARY_TYPES = listOf("i64", "i32","i16", "i8", "char")
+        val PRIMARY_TYPES = arrayOf("i64", "i32","i16", "i8", "char")
 
         const val LIBRARY_PATH = "library/"
     }
 
-    var context = CompilerContext(this, errorLibrary = ErrorLibrary(lines, true))
+    var context = CompilerContext(this, errorManager = ErrorManager(lines, true))
 
     data class LocalVariable(var index: Int, var type: Type)
     data class Struct(var name: String, var vars: MutableList<Pair<String, Type>>)

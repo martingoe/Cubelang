@@ -9,14 +9,13 @@ import com.cubearrow.cubelang.common.PointerType
 
 class PointerGetCompiler(val context: CompilerContext): SpecificCompiler<Expression.PointerGet> {
     override fun accept(expression: Expression.PointerGet): String {
-        val string = expression.varCall.accept(context.compilerInstance)
         val variable = context.getVariable(expression.varCall.varName.substring)
         if (variable == null) {
             CommonErrorMessages.xNotFound("requested variable '${expression.varCall.varName.substring}'", expression.varCall.varName, context)
             return ""
         }
         setOperationType(variable)
-        return "lea rax, ${string.substring(string.indexOf("["))}"
+        return "lea rax, ${context.getVariablePointer(variable)}"
     }
 
     private fun setOperationType(variable: Compiler.LocalVariable) {

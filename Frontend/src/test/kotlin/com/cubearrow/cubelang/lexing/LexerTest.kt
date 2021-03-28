@@ -1,14 +1,14 @@
-package com.cubearrow.cubelang.lexer
+package com.cubearrow.cubelang.lexing
 
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import org.junit.jupiter.api.Test
 
 
-class TokenizerTest {
+class LexerTest {
     @Test
     fun testTokenSequence() {
-        val tokenSequence = Tokenizer("a = call(1);")
+        val tokenSequence = Lexer("a = call(1);")
 
         val expected = listOf(
             Token("a", TokenType.IDENTIFIER, 1, 1),
@@ -27,7 +27,7 @@ class TokenizerTest {
     fun testChar(){
         assert(
             Token("a", TokenType.CHAR, 1, 1) ==
-                Tokenizer("'a'").tokenSequence[0])
+                Lexer("'a'").tokenSequence[0])
     }
 
 

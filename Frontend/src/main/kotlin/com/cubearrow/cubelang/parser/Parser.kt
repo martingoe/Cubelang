@@ -3,12 +3,13 @@ package com.cubearrow.cubelang.parser
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.common.*
-import kotlin.system.exitProcess
+import com.cubearrow.cubelang.common.errors.ErrorManager
+
 
 /**
  * This class creates a [List] of [Expression]s that form an abstract syntax tree.
  */
-class Parser(private var tokens: List<Token>) {
+class Parser(private var tokens: List<Token>, private var errorManager: ErrorManager) {
     private var current = -1
 
 
@@ -17,27 +18,32 @@ class Parser(private var tokens: List<Token>) {
 
         while (!isAtEnd()) {
             if(peek(TokenType.EOF)) break
-            statements.add(declaration())
+            statements.add(statement())
         }
         return statements
     }
 
     private fun statement(): Expression {
-        return when (advance().tokenType) {
-            TokenType.IMPORT -> importStatement()
-            TokenType.VAR -> variableDefinition()
-            TokenType.IF -> ifStatement()
-            TokenType.WHILE -> whileStatement()
-            TokenType.FOR -> forStatement()
-            TokenType.CURLYL -> blockStatement()
-            TokenType.STRUCT -> structDefinition()
-            TokenType.FUN -> functionStatement()
-            TokenType.RETURN -> returnStatement()
-            else -> {
-                current--
-                return expressionStatement()
+        try {
+            return when (advance().tokenType) {
+                TokenType.IMPORT -> importStatement()
+                TokenType.VAR -> variableDefinition()
+                TokenType.IF -> ifStatement()
+                TokenType.WHILE -> whileStatement()
+                TokenType.FOR -> forStatement()
+                TokenType.CURLYL -> blockStatement()
+                TokenType.STRUCT -> structDefinition()
+                TokenType.FUN -> functionStatement()
+                TokenType.RETURN -> returnStatement()
+                else -> {
+                    current--
+                    return expressionStatement()
+                }
             }
+        } catch (error: ParseException){
+            catchException(error.message, error.token)
         }
+        return Expression.Empty(null)
     }
 
     private fun importStatement(): Expression {
@@ -88,8 +94,8 @@ class Parser(private var tokens: List<Token>) {
             when {
                 match(TokenType.VAR) -> {
                     methods.add(variableDefinition())
-                    if(methods.last().valueExpression != null){
-                        throw ParseException("Variables inside a struct can not be initialized.", previous())
+                    if(methods.last().valueExpression != null || methods.last().type == null){
+                        throw ParseException("Variables inside a struct can not be initialized and must have a valid type.", previous())
                     }
                 }
                 else -> throw ParseException("Wrong statement type for a struct", previous())
@@ -103,7 +109,7 @@ class Parser(private var tokens: List<Token>) {
         val statements: MutableList<Expression> = ArrayList()
 
         while (!peek(TokenType.CURLYR) && !isAtEnd())
-            statements.add(declaration())
+            statements.add(statement())
 
         consume(TokenType.CURLYR, "Expected a '}' closing the code block")
         return Expression.BlockStatement(statements)
@@ -220,7 +226,7 @@ class Parser(private var tokens: List<Token>) {
     }
 
     private fun unary(): Expression {
-        while (match(listOf(TokenType.BANG, TokenType.PLUSMINUS)))
+        if (match(listOf(TokenType.BANG, TokenType.PLUSMINUS)))
             return Expression.Unary(current(), unary())
         return call()
     }
@@ -286,30 +292,6 @@ class Parser(private var tokens: List<Token>) {
         }
     }
 
-    private fun declaration(): Expression {
-        try{
-            if(match(TokenType.VAR))
-                return variableDefinition()
-            return statement()
-        } catch (error: ParseException) {
-            synchronize()
-            error.printStackTrace()
-            exitProcess(0)
-        }
-    }
-
-    private fun synchronize(){
-        advance()
-        val list = listOf(TokenType.IF, TokenType.VAR, TokenType.FOR, TokenType.WHILE, TokenType.STRUCT, TokenType.RETURN)
-        while (!isAtEnd()){
-            if(previous().tokenType == TokenType.SEMICOLON)
-                return
-            if(list.contains(peek().tokenType))
-                return
-            advance()
-        }
-    }
-
     private fun expression(): Expression {
         return assignment()
     }
@@ -370,7 +352,23 @@ class Parser(private var tokens: List<Token>) {
         return tokens[current]
     }
 
+    private fun skipError() {
+        while (!isAtEnd()) {
+            if (previous().tokenType === TokenType.SEMICOLON) return
+            when (peek().tokenType) {
+                TokenType.STRUCT, TokenType.FUN, TokenType.VAR, TokenType.FOR, TokenType.IF, TokenType.WHILE, TokenType.RETURN, TokenType.CURLYR -> return
+            }
+            advance()
+        }
+    }
+
+    private fun catchException(message: String, token: Token){
+        errorManager.error(token.line, token.index, message)
+        skipError()
+    }
+
 }
+
 
 class ParseException(override var message: String, var token: Token) : Throwable()
 

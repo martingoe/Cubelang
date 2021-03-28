@@ -1,10 +1,10 @@
 package com.cubearrow.cubelang.main
 
 import com.cubearrow.cubelang.compiler.Compiler
-import com.cubearrow.cubelang.lexer.Tokenizer
+import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.common.*
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
 import java.io.File
@@ -21,28 +21,24 @@ fun main(args: Array<String>) {
 
 
 class Main {
-    companion object {
-
-        var containsError = false
-        var exitAfterError = false
-    }
 
 
     fun compileFile(sourceFile: Array<String>) {
 //        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
+        val errorManagers = ArrayList<ErrorManager>()
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
             val lines = sourceCode.split("\n")
-            val tokenSequence = Tokenizer(sourceCode)
-            val expressions = Parser(tokenSequence.tokenSequence).parse()
+            val tokenSequence = Lexer(sourceCode)
+            val errorManager = ErrorManager(lines, false)
+            errorManagers.add(errorManager)
+            val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
             addFunctionsToMap(source, expressions, lines)
             expressionsList[source] = expressions
         }
-        if (containsError)
-            exitProcess(65)
+        errorManagers.forEach { it.exitIfError() }
 
-        exitAfterError = true
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val compiler = Compiler(
@@ -60,7 +56,7 @@ class Main {
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
             if (args.size > 5)
-                ErrorLibrary(lines, true).error(it.name.line, it.name.index, "The function must only have 5 arguments")
+                ErrorManager(lines, true).error(it.name.line, it.name.index, "The function must only have 5 arguments")
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }

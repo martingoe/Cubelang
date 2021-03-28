@@ -21,7 +21,7 @@ class OperationCompiler(var context: CompilerContext) : SpecificCompiler<Express
         val wasInSub = context.isInSubOperation
         if (!context.isInSubOperation) context.isInSubOperation = true
         context.operationIndex++
-        val register = Compiler.OPERATION_REGISTERS[context.operationIndex]!!
+        val register = Compiler.OPERATION_REGISTERS[context.operationIndex]
 
         val (rightTriple, rightSide) = getRightSide(expression, register)
         val (leftTriple, leftSide) = getLeftSide(expression)

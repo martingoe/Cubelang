@@ -64,9 +64,9 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
         for (i in CompilerUtils.splitLengthIntoRegisterLengths(TypeUtils.getLength(moveInformation.type)))
         if(TypeUtils.getRawLength(moveInformation.type) < 4 && argumentExpression !is Expression.Literal){
             return "${moveInformation.before}\n" +
-                    "movsx ${getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++]!!, 4)}, ${getASMPointerLength(TypeUtils.getRawLength(moveInformation.type))} ${moveInformation.pointer}\n"
+                    "movsx ${getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++], 4)}, ${getASMPointerLength(TypeUtils.getRawLength(moveInformation.type))} ${moveInformation.pointer}\n"
         }
-        return moveInformation.moveTo(getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++]!!, max(4, TypeUtils.getRawLength(moveInformation.type))))
+        return moveInformation.moveTo(getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++], max(4, TypeUtils.getRawLength(moveInformation.type))))
     }
 
     private fun moveStruct(expectedArgumentType: NormalType, expression: Expression): String {
@@ -80,7 +80,7 @@ class CallCompiler(var context: CompilerContext) : SpecificCompiler<Expression.C
         var resultingString = ""
         for (size in sizes) {
             for (times in 0 until size.second) {
-                resultingString += "mov ${getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++]!!, size.first)}, ${getASMPointerLength(size.first)} [rbp - ${variable.index - indexRemoved}]\n"
+                resultingString += "mov ${getRegister(Compiler.ARGUMENT_INDEXES[registerIndex++], size.first)}, ${getASMPointerLength(size.first)} [rbp - ${variable.index - indexRemoved}]\n"
                 indexRemoved += size.first
             }
         }
