@@ -21,7 +21,7 @@ class ArgumentDefinitionCompiler(var context: CompilerContext) : SpecificCompile
     }
 
     private fun moveValue(rawLength: Int, index: Int): String {
-        val register = Compiler.ARGUMENT_INDEXES[context.argumentIndex++]!!
+        val register = Compiler.ARGUMENT_INDEXES[context.argumentIndex]
         return if (rawLength > 2) {
             "mov ${CompilerUtils.getASMPointerLength(rawLength)}[rbp - ${index}], ${CompilerUtils.getRegister(register, rawLength)}\n"
         } else {
