@@ -4,7 +4,7 @@ import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.common.*
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
 import java.io.File
@@ -52,7 +52,7 @@ class Main {
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
             if (args.size > 5)
-                ErrorLibrary(lines, true).error(it.name.line, it.name.index, "The function must only have 5 arguments")
+                ErrorManager(lines, true).error(it.name.line, it.name.index, "The function must only have 5 arguments")
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }

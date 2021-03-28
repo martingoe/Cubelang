@@ -4,7 +4,7 @@ import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.NormalType
 import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.definitions.Function
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.compiler.specificcompilers.ForLoopCompiler
 import com.cubearrow.cubelang.compiler.utils.CommonErrorMessages
 import com.cubearrow.cubelang.compiler.utils.CompilerUtils
@@ -77,7 +77,7 @@ data class CompilerContext(
      */
     var structs: MutableMap<String, Compiler.Struct> = HashMap(),
 
-    val errorLibrary: ErrorLibrary
+    val errorManager: ErrorManager
 ) {
 
 
@@ -245,6 +245,6 @@ data class CompilerContext(
     }
 
     fun error(line: Int, index: Int, message: String) {
-        errorLibrary.error(line, index, message)
+        errorManager.error(line, index, message)
     }
 }

@@ -4,7 +4,7 @@ import com.cubearrow.cubelang.compiler.specificcompilers.*
 import com.cubearrow.cubelang.compiler.utils.IOUtils.Companion.writeAllLines
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.Type
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.definitions.Function
 
 class Compiler(private val expressions: List<Expression>, private val definedFunctions: MutableList<Function>, private val path: String, lines: List<String>) : Expression.ExpressionVisitor<String> {
@@ -18,7 +18,7 @@ class Compiler(private val expressions: List<Expression>, private val definedFun
         const val LIBRARY_PATH = "library/"
     }
 
-    var context = CompilerContext(this, errorLibrary = ErrorLibrary(lines, true))
+    var context = CompilerContext(this, errorManager = ErrorManager(lines, true))
 
     data class LocalVariable(var index: Int, var type: Type)
     data class Struct(var name: String, var vars: MutableList<Pair<String, Type>>)

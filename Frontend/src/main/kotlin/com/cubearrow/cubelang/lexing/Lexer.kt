@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.lexing
 
-import com.cubearrow.cubelang.common.errors.ErrorLibrary
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 
@@ -17,7 +17,7 @@ class Lexer(private val fileContent: String) {
     private var line = 1
     private var char: Char = ' '
     private var index = 0
-    private val errorLibrary = ErrorLibrary(fileContent.split("\n"), false)
+    private val errorLibrary = ErrorManager(fileContent.split("\n"), false)
 
     /**
      * Walks through the line creating the tokens and saves them as a Map. This map is linked in order to preserve the order.
