@@ -14,22 +14,27 @@ class FunctionDefinitionCompiler(var context: CompilerContext) : SpecificCompile
     override fun accept(expression: Expression.FunctionDefinition): String {
         context.separateReturnSegment = false
 
-        context.stackIndex.add(0)
-        context.variables.add(HashMap())
-        context.currentReturnType = expression.type
-        context.argumentIndex = 0
-        val statements = expression.args.fold("", {acc, it ->  acc + context.evaluate(it)}) + context.evaluate(expression.body)
-        context.variables.removeLast()
-        context.currentReturnType = null
+        val arguments = initiateArgumentVariables(expression)
 
         return """${expression.name.substring}:
             |push rbp
             |mov rbp, rsp
             |sub rsp, ${context.stackIndex.removeLast()}
-            |$statements
+            |$arguments
             |${if (context.separateReturnSegment) ".L${context.lIndex}:" else ""}
             |leave
             |ret
         """.trimMargin()
+    }
+
+    private fun initiateArgumentVariables(expression: Expression.FunctionDefinition): String {
+        context.stackIndex.add(0)
+        context.variables.add(HashMap())
+        context.currentReturnType = expression.type
+        context.argumentIndex = 0
+        val statements = expression.args.fold("") { acc, it -> acc + context.evaluate(it) } + context.evaluate(expression.body)
+        context.variables.removeLast()
+        context.currentReturnType = null
+        return statements
     }
 }

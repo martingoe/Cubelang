@@ -8,7 +8,7 @@ class WhileCompiler(var context: CompilerContext) : SpecificCompiler<Expression.
         context.inJmpCondition = true
         val contextLIndex = ++context.lIndex
         context.lIndex++
-        val x = """$.L${contextLIndex}:
+        val x = """.L${contextLIndex}:
                 |${expression.condition.accept(context.compilerInstance)}
                 |${expression.body.accept(context.compilerInstance)}
                 |jmp .L${contextLIndex}

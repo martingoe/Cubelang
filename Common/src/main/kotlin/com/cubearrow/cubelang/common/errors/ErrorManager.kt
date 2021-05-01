@@ -3,8 +3,8 @@ package com.cubearrow.cubelang.common.errors
 import com.cubearrow.cubelang.common.ConsoleColor
 import kotlin.system.exitProcess
 
-class ErrorManager(private val lines: List<String>, var exitAfterError: Boolean) {
-    var containsError = false
+class ErrorManager(private val lines: List<String>, private var exitAfterError: Boolean) {
+    private var containsError = false
     /**
      * Prints an error in the console while specifying the line and character index.
      *

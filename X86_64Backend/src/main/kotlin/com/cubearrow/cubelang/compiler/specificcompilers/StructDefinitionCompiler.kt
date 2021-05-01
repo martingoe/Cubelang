@@ -11,7 +11,7 @@ import com.cubearrow.cubelang.compiler.utils.TypeUtils
  */
 class StructDefinitionCompiler(val context: CompilerContext): SpecificCompiler<Expression.StructDefinition> {
     override fun accept(expression: Expression.StructDefinition): String {
-        val length = expression.body.fold(0, { acc, varInitialization -> acc + TypeUtils.getLength(varInitialization.type!!)})
+        val length = expression.body.fold(0) { acc, varInitialization -> acc + TypeUtils.getLength(varInitialization.type!!) }
         Compiler.lengthsOfTypes[expression.name.substring] = length
         context.structs[expression.name.substring] = Compiler.Struct(expression.name.substring,
             expression.body.map { it.name.substring to it.type!! } as MutableList<Pair<String, Type>>)
