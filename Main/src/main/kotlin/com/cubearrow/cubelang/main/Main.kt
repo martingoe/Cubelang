@@ -34,7 +34,7 @@ class Main {
             val errorManager = ErrorManager(lines, false)
             errorManagers.add(errorManager)
             val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
-            addFunctionsToMap(source, expressions, lines)
+            addFunctionsToMap(source, expressions)
             expressionsList[source] = expressions
         }
         errorManagers.forEach { it.exitIfError() }
@@ -51,12 +51,10 @@ class Main {
         }
     }
 
-    private fun addFunctionsToMap(fileName: String, expressions: List<Expression>, lines: List<String>) {
+    private fun addFunctionsToMap(fileName: String, expressions: List<Expression>) {
         DefinedFunctions.definedFunctions[fileName] = ArrayList()
         expressions.filterIsInstance<Expression.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
-            if (args.size > 5)
-                ErrorManager(lines, true).error(it.name.line, it.name.index, "The function must only have 5 arguments")
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }

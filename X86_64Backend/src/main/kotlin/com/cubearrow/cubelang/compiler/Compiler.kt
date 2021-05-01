@@ -9,7 +9,7 @@ import com.cubearrow.cubelang.common.definitions.Function
 
 class Compiler(private val expressions: List<Expression>, private val definedFunctions: MutableList<Function>, private val path: String, lines: List<String>) : Expression.ExpressionVisitor<String> {
     companion object {
-        val ARGUMENT_INDEXES = arrayOf("di", "si", "dx", "cx", "8", "9")
+        val ARGUMENT_REGISTERS = arrayOf("di", "si", "dx", "cx", "8", "9")
         val OPERATION_REGISTERS = arrayOf("bx", "12", "13", "14")
         val GENERAL_PURPOSE_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx", "8")
         val lengthsOfTypes = mutableMapOf("i32" to 4, "i64" to 8, "i16" to 2, "char" to 1, "i8" to 1)
