@@ -53,18 +53,32 @@ java -jar build/libs/Cubelang-fat-1.0-SNAPSHOT.jar sourcefile
 
 ## Examples
 ### Output
-The following program writes the integer 10 in the console
+The following program writes the integer 10 in the console.
 ```
 printInt(10);
 ```
 ### Fibonacci
-The following function recursively calculates the n-th fibonacci number 
+The following function recursively calculates the n-th fibonacci number.
 ```
-fun fib(n: int): int{
+fun fib(n: i32): i32{
     if(n < 2) {
         return n;
     }
     return fib(n - 1) + fib(n - 2);
+}
+```
+
+### Euclidean
+This algorithm calculates the greatest common divisor of two integers.
+```
+fun euclidean(a: i32, b: i32): i32{
+    while(b != 0){
+        if (a > b)
+            a = a - b;
+        else
+            b = b - a;
+    }
+    return a;
 }
 ```
 ## Resources
