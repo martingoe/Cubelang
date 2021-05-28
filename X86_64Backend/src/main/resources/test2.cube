@@ -1,3 +1,0 @@
-fun test10Value(): i32{
-    return 10;
-}

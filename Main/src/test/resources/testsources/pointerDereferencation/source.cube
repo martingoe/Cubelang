@@ -1,0 +1,7 @@
+import io;
+
+fun main() {
+    var value: i32  = 10;
+    var valuePointer: i32* = &value;
+    printInt(*valuePointer);
+}

@@ -1,0 +1,18 @@
+import io;
+
+
+
+#fun test(a: char, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32): i32{
+#    return g * b;
+#}
+fun main() {
+    #printInt(test('2', 2, 3, 4, 5, 6, 7));
+    printInt(0x4B4);
+    if(0 == 0){
+        printInt(0);
+    }
+    var x = 0;
+    printInt(0b11001);
+    #printInt(euclidean(15, 10));
+}
+
