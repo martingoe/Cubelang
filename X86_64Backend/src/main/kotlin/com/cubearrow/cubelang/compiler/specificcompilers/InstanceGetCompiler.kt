@@ -19,14 +19,10 @@ class InstanceGetCompiler(val context: CompilerContext): SpecificCompiler<Expres
             context.error(varCall.varName.line, varCall.varName.index, "The requested variable '${varCall.varName.substring}' does not exist.")
             return ""
         }
-        val struct = context.structs[(variable.type as NormalType).typeName]
-        if(struct == null){
-            context.error(varCall.varName.line, varCall.varName.index, "The requested struct does not exist.")
-            return ""
-        }
+        val struct = context.structs[(variable.type as NormalType).typeName]!!
         val requestedVar = struct.vars.first { pair -> pair.first == expression.identifier.substring }
         val argumentsBefore = struct.vars.subList(0, struct.vars.indexOf(requestedVar))
-        val index = variable . index - argumentsBefore.fold(0, {acc, pair -> acc + TypeUtils.getLength(pair.second) })
+        val index = variable.index - argumentsBefore.fold(0) { acc, pair -> acc + TypeUtils.getLength(pair.second) }
         context.operationResultType = requestedVar.second
         return "${CompilerUtils.getASMPointerLength(TypeUtils.getRawLength(requestedVar.second))} [rbp-${index}]"
     }

@@ -21,8 +21,6 @@ fun main(args: Array<String>) {
 
 
 class Main {
-
-
     fun compileFile(sourceFile: Array<String>) {
 //        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
