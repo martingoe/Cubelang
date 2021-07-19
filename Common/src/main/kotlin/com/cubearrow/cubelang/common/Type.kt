@@ -11,7 +11,7 @@ class ArrayType(var subType: Type, var count: Int) : Type {
         if (this === other) return true
 
 
-        if(other !is ArrayType) return false
+        if (other !is ArrayType) return false
 
         if (subType != other.subType) return false
         if (count != other.count) return false
@@ -35,11 +35,11 @@ class ArrayType(var subType: Type, var count: Int) : Type {
  *
  * @param subtype The type that is being pointed to.
  */
-class PointerType(var subtype: Type): Type {
+class PointerType(var subtype: Type) : Type {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if(other !is PointerType || subtype != other.subtype) return false
+        if (other !is PointerType || subtype != other.subtype) return false
         return true
     }
 
@@ -55,9 +55,9 @@ class PointerType(var subtype: Type): Type {
 class NormalType(var typeName: String) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if(other !is NormalType) return false
+        if (other !is NormalType) return false
 
-        if(typeName == "any" || other.typeName == "any") return true
+        if (typeName == "any" || other.typeName == "any") return true
         if (typeName != other.typeName) return false
 
         return true
@@ -69,6 +69,22 @@ class NormalType(var typeName: String) : Type {
 
     override fun toString(): String {
         return typeName
+    }
+}
+
+class NoneType : Type{
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
+    }
+
+    override fun toString(): String {
+        return "null"
     }
 }
 interface Type {

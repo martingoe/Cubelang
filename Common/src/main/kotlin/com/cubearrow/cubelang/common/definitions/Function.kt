@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.common.definitions
 
+import com.cubearrow.cubelang.common.NoneType
 import com.cubearrow.cubelang.common.NormalType
 import com.cubearrow.cubelang.common.PointerType
 import com.cubearrow.cubelang.common.Type
@@ -10,10 +11,10 @@ class DefinedFunctions {
     companion object {
         val definedFunctions = mutableMapOf(
             "io" to mutableListOf(
-                Function("printChar", mapOf("value" to NormalType("char")), null),
-                Function("printInt", mapOf("value" to NormalType("i32")), null),
-                Function("printShort", mapOf("value" to NormalType("i8")), null),
-                Function("printPointer", mapOf("value" to PointerType(NormalType("any"))), null)
+                Function("printChar", mapOf("value" to NormalType("char")), NoneType()),
+                Function("printInt", mapOf("value" to NormalType("i32")), NoneType()),
+                Function("printShort", mapOf("value" to NormalType("i8")), NoneType()),
+                Function("printPointer", mapOf("value" to PointerType(NormalType("any"))), NoneType())
             ),
             "time" to mutableListOf(
                 Function("getCurrentTime", mapOf(), NormalType("i32"))
