@@ -1,18 +1,31 @@
 import io;
 
-
-
-#fun test(a: char, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32): i32{
-#    return g * b;
-#}
-fun main() {
-    #printInt(test('2', 2, 3, 4, 5, 6, 7));
-    printInt(0x4B4);
-    if(0 == 0){
-        printInt(0);
-    }
-    var x = 0;
-    printInt(0b11001);
-    #printInt(euclidean(15, 10));
+struct testStruct{
+    var i: i32;
+    var j: i32;
 }
 
+fun test(test: char): char{
+    return test;
+}
+fun main(){
+    var test: testStruct;
+    var iderh = test.i;
+    var x = 0 + 3;
+    if(x == 3){
+        x = 2;
+    } else {
+        x = 0;
+    }
+    var ie = &x;
+    var xrie = *ie;
+    var iehor = ' ';
+    test(iehor);
+    var h: [i32: 5];
+    printInt(xrie);
+    h[xrie] = 20;
+    var xie = h[xrie];
+    h[xie] = xie;
+    printInt(xie);
+    printInt(x);
+}
