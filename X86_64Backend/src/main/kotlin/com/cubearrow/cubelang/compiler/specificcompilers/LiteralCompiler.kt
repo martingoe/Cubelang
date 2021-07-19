@@ -12,7 +12,7 @@ import com.cubearrow.cubelang.common.NormalType
 class LiteralCompiler(var context: CompilerContext) : SpecificCompiler<Expression.Literal> {
     override fun accept(expression: Expression.Literal): String {
         if (expression.value is Int) {
-            context.operationResultType = NormalType("int")
+            context.operationResultType = NormalType("i32")
             return expression.value.toString()
         } else if (expression.value is Char) {
             context.operationResultType = NormalType("char")
