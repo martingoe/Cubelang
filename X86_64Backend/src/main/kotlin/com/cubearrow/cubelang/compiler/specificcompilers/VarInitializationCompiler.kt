@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.compiler.specificcompilers
 
 import com.cubearrow.cubelang.common.Expression
+import com.cubearrow.cubelang.common.NoneType
 import com.cubearrow.cubelang.common.NormalType
 import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.compiler.CompilerContext
@@ -14,9 +15,9 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
             return initializeValueNotNull(expression)
         }
 
-        context.stackIndex.add(context.stackIndex.removeLast() + (TypeUtils.getLength(expression.type!!)))
+        context.stackIndex.add(context.stackIndex.removeLast() + (TypeUtils.getLength(expression.type)))
         context.variables.last()[expression.name.substring] =
-            Compiler.LocalVariable(context.stackIndex.last(), expression.type!!)
+            Compiler.LocalVariable(context.stackIndex.last(), expression.type)
         return ""
     }
 
@@ -82,7 +83,7 @@ class VarInitializationCompiler(var context: CompilerContext) : SpecificCompiler
     }
 
     private fun initializeVariable(variableInitialization: Expression.VarInitialization, variable: Compiler.LocalVariable) {
-        variableInitialization.type?.let { CompilerUtils.checkMatchingTypes(it, variable.type, -1, -1, context) }
+        if(variableInitialization.type !is NoneType) { CompilerUtils.checkMatchingTypes(variableInitialization.type, variable.type, -1, -1, context) }
         context.stackIndex.add(context.stackIndex.removeLast() + TypeUtils.getLength(variable.type))
         context.variables.last()[variableInitialization.name.substring] = variable
     }

@@ -1,12 +1,13 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.compiler.Compiler
 import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
+import com.cubearrow.cubelang.ir.IRCompiler
+import com.cubearrow.cubelang.ircompiler.X86IRCompiler
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -21,33 +22,30 @@ fun main(args: Array<String>) {
 
 
 class Main {
-
-
     fun compileFile(sourceFile: Array<String>) {
 //        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
-        val errorManagers = ArrayList<ErrorManager>()
+        val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
             val lines = sourceCode.split("\n")
             val tokenSequence = Lexer(sourceCode)
             val errorManager = ErrorManager(lines, false)
-            errorManagers.add(errorManager)
+            errorManagers[source] = errorManager
             val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
             addFunctionsToMap(source, expressions)
             expressionsList[source] = expressions
         }
-        errorManagers.forEach { it.exitIfError() }
+        errorManagers.forEach { it.value.exitIfError() }
 
         for (expressions in expressionsList) {
             val file = File(expressions.key)
-            val compiler = Compiler(
-                expressions.value,
-                DefinedFunctions.definedFunctions[expressions.key]!!,
-                file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm",
-                file.readLines()
-            )
-            compiler.compile()
+            val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
+            val irCompiler = IRCompiler(expressions.value, "Main/src/test/resources/library", DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
+            val irValues = irCompiler.parse()
+            println(irValues.joinToString("\n"))
+            println("\n")
+            resultFile.writeText(X86IRCompiler(irValues, irCompiler.structs).compile())
         }
     }
 

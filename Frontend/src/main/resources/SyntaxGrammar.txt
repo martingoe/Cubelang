@@ -1,10 +1,10 @@
 assignment = name: Token, valueExpression: Expression
-varInitialization = name: Token, type: Type?, valueExpression: Expression?
+varInitialization = name: Token, type: Type, valueExpression: Expression?
 operation = leftExpression: Expression, operator: Token, rightExpression: Expression
 call = callee: Expression, arguments: List<Expression>
 literal = value: Any?
 varCall = varName: Token
-functionDefinition = name: Token, args: List<Expression>, type: Type?, body: Expression
+functionDefinition = name: Token, args: List<Expression>, type: Type, body: Expression
 comparison = leftExpression: Expression, comparator: Token, rightExpression: Expression
 
 ifStmnt = condition: Expression, ifBody: Expression, elseBody: Expression?

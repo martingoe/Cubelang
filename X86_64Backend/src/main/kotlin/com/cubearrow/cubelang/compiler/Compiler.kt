@@ -11,11 +11,11 @@ class Compiler(private val expressions: List<Expression>, private val definedFun
     companion object {
         val ARGUMENT_REGISTERS = arrayOf("di", "si", "dx", "cx", "8", "9")
         val OPERATION_REGISTERS = arrayOf("bx", "12", "13", "14")
-        val GENERAL_PURPOSE_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx", "8")
+        val GENERAL_PURPOSE_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx")
         val lengthsOfTypes = mutableMapOf("i32" to 4, "i64" to 8, "i16" to 2, "char" to 1, "i8" to 1)
         val PRIMARY_TYPES = arrayOf("i64", "i32","i16", "i8", "char")
 
-        const val LIBRARY_PATH = "library/"
+        const val LIBRARY_PATH = "src/test/resources/library"
     }
 
     var context = CompilerContext(this, errorManager = ErrorManager(lines, true))

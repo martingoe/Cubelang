@@ -74,7 +74,9 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         if (!peek(TokenType.BRCKTR)) {
             while (true) {
                 val parameterName = consume(TokenType.IDENTIFIER, "Expected a parameter name")
-                val type = getType() ?: throw ParseException("Expected a type for the parameter", previous())
+                val type = getType()
+                if(type is NoneType)
+                    errorManager.error(current().line, current().index, "Expected an argument type")
                 args.add(Expression.ArgumentDefinition(parameterName, type))
 
                 if (!match(TokenType.COMMA)) break
@@ -94,7 +96,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             when {
                 match(TokenType.VAR) -> {
                     methods.add(variableDefinition())
-                    if(methods.last().valueExpression != null || methods.last().type == null){
+                    if(methods.last().valueExpression != null){
                         throw ParseException("Variables inside a struct can not be initialized and must have a valid type.", previous())
                     }
                 }
@@ -262,7 +264,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     private fun primary(): Expression {
         return when (advance().tokenType) {
             TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
-            TokenType.STAR -> Expression.ValueFromPointer(primary())
+            TokenType.STAR -> Expression.ValueFromPointer(call())
             TokenType.NULLVALUE -> Expression.Literal(null)
             TokenType.STRING -> Expression.Literal(current())
             TokenType.IDENTIFIER -> {
@@ -315,12 +317,12 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         return false
     }
 
-    private fun getType(): Type? {
+    private fun getType(): Type {
         if (peek(TokenType.COLON)) {
             current++
             return type()
         }
-        return null
+        return NoneType()
     }
     private fun type(): Type {
         return if(peek(TokenType.IDENTIFIER) && tokens[current + 2].tokenType == TokenType.STAR){
@@ -357,8 +359,8 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             if (previous().tokenType === TokenType.SEMICOLON) return
             when (peek().tokenType) {
                 TokenType.STRUCT, TokenType.FUN, TokenType.VAR, TokenType.FOR, TokenType.IF, TokenType.WHILE, TokenType.RETURN, TokenType.CURLYR -> return
+                else -> advance()
             }
-            advance()
         }
     }
 

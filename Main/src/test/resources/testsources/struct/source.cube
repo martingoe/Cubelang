@@ -1,0 +1,16 @@
+import io;
+
+struct test{
+    var num1: i32;
+    var num2: i32;
+    var num3: i32;
+}
+fun getResult(struct1: test*): i32{
+    var structDeref = *struct1;
+    return structDeref.num1;
+}
+fun main() {
+    var testStruct: test;
+    testStruct.num1 = 10;
+    printInt(getResult(&testStruct));
+}

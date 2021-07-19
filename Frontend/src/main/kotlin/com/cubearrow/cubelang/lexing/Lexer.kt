@@ -12,7 +12,7 @@ import com.cubearrow.cubelang.common.tokens.TokenType
  */
 
 class Lexer(private val fileContent: String) {
-    private var lineIndex = 1
+    private var lineIndex = 0
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
     private var char: Char = ' '
@@ -40,7 +40,7 @@ class Lexer(private val fileContent: String) {
                 '-', '+' -> {
                     if (isDigit(fileContent[index + 1])) {
                         advance()
-                        number("-")
+                        number(char.toString())
                         index--
                     } else {
                         addToken(TokenType.PLUSMINUS)
@@ -53,32 +53,11 @@ class Lexer(private val fileContent: String) {
                     if (match('|'))
                         addToken(TokenType.OR, "||")
                 }
-                '&' -> {
-                    if (match('&'))
-                        addToken(TokenType.AND, "&&")
-                    else
-                        addToken(TokenType.POINTER, "&")
-                }
-
                 '#' -> comment()
-                '<', '>' -> {
-                    if (match('='))
-                        addToken(TokenType.COMPARATOR, "$char=")
-                    else
-                        addToken(TokenType.COMPARATOR, char.toString())
-                }
-                '=' -> {
-                    if (match('='))
-                        addToken(TokenType.EQUALITY, "$char=")
-                    else
-                        addToken(TokenType.EQUALS, char.toString())
-                }
-                '!' -> {
-                    if (match('='))
-                        addToken(TokenType.EQUALITY, "$char=")
-                    else
-                        addToken(TokenType.BANG, char.toString())
-                }
+                '&' -> addWithConditional('&', TokenType.AND, TokenType.POINTER)
+                '<', '>' -> addWithConditional('=', TokenType.COMPARATOR)
+                '=' -> addWithConditional('=', TokenType.EQUALITY, TokenType.EQUALS)
+                '!' -> addWithConditional('=', TokenType.EQUALITY, TokenType.BANG)
                 '"' -> string()
                 '\'' -> char()
                 '\n' -> {
@@ -88,7 +67,7 @@ class Lexer(private val fileContent: String) {
                 else -> {
                     when {
                         isDigit(char) -> {
-                            number("");index--
+                            number(""); index--
                         }
                         isAlpha(char) -> {
                             keyword(); index--
@@ -101,6 +80,13 @@ class Lexer(private val fileContent: String) {
         }
 
         addToken(TokenType.EOF, "")
+    }
+
+    private fun addWithConditional(conditionalMatch: Char, type1: TokenType, type2: TokenType = type1) {
+        if (match(conditionalMatch))
+            addToken(type1, "$char$conditionalMatch")
+        else
+            addToken(type2)
     }
 
     private fun char() {
@@ -122,7 +108,9 @@ class Lexer(private val fileContent: String) {
     }
 
     private fun comment() {
-        while (peek() != '\n') index++
+        while (peek() != '\n') advance()
+        line++
+        lineIndex = 0
     }
 
     private fun match(expected: Char): Boolean {
@@ -177,6 +165,10 @@ class Lexer(private val fileContent: String) {
 
     private fun number(start: String) {
         var buffer = start
+        if (char == '0' && match('x'))
+            return hexadecimalNumber()
+        if (char == '0' && match('b'))
+            return binaryNumber()
         while (isDigit(peek())) buffer += advance()
 
         if (peek() == '.' && isDigit(fileContent[index + 1])) {
@@ -184,6 +176,20 @@ class Lexer(private val fileContent: String) {
         }
 
         addToken(TokenType.NUMBER, buffer)
+    }
+
+    private fun binaryNumber() {
+        var buffer = ""
+        advance()
+        while (isBinaryDigit(peek())) buffer += advance()
+        addToken(TokenType.NUMBER, buffer.toInt(2).toString())
+    }
+
+    private fun hexadecimalNumber() {
+        var buffer = ""
+        advance()
+        while (isHexDigit(peek())) buffer += advance()
+        addToken(TokenType.NUMBER, buffer.toInt(16).toString())
     }
 
     private fun peek(): Char {
@@ -212,8 +218,16 @@ class Lexer(private val fileContent: String) {
         return c in '0'..'9'
     }
 
+    private fun isHexDigit(c: Char): Boolean {
+        return c in '0'..'9' || c in 'A'..'F' || c in 'a'..'f'
+    }
+
+    private fun isBinaryDigit(c: Char): Boolean {
+        return c in '0'..'1'
+    }
+
     private fun catchTokenError(substring: String) {
-        if(substring == " "){
+        if (substring == " ") {
             lineIndex++
             return
         }

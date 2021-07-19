@@ -1,0 +1,15 @@
+import io;
+
+fun euclidean(a: i32, b: i32): i32{
+    while(b != 0){
+        if (a > b)
+            a = a - b;
+        else
+            b = b - a;
+    }
+    return a;
+}
+
+fun main() {
+    printInt(euclidean(18, 24));
+}
