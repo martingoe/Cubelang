@@ -10,9 +10,17 @@ import java.io.File
 import java.util.*
 
 
-class IRCompiler(private val expressions: List<Expression>, private val stdlibPath: String, val definedFunctions: Map<String, List<Function>>, val errorManager: ErrorManager) : Expression.ExpressionVisitor<Unit> {
+class IRCompiler(
+    private val expressions: List<Expression>,
+    private val stdlibPath: String,
+    private val definedFunctions: Map<String, List<Function>>,
+    private val errorManager: ErrorManager
+) : Expression.ExpressionVisitor<Unit> {
+    private var inSubOperation: Boolean = false
     var currentTempRegisterIndex = 0
     var currentTempLabelIndex = 0
+    var currentRegistersToSkip = mutableListOf<Int>()
+    private val nonCleanInstructions = listOf(IRType.PLUS_OP, IRType.DIV_OP, IRType.MINUS_OP, IRType.MUL_OP, IRType.COPY_FROM_DEREF)
 
     private val resultList = mutableListOf<IRValue>()
     private var variables: Stack<MutableMap<String, Type>> = Stack()
@@ -26,7 +34,15 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
 
     fun parse(): List<IRValue> {
         TypeChecker(expressions, errorManager, definedFunctions).checkTypes()
-        expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { it -> functions.add(Function(it.name.substring, it.args.map {it as Expression.ArgumentDefinition}.associate { it.name.substring to it.type }, it.type )) }
+        expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { it ->
+            functions.add(
+                Function(
+                    it.name.substring,
+                    it.args.map { it as Expression.ArgumentDefinition }.associate { it.name.substring to it.type },
+                    it.type
+                )
+            )
+        }
 
         for (expression in expressions) {
             evaluate(expression)
@@ -42,7 +58,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
         val result = mutableListOf<IRValue>()
         var i = 0
         while (i < list.size) {
-            if (list[i].type == IRType.COPY && list[i + 1].arg0 == list[i].result && list[i + 1].type != IRType.COPY_FROM_DEREF && list[i].result !is Variable) {
+            if (list[i].type == IRType.COPY && list[i + 1].arg0 == list[i].result && !nonCleanInstructions.contains(list[i + 1].type) && list[i].result !is Variable) {
                 val x = list[i + 1]
                 x.arg0 = list[i].arg0
                 i++
@@ -76,32 +92,45 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
         compileCopy(assignment.name.substring, assignment.valueExpression)
     }
 
+    private fun increaseTempRegisterIndex(): Int {
+        val beforeIncrease = currentTempRegisterIndex
+        while (currentRegistersToSkip.contains(currentTempRegisterIndex + 1))
+            currentTempRegisterIndex++
+        currentTempRegisterIndex++
+        return beforeIncrease
+    }
+
     fun getValue(value: Expression): ValueType {
-        if (value is Expression.Literal) {
-            pushValue(
-                IRValue(
-                    IRType.COPY,
-                    Literal(getValueOfLiteral(value)),
-                    null,
-                    TemporaryRegister(currentTempRegisterIndex),
-                    getTypeOfLiteral(value.value)
+        when (value) {
+            is Expression.Literal -> {
+                pushValue(
+                    IRValue(
+                        IRType.COPY,
+                        Literal(getValueOfLiteral(value)),
+                        null,
+                        TemporaryRegister(currentTempRegisterIndex),
+                        getTypeOfLiteral(value.value)
+                    )
                 )
-            )
-            return TemporaryRegister(currentTempRegisterIndex++)
-        } else if (value is Expression.VarCall) {
-            pushValue(
-                IRValue(
-                    IRType.COPY,
-                    Variable(value.varName.substring),
-                    null,
-                    TemporaryRegister(currentTempRegisterIndex),
-                    variables.last()[value.varName.substring]!!
+                return TemporaryRegister(increaseTempRegisterIndex())
+            }
+            is Expression.VarCall -> {
+                pushValue(
+                    IRValue(
+                        IRType.COPY,
+                        Variable(value.varName.substring),
+                        null,
+                        TemporaryRegister(currentTempRegisterIndex),
+                        variables.last()[value.varName.substring]!!
+                    )
                 )
-            )
-            return TemporaryRegister(currentTempRegisterIndex++)
+                return TemporaryRegister(increaseTempRegisterIndex())
+            }
+            else -> {
+                evaluate(value)
+                return resultList.last().result!!
+            }
         }
-        evaluate(value)
-        return resultList.last().result!!
     }
 
     private fun getTypeOfLiteral(value: Any?): Type {
@@ -122,11 +151,11 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
                         IRType.COPY_FROM_REF,
                         Variable(value.varCall.varName.substring),
                         null,
-                        TemporaryRegister(++currentTempRegisterIndex),
+                        TemporaryRegister(increaseTempRegisterIndex()),
                         type
                     )
                 )
-                pushValue(IRValue(IRType.COPY, TemporaryRegister(currentTempRegisterIndex), null, Variable(name), type))
+                pushValue(IRValue(IRType.COPY, resultList.last().result, null, Variable(name), type))
             }
             is Expression.ValueFromPointer -> {
                 val valueIRType = getValue(value.expression)
@@ -136,11 +165,11 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
                         IRType.COPY_FROM_DEREF,
                         valueIRType,
                         null,
-                        TemporaryRegister(++currentTempRegisterIndex),
+                        TemporaryRegister(increaseTempRegisterIndex()),
                         resultType
                     )
                 )
-                pushValue(IRValue(IRType.COPY, TemporaryRegister(currentTempRegisterIndex), null, Variable(name), resultType))
+                pushValue(IRValue(IRType.COPY, resultList.last().result, null, Variable(name), resultType))
             }
             else -> {
                 val valueType = getValue(value)
@@ -156,6 +185,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
     }
 
     override fun visitVarInitialization(varInitialization: Expression.VarInitialization) {
+        clearUsedRegisters()
         currentTempRegisterIndex = 0
 
         val index = resultList.size
@@ -170,6 +200,11 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
 
     }
 
+    private fun clearUsedRegisters() {
+        currentTempRegisterIndex = 0
+        currentRegistersToSkip.clear()
+    }
+
     private fun getOperationFromString(string: String): IRType {
         return when (string) {
             "+" -> IRType.PLUS_OP
@@ -182,18 +217,45 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
     }
 
     override fun visitOperation(operation: Expression.Operation) {
-        val leftResult = getValue(operation.leftExpression)
-        val rightResult = getValue(operation.rightExpression)
-        val result = if (leftResult is TemporaryRegister) leftResult else TemporaryRegister(currentTempRegisterIndex++)
+        val wasInSub = inSubOperation
+        inSubOperation = true
+        val previousTempRegisterIndex = currentTempRegisterIndex
+
+        val index = resultList.size
+        var rhs = getValue(operation.rightExpression)
+        if(!wasInSub) {
+            currentTempRegisterIndex = previousTempRegisterIndex
+            increaseTempRegisterIndex()
+            pushValue(IRValue(IRType.COPY, rhs, null, TemporaryRegister(currentTempRegisterIndex), resultList.last().resultType))
+            currentRegistersToSkip.add(currentTempRegisterIndex)
+            rhs = resultList.last().result!!
+            currentTempRegisterIndex = previousTempRegisterIndex
+        }
+
+        val lhs = getValue(operation.leftExpression)
+        val result =
+            if (!wasInSub) TemporaryRegister(0) else if (lhs is TemporaryRegister) lhs else TemporaryRegister(increaseTempRegisterIndex())
+
         pushValue(
             IRValue(
                 getOperationFromString(operation.operator.substring),
-                leftResult,
-                rightResult,
+                lhs,
+                rhs,
                 result,
                 resultList.last().resultType
             )
         )
+        if (!wasInSub) {
+            for (i in 1..previousTempRegisterIndex + 1)
+                resultList.add(index, IRValue(IRType.PUSH_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
+
+            for (i in 1..previousTempRegisterIndex + 1)
+                resultList.add(IRValue(IRType.POP_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
+
+            inSubOperation = false
+        }
+
+        clearUsedRegisters()
     }
 
     override fun visitCall(call: Expression.Call) {
@@ -208,7 +270,15 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
 
     override fun visitLiteral(literal: Expression.Literal) {
         val valueOfLiteral = getValueOfLiteral(literal)
-        pushValue(IRValue(IRType.COPY, Literal(valueOfLiteral), null, TemporaryRegister(currentTempRegisterIndex++), getTypeOfLiteral(literal.value)))
+        pushValue(
+            IRValue(
+                IRType.COPY,
+                Literal(valueOfLiteral),
+                null,
+                TemporaryRegister(increaseTempRegisterIndex()),
+                getTypeOfLiteral(literal.value)
+            )
+        )
     }
 
     override fun visitVarCall(varCall: Expression.VarCall) {
@@ -217,15 +287,15 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
                 IRType.COPY,
                 Variable(varCall.varName.substring),
                 null,
-                TemporaryRegister(currentTempRegisterIndex++),
+                TemporaryRegister(increaseTempRegisterIndex()),
                 getVariables()[varCall.varName.substring]!!
             )
         )
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
-        currentTempRegisterIndex = 0
-        functions.add(Function(functionDefinition.name.substring, functionDefinition.args.map {it as Expression.ArgumentDefinition}
+        clearUsedRegisters()
+        functions.add(Function(functionDefinition.name.substring, functionDefinition.args.map { it as Expression.ArgumentDefinition }
             .associate { it.name.substring to it.type }, functionDefinition.type))
         variables.push(mutableMapOf())
         pushValue(IRValue(IRType.FUNC_DEF, FunctionLabel(functionDefinition.name.substring), null, null, functionDefinition.type))
@@ -298,7 +368,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
             getJmpLogicalOrComparison(expression.leftExpression, tempLabelIndex)
             getJmpLogicalOrComparison(expression.rightExpression, tempLabelIndex)
         } else if (expression is Expression.Logical && expression.logical.tokenType == TokenType.OR) {
-            val afterLabelIndex = currentTempRegisterIndex++
+            val afterLabelIndex = increaseTempRegisterIndex()
             getJmpLogicalOrComparison(expression.leftExpression, afterLabelIndex, false)
             getJmpLogicalOrComparison(expression.rightExpression, tempLabelIndex, true)
             pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(afterLabelIndex), NoneType()))
@@ -309,10 +379,10 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
     }
 
     override fun visitReturnStmnt(returnStmnt: Expression.ReturnStmnt) {
-        currentTempRegisterIndex = 0
+        clearUsedRegisters()
         if (returnStmnt.returnValue != null) {
             val value = getValue(returnStmnt.returnValue!!)
-            pushValue(IRValue(IRType.RET, value, null, null, NoneType()))
+            pushValue(IRValue(IRType.RET, value, null, null, resultList.last().resultType))
         } else
             pushValue(IRValue(IRType.RET, null, null, null, NoneType()))
     }
@@ -343,7 +413,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet) {
-        getInstanceGetOrSet(instanceGet, IRType.COPY_FROM_STRUCT_GET, TemporaryRegister(currentTempRegisterIndex++))
+        getInstanceGetOrSet(instanceGet, IRType.COPY_FROM_STRUCT_GET, TemporaryRegister(increaseTempRegisterIndex()))
     }
 
     private fun getInstanceGetOrSet(instanceGet: Expression.InstanceGet, irType: IRType, result: ValueType) {
@@ -389,7 +459,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
 
     override fun visitBlockStatement(blockStatement: Expression.BlockStatement) {
         for (statement in blockStatement.statements) {
-            currentTempRegisterIndex = 0
+            clearUsedRegisters()
             evaluate(statement)
         }
     }
@@ -401,7 +471,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
     override fun visitUnary(unary: Expression.Unary) {
         val value = getValue(unary.expression)
         if (unary.identifier.substring == "-") {
-            pushValue(IRValue(IRType.NEG_UNARY, value, null, TemporaryRegister(currentTempRegisterIndex++), resultList.last().resultType))
+            pushValue(IRValue(IRType.NEG_UNARY, value, null, TemporaryRegister(increaseTempRegisterIndex()), resultList.last().resultType))
             return
         }
         TODO("Not yet implemented")
@@ -418,7 +488,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
         val expressionValue = getValue(arrayGet.expression)
         val resultType = resultList.last().resultType
         val subType = if (resultType is ArrayType) resultType.subType else if (resultType is PointerType) resultType.subtype else NoneType()
-        pushValue(IRValue(IRType.COPY_FROM_ARRAY_ELEM, expressionValue, inBracketValue, TemporaryRegister(currentTempRegisterIndex++), subType))
+        pushValue(IRValue(IRType.COPY_FROM_ARRAY_ELEM, expressionValue, inBracketValue, TemporaryRegister(increaseTempRegisterIndex()), subType))
     }
 
     override fun visitArraySet(arraySet: Expression.ArraySet) {
@@ -443,7 +513,10 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
 
     override fun visitImportStmnt(importStmnt: Expression.ImportStmnt) {
         functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
-        val name = (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(importStmnt.identifier.substring.substringBeforeLast(".")).absolutePath) + ".asm"
+        val name =
+            (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
+                importStmnt.identifier.substring.substringBeforeLast(".")
+            ).absolutePath) + ".asm"
         pushValue(IRValue(IRType.INCLUDE, Literal(name), null, null, NoneType()))
     }
 
@@ -453,7 +526,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
                 IRType.COPY_FROM_REF,
                 Variable(pointerGet.varCall.varName.substring),
                 null,
-                TemporaryRegister(currentTempRegisterIndex++),
+                TemporaryRegister(increaseTempRegisterIndex()),
                 PointerType(getVariables()[pointerGet.varCall.varName.substring]!!)
             )
         )
@@ -466,7 +539,7 @@ class IRCompiler(private val expressions: List<Expression>, private val stdlibPa
                 IRType.COPY_FROM_DEREF,
                 resultList.last().result,
                 null,
-                TemporaryRegister(currentTempRegisterIndex++),
+                TemporaryRegister(increaseTempRegisterIndex()),
                 (resultList.last().resultType as PointerType).subtype
             )
         )

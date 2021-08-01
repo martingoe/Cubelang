@@ -41,7 +41,7 @@ class Main {
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
-            val irCompiler = IRCompiler(expressions.value, "Main/src/test/resources/library", DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
+            val irCompiler = IRCompiler(expressions.value, "library", DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
             val irValues = irCompiler.parse()
             println(irValues.joinToString("\n"))
             println("\n")

@@ -106,7 +106,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.CALL -> compileCall(instruction)
             IRType.FUNC_DEF -> compileFuncDef(instruction)
             IRType.POP_ARG -> compilePopArg(instruction)
-            IRType.RET -> "leave\nret\n"
+            IRType.RET -> compileRet(instruction)
             IRType.NEG_UNARY -> compileNegUnary(instruction)
             IRType.JMP_EQ -> compileJumpCmp(instruction, "jeq")
             IRType.JMP_LE -> compileJumpCmp(instruction, "jle")
@@ -120,7 +120,27 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.COPY_TO_STRUCT_GET -> compileCopyToStructGet(instruction)
             IRType.COPY_FROM_STRUCT_GET -> compileCopyFromStructGet(instruction)
             IRType.INCLUDE -> "%include \"${instruction.arg0}\"\n"
+            IRType.PUSH_REG -> if(instruction.arg0 is TemporaryRegister) "push ${getRegister(TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8)}\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> acc +  "push ${getRegister(s, 8)}\n"}
+            IRType.POP_REG -> if(instruction.arg0 is TemporaryRegister) "pop ${getRegister(TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8)}\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> "pop ${getRegister(s, 8)}\n" + acc}
         }
+    }
+
+    private fun compileRet(instruction: IRValue): String {
+        if(instruction.arg0 is TemporaryRegister) {
+            val temporaryRegister = instruction.arg0 as TemporaryRegister
+            return if (temporaryRegister.index == 0) "leave\nret\n"
+            else "mov ${getRegister(TEMPORARY_REGISTERS[temporaryRegister.index], instruction.resultType.getLength())}, ${
+                getRegister(
+                    "ax",
+                    instruction.resultType.getLength()
+                )
+            }\nleave\nret\n"
+        } else if(instruction.arg0 is Variable){
+            return "mov ${getRegister("ax", instruction.resultType.getLength())}, [${
+                variableIndex(getVariables()[(instruction.arg0 as Variable).name]!!.index)
+            }]\nleave\nret\n"
+        }
+        TODO()
     }
 
     private fun compileDivOperation(instruction: IRValue): String {
