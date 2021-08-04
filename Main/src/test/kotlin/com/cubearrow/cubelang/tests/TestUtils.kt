@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 fun getResultOfTest(name: String): String?{
     val pathString = "src/test/resources/testsources/$name"
     val pathFile = File(pathString)
-    Main().compileFile(arrayOf("$pathString/source.cube"))
+    Main("src/test/resources/library").compileFile(arrayOf("$pathString/source.cube"))
 
     "nasm -f elf64 source.asm ".runCommand(pathFile)
     "gcc source.o -no-pie".runCommand(pathFile)

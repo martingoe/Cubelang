@@ -17,15 +17,21 @@ class IRCompiler(
     private val errorManager: ErrorManager
 ) : Expression.ExpressionVisitor<Unit> {
     private var inSubOperation: Boolean = false
+    private var isInTopComparison: Boolean = true
     var currentTempRegisterIndex = 0
     var currentTempLabelIndex = 0
     var currentRegistersToSkip = mutableListOf<Int>()
-    private val nonCleanInstructions = listOf(IRType.PLUS_OP, IRType.DIV_OP, IRType.MINUS_OP, IRType.MUL_OP, IRType.COPY_FROM_DEREF)
+    private val nonCleanInstructions =
+        listOf(IRType.COPY_FROM_REG_OFFSET, IRType.PLUS_OP, IRType.DIV_OP, IRType.MINUS_OP, IRType.MUL_OP, IRType.COPY_FROM_DEREF)
 
     private val resultList = mutableListOf<IRValue>()
     private var variables: Stack<MutableMap<String, Type>> = Stack()
     private val functions: MutableList<Function> = mutableListOf()
     val structs: MutableMap<String, Struct> = mutableMapOf()
+
+    companion object {
+        val lengthsOfTypes = mutableMapOf("I8" to 1, "I16" to 2, "I32" to 4, "I64" to 8, "CHAR" to 1)
+    }
 
     init {
         variables.push(mutableMapOf())
@@ -58,12 +64,14 @@ class IRCompiler(
         val result = mutableListOf<IRValue>()
         var i = 0
         while (i < list.size) {
-            if (list[i].type == IRType.COPY && list[i + 1].arg0 == list[i].result && !nonCleanInstructions.contains(list[i + 1].type) && list[i].result !is Variable) {
+            if (list[i].type == IRType.COPY && list.size >= i && list[i + 1].arg0 == list[i].result &&
+                !nonCleanInstructions.contains(list[i + 1].type) && list[i].result !is Variable
+            ) {
                 val x = list[i + 1]
                 x.arg0 = list[i].arg0
                 i++
                 result.add(x)
-            } else if (list[i].type == IRType.COPY && list[i + 1].arg1 == list[i].result) {
+            } else if (list[i].type == IRType.COPY && list.size <= i && list[i + 1].arg1 == list[i].result) {
                 val x = list[i + 1]
                 x.arg1 = list[i].arg0
                 i++
@@ -135,8 +143,8 @@ class IRCompiler(
 
     private fun getTypeOfLiteral(value: Any?): Type {
         return when (value) {
-            is Int -> NormalType("i32")
-            is Char -> NormalType("char")
+            is Int -> NormalType(NormalTypes.I32)
+            is Char -> NormalType(NormalTypes.CHAR)
             else -> error("Could not find the literal type.")
         }
     }
@@ -160,22 +168,62 @@ class IRCompiler(
             is Expression.ValueFromPointer -> {
                 val valueIRType = getValue(value.expression)
                 val resultType = (resultList.last().resultType as PointerType).subtype
-                pushValue(
-                    IRValue(
-                        IRType.COPY_FROM_DEREF,
-                        valueIRType,
-                        null,
-                        TemporaryRegister(increaseTempRegisterIndex()),
-                        resultType
+                if (resultType is StructType) {
+                    val splitLength = splitStruct(resultType.getLength())
+                    var completedOffset = 0
+                    for (i in splitLength) {
+                        pushValue(
+                            IRValue(
+                                IRType.COPY_FROM_REG_OFFSET,
+                                valueIRType,
+                                Literal(completedOffset.toString()),
+                                TemporaryRegister(currentTempRegisterIndex),
+                                getIntTypeFromLength(i)
+                            )
+                        )
+                        pushValue(IRValue(IRType.COPY, resultList.last().result, null, Variable(name, completedOffset), getIntTypeFromLength(i)))
+                        completedOffset += i
+                    }
+                } else {
+                    pushValue(
+                        IRValue(
+                            IRType.COPY_FROM_DEREF,
+                            valueIRType,
+                            null,
+                            TemporaryRegister(increaseTempRegisterIndex()),
+                            resultType
+                        )
                     )
-                )
-                pushValue(IRValue(IRType.COPY, resultList.last().result, null, Variable(name), resultType))
+                    pushValue(IRValue(IRType.COPY, resultList.last().result, null, Variable(name), resultType))
+                }
             }
             else -> {
                 val valueType = getValue(value)
                 pushValue(IRValue(IRType.COPY, valueType, null, Variable(name), resultList.last().resultType))
             }
         }
+    }
+
+    private fun getIntTypeFromLength(length: Int): NormalType {
+        return when (length) {
+            1 -> NormalType(NormalTypes.I8)
+            2 -> NormalType(NormalTypes.I16)
+            4 -> NormalType(NormalTypes.I32)
+            8 -> NormalType(NormalTypes.I64)
+            else -> error("Could not find an int type for length ${length}")
+        }
+    }
+
+    private fun splitStruct(structLength: Int): List<Int> {
+        var remainder = structLength
+        val result = mutableListOf<Int>()
+        for (i in arrayOf(8, 4, 2, 1)) {
+            for (j in 0 until (remainder / i)) {
+                result.add(i)
+            }
+            remainder %= i
+        }
+        return result
     }
 
     private fun getValueOfLiteral(literal: Expression.Literal): String {
@@ -191,9 +239,7 @@ class IRCompiler(
         val index = resultList.size
         if (varInitialization.valueExpression != null)
             compileCopy(varInitialization.name.substring, varInitialization.valueExpression!!)
-        var valueType: Type = resultList.last().resultType
-        if (varInitialization.type != NoneType() && varInitialization.valueExpression == null)
-            valueType = varInitialization.type
+        val valueType: Type = varInitialization.type
 
         variables.last()[varInitialization.name.substring] = valueType
         resultList.add(index, IRValue(IRType.VAR_DEF, null, null, Variable(varInitialization.name.substring), valueType))
@@ -223,7 +269,7 @@ class IRCompiler(
 
         val index = resultList.size
         var rhs = getValue(operation.rightExpression)
-        if(!wasInSub) {
+        if (!wasInSub) {
             currentTempRegisterIndex = previousTempRegisterIndex
             increaseTempRegisterIndex()
             pushValue(IRValue(IRType.COPY, rhs, null, TemporaryRegister(currentTempRegisterIndex), resultList.last().resultType))
@@ -246,16 +292,19 @@ class IRCompiler(
             )
         )
         if (!wasInSub) {
-            for (i in 1..previousTempRegisterIndex + 1)
-                resultList.add(index, IRValue(IRType.PUSH_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
-
-            for (i in 1..previousTempRegisterIndex + 1)
-                resultList.add(IRValue(IRType.POP_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
+            saveRegisters(previousTempRegisterIndex, index, result)
 
             inSubOperation = false
         }
-
         clearUsedRegisters()
+    }
+
+    private fun saveRegisters(previousTempRegisterIndex: Int, index: Int, result: ValueType?) {
+        for (i in 1..previousTempRegisterIndex + 1)
+            resultList.add(index, IRValue(IRType.PUSH_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
+
+        for (i in 1..previousTempRegisterIndex + 1)
+            resultList.add(IRValue(IRType.POP_REG, TemporaryRegister(i), null, result, resultList.last().resultType))
     }
 
     override fun visitCall(call: Expression.Call) {
@@ -302,6 +351,7 @@ class IRCompiler(
         for (arg in functionDefinition.args)
             evaluate(arg)
         evaluate(functionDefinition.body)
+        pushValue(IRValue(IRType.RET, null, null, null, NoneType()))
         variables.pop()
     }
 
@@ -336,8 +386,11 @@ class IRCompiler(
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt) {
         val labelIndex = currentTempLabelIndex
         currentTempLabelIndex += if (ifStmnt.elseBody != null) 2 else 1
+
         getJmpLogicalOrComparison(ifStmnt.condition, labelIndex)
+
         evaluate(ifStmnt.ifBody)
+
         if (ifStmnt.elseBody != null)
             pushValue(IRValue(IRType.JMP, TemporaryLabel(labelIndex + 1), null, null, NoneType()))
         pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(labelIndex), NoneType()))
@@ -348,14 +401,32 @@ class IRCompiler(
     }
 
     private fun getJmpComparison(comparison: Expression.Comparison, tempLabelIndex: Int, useInverted: Boolean = true) {
+        val index = resultList.size
+        val wasInTopComparison = isInTopComparison
+        isInTopComparison = false
         val left = getValue(comparison.leftExpression)
         val right = getValue(comparison.rightExpression)
+
+        pushValue(
+            IRValue(
+                IRType.CMP,
+                left,
+                right,
+                null,
+                resultList.last().resultType
+            )
+        )
+        if (wasInTopComparison) {
+            saveRegisters(currentTempRegisterIndex - 1, index, resultList.last().result)
+            isInTopComparison = true
+        }
+
         pushValue(
             IRValue(
                 if (useInverted) getInvJumpOperationFromComparator(comparison.comparator.substring) else
                     getJmpOperationFromComparator(comparison.comparator.substring),
-                left,
-                right,
+                null,
+                null,
                 TemporaryLabel(tempLabelIndex),
                 resultList.last().resultType
             )
@@ -388,28 +459,34 @@ class IRCompiler(
     }
 
     override fun visitWhileStmnt(whileStmnt: Expression.WhileStmnt) {
-        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(currentTempLabelIndex++), NoneType()))
-        getJmpLogicalOrComparison(whileStmnt.condition, currentTempLabelIndex++)
+        val firstLabel = currentTempLabelIndex++
+        val secondLabel = currentTempLabelIndex++
+        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(firstLabel), NoneType()))
+        getJmpLogicalOrComparison(whileStmnt.condition, secondLabel)
         evaluate(whileStmnt.body)
 
-        pushValue(IRValue(IRType.JMP, TemporaryLabel(currentTempLabelIndex - 1), null, null, NoneType()))
-        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(currentTempLabelIndex), NoneType()))
+        pushValue(IRValue(IRType.JMP, TemporaryLabel(firstLabel), null, null, NoneType()))
+        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(secondLabel), NoneType()))
     }
 
     override fun visitForStmnt(forStmnt: Expression.ForStmnt) {
         evaluate(forStmnt.inBrackets[0])
-        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(currentTempLabelIndex++), NoneType()))
-        getJmpLogicalOrComparison(forStmnt.inBrackets[1], currentTempLabelIndex++)
+        val resetLabel = currentTempLabelIndex++
+        val exitLabel = currentTempLabelIndex++
+        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(resetLabel), NoneType()))
+        getJmpLogicalOrComparison(forStmnt.inBrackets[1], exitLabel)
         evaluate(forStmnt.body)
 
         evaluate(forStmnt.inBrackets[2])
-        pushValue(IRValue(IRType.JMP, TemporaryLabel(currentTempLabelIndex - 1), null, null, NoneType()))
-        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(currentTempLabelIndex), NoneType()))
+        pushValue(IRValue(IRType.JMP, TemporaryLabel(resetLabel), null, null, NoneType()))
+        pushValue(IRValue(IRType.LABEL, null, null, TemporaryLabel(exitLabel), NoneType()))
     }
 
     override fun visitStructDefinition(structDefinition: Expression.StructDefinition) {
+        val name = structDefinition.name.substring
         val variables = structDefinition.body.map { it.name.substring to it.type }
-        structs[structDefinition.name.substring] = Struct(structDefinition.name.substring, variables)
+        structs[name] = Struct(name, variables)
+        lengthsOfTypes[name] = variables.fold(0) { acc, pair -> acc + pair.second.getLength() }
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet) {
@@ -420,7 +497,7 @@ class IRCompiler(
         if (instanceGet.expression is Expression.VarCall) {
             val varName = (instanceGet.expression as Expression.VarCall).varName.substring
             val variable = getVariables()[varName] ?: error("Could not find the variable")
-            val structType = if (variable is PointerType) variable.subtype as NormalType else variable as NormalType
+            val structType = if (variable is PointerType) variable.subtype as StructType else variable as StructType
             pushValue(
                 IRValue(
                     irType,
@@ -433,7 +510,7 @@ class IRCompiler(
         } else {
             val value = getValue(instanceGet.expression)
             val type = resultList.last().resultType
-            val structType = if (type is PointerType) type.subtype as NormalType else type as NormalType
+            val structType = if (type is PointerType) type.subtype as StructType else type as StructType
             pushValue(
                 IRValue(
                     irType,
@@ -461,6 +538,8 @@ class IRCompiler(
         for (statement in blockStatement.statements) {
             clearUsedRegisters()
             evaluate(statement)
+            if (statement is Expression.ReturnStmnt)
+                break
         }
     }
 

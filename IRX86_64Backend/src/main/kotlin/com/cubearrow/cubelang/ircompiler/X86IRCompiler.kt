@@ -3,12 +3,16 @@ package com.cubearrow.cubelang.ircompiler
 import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.ir.*
+import com.cubearrow.cubelang.ircompiler.utils.extendTo64Bit
+import com.cubearrow.cubelang.ircompiler.utils.getASMPointerLength
 import com.cubearrow.cubelang.ircompiler.utils.getLength
+import com.cubearrow.cubelang.ircompiler.utils.getRegister
 import java.util.*
 
 class X86IRCompiler(private val instructions: List<IRValue>, private val structs: MutableMap<String, Struct>) {
     var currentVarIndex = 0
-    var currentArgumentIndex = 0
+    var currentPushArgumentIndex = 0
+    var currentPopArgumentIndex = 0
     var positiveArgIndex = 16
 
     init {
@@ -20,62 +24,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
         val TEMPORARY_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx")
         val ARGUMENT_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
 
-        val lengthsOfTypes = mutableMapOf("i8" to 1, "i16" to 2, "i32" to 4, "i64" to 8, "char" to 1)
-
-        /**
-         * Returns the register for the appropriate name and length.
-         */
-        fun getRegister(baseName: String, length: Int): String {
-            return try {
-                baseName.toInt()
-                when (length) {
-                    8 -> "r$baseName"
-                    4 -> "r${baseName}d"
-                    2 -> "r${baseName}w"
-                    1 -> "r${baseName}b"
-                    else -> ""
-                }
-            } catch (e: NumberFormatException) {
-                when (length) {
-                    8 -> "r${baseName}"
-                    4 -> "e${baseName}"
-                    2 -> "${baseName[0]}h"
-                    1 -> "${baseName[0]}l"
-                    else -> ""
-                }
-            }
-        }
-
-        fun extendTo64Bit(register: TemporaryRegister, length: Int): String {
-            var result = when (length) {
-                1 -> "cbw\ncwde\ncdqe"
-                2 -> "cwde\n" +
-                        "cdqe"
-                4 -> "cdqe"
-                8 -> ""
-                else -> error("")
-            }
-            if (register.index != 0)
-                result = "\npush rax\nmov ${getRegister("ax", length)},${getRegister(TEMPORARY_REGISTERS[register.index], length)}\n$result\nmov ${
-                    getRegister(
-                        TEMPORARY_REGISTERS[register.index], 8
-                    )
-                }, rax\npop rax"
-            return result + "\n"
-        }
-
-        /**
-         * Returns the ASM pointer size for getting a value from a pointer.
-         */
-        fun getASMPointerLength(length: Int): String {
-            return when (length) {
-                1 -> "BYTE"
-                2 -> "WORD"
-                4 -> "DWORD"
-                8 -> "QWORD"
-                else -> error("Unknown byte size")
-            }
-        }
+        val lengthsOfTypes = mutableMapOf("I8" to 1, "I16" to 2, "I32" to 4, "I64" to 8, "CHAR" to 1)
     }
 
     class X86Variable(var index: Int, val type: Type)
@@ -108,7 +57,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.POP_ARG -> compilePopArg(instruction)
             IRType.RET -> compileRet(instruction)
             IRType.NEG_UNARY -> compileNegUnary(instruction)
-            IRType.JMP_EQ -> compileJumpCmp(instruction, "jeq")
+            IRType.JMP_EQ -> compileJumpCmp(instruction, "je")
             IRType.JMP_LE -> compileJumpCmp(instruction, "jle")
             IRType.JMP_L -> compileJumpCmp(instruction, "jl")
             IRType.JMP_GE -> compileJumpCmp(instruction, "jge")
@@ -122,7 +71,23 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.INCLUDE -> "%include \"${instruction.arg0}\"\n"
             IRType.PUSH_REG -> if(instruction.arg0 is TemporaryRegister) "push ${getRegister(TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8)}\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> acc +  "push ${getRegister(s, 8)}\n"}
             IRType.POP_REG -> if(instruction.arg0 is TemporaryRegister) "pop ${getRegister(TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8)}\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> "pop ${getRegister(s, 8)}\n" + acc}
+            IRType.COPY_FROM_REG_OFFSET -> compileCopyFromRegOffset(instruction)
+            IRType.CMP -> compileCmp(instruction)
         }
+    }
+
+    private fun compileCmp(instruction: IRValue): String {
+        return "cmp ${getPointerValue(instruction.arg0!!, instruction.resultType)}, ${
+            getPointerValue(
+                instruction.arg1!!,
+                instruction.resultType
+            )
+        }\n"
+    }
+
+    private fun compileCopyFromRegOffset(instruction: IRValue): String {
+        return "mov ${getPointerValue(instruction.result!!, instruction.resultType)}, ${getASMPointerLength(instruction.resultType.getLength())} [${getRegister(
+            TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8)} + ${instruction.arg1}]\n"
     }
 
     private fun compileRet(instruction: IRValue): String {
@@ -140,7 +105,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                 variableIndex(getVariables()[(instruction.arg0 as Variable).name]!!.index)
             }]\nleave\nret\n"
         }
-        TODO()
+        return "leave\nret\n"
     }
 
     private fun compileDivOperation(instruction: IRValue): String {
@@ -270,18 +235,18 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     ) = "${getASMPointerLength(length)} [$string0 + $string1 * $length]"
 
     private fun compilePushArgument(instruction: IRValue): String {
-        if (ARGUMENT_REGISTERS.size > currentArgumentIndex) {
+        if (ARGUMENT_REGISTERS.size > currentPushArgumentIndex) {
             if (instruction.resultType.getLength() <= 2) {
                 return "movsx ${
                     getRegister(
-                        ARGUMENT_REGISTERS[currentArgumentIndex],
+                        ARGUMENT_REGISTERS[currentPushArgumentIndex++],
                         4
                     )
                 }, ${getPointerValue(instruction.arg0!!, instruction.resultType)}\n"
             }
             return "mov ${
                 getRegister(
-                    ARGUMENT_REGISTERS[currentArgumentIndex],
+                    ARGUMENT_REGISTERS[currentPushArgumentIndex++],
                     instruction.resultType.getLength()
                 )
             }, ${getPointerValue(instruction.arg0!!, instruction.resultType)}\n"
@@ -290,9 +255,9 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compilePopArg(instruction: IRValue): String {
-        if (ARGUMENT_REGISTERS.size > currentArgumentIndex) {
+        if (ARGUMENT_REGISTERS.size > currentPopArgumentIndex) {
             if (instruction.resultType.getLength() <= 2) {
-                return "mov eax, ${getRegister(ARGUMENT_REGISTERS[currentArgumentIndex], 4)}\n" +
+                return "mov eax, ${getRegister(ARGUMENT_REGISTERS[currentPopArgumentIndex++], 4)}\n" +
                         "mov ${getPointerValue(instruction.result!!, instruction.resultType)}, ${
                             getRegister(
                                 "ax",
@@ -304,7 +269,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             }
             return "mov ${getPointerValue(instruction.result!!, instruction.resultType)}, ${
                 getRegister(
-                    ARGUMENT_REGISTERS[currentArgumentIndex],
+                    ARGUMENT_REGISTERS[currentPopArgumentIndex++],
                     instruction.resultType.getLength()
                 )
             }\n"
@@ -316,7 +281,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileCall(instruction: IRValue): String {
-        currentArgumentIndex = 0
+        currentPushArgumentIndex = 0
         return "call ${instruction.arg0 as FunctionLabel}\n"
     }
 
@@ -325,18 +290,12 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileJumpCmp(instruction: IRValue, jumpOperation: String): String {
-        return "cmp ${getPointerValue(instruction.arg0!!, instruction.resultType)}, ${
-            getPointerValue(
-                instruction.arg1!!,
-                instruction.resultType
-            )
-        }\n" +
-                "$jumpOperation ${instruction.result}\n"
+        return "$jumpOperation ${instruction.result}\n"
     }
 
     private fun compileFuncDef(instruction: IRValue): String {
         currentVarIndex = 0
-        currentArgumentIndex = 0
+        currentPopArgumentIndex = 0
         positiveArgIndex = 16
         val instructionIndex = instructions.indexOf(instruction)
         var nextIndex = instructions.indexOfFirst { irValue -> irValue.type == IRType.FUNC_DEF && instructions.indexOf(irValue) > instructionIndex }
@@ -424,8 +383,8 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     private fun getPointerValue(result: ValueType, resultType: Type): String {
         return when (result) {
             is Variable -> {
-                val variable = getVariables()[result.name] ?: throw VariableNotFoundException()
-                "${getASMPointerLength(resultType.getLength())} [${variableIndex(variable.index)}]"
+                val variable = getVariables()[result.name]!!
+                "${getASMPointerLength(resultType.getLength())} [${variableIndex(variable.index + result.extraOffset)}]"
             }
             is TemporaryLabel, is FunctionLabel -> result.toString()
 
@@ -439,6 +398,4 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     private fun getVariables(): MutableMap<String, X86Variable> {
         return variables.fold(mutableMapOf()) { acc, x -> acc.putAll(x); acc }
     }
-
-    class VariableNotFoundException : RuntimeException()
 }

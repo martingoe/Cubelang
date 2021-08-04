@@ -1,31 +1,27 @@
 import io;
 
-struct testStruct{
-    var i: i32;
-    var j: i32;
+struct ie{
+    var test: i32;
+    var test2: i64;
+}
+fun fib(n: i32): i32{
+    if(n < 2) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
 }
 
-fun test(test: char): char{
-    return test;
+fun main() {
+    var x = 1;
+    var y = 2;
+    var z = x + y;
+    printInt(z);
+    printInt(fib(30));
+
+    var testStruct: ie;
+    testStruct.test = 0;
+    var testStructPointer = &testStruct;
+    var testStructCopy = *testStructPointer;
+    printInt(testStructCopy.test);
 }
-fun main(){
-    var test: testStruct;
-    var iderh = test.i;
-    var x = 0 + 3;
-    if(x == 3){
-        x = 2;
-    } else {
-        x = 0;
-    }
-    var ie = &x;
-    var xrie = *ie;
-    var iehor = ' ';
-    test(iehor);
-    var h: [i32: 5];
-    printInt(xrie);
-    h[xrie] = 20;
-    var xie = h[xrie];
-    h[xie] = xie;
-    printInt(xie);
-    printInt(x);
-}
+

@@ -4,6 +4,7 @@ import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.common.NormalType
+import com.cubearrow.cubelang.common.NormalTypes
 import com.cubearrow.cubelang.common.errors.ErrorManager
 import org.junit.jupiter.api.Test
 
@@ -26,7 +27,7 @@ class ParserTest {
     @Test
     internal fun testVarInitialization() {
         val nameToken = Token("a", TokenType.IDENTIFIER, 1, 4)
-        val typeToken = Token("int", TokenType.IDENTIFIER, 1, 6)
+        val typeToken = Token("i32", TokenType.IDENTIFIER, 1, 6)
         val tokens = listOf(
             Token("var", TokenType.VAR, 1, 1),
             nameToken,
@@ -40,7 +41,7 @@ class ParserTest {
         val actual = Parser(tokens, ErrorManager(listOf("a=2;"), false)).parse()[0] as Expression.VarInitialization
         assert((actual.valueExpression as Expression.Literal).value == 2)
 
-        assert(actual.type!! == NormalType(typeToken.substring))
+        assert(actual.type == NormalType(NormalTypes.I32))
         assert(actual.name == nameToken)
     }
 
