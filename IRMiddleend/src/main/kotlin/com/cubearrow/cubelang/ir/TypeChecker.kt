@@ -53,6 +53,7 @@ class TypeChecker(
                 varInitialization.name.index
             )
         } else if (type is NoneType && actualType != null) {
+            varInitialization.type = actualType
             type = actualType
         } else if (type == NoneType() && actualType == null) {
             errorManager.error(
@@ -109,8 +110,8 @@ class TypeChecker(
 
     override fun visitLiteral(literal: Expression.Literal): Type {
         return when (literal.value) {
-            is Int -> NormalType("i32")
-            is Char -> NormalType("char")
+            is Int -> NormalType(NormalTypes.I32)
+            is Char -> NormalType(NormalTypes.CHAR)
             else -> error("Could not find the literal type.")
         }
     }
@@ -136,7 +137,8 @@ class TypeChecker(
                 functionDefinition.type
             )
         )
-        variables.push(functions.last().args as MutableMap<String, Type>?)
+        variables.push(mutableMapOf())
+        variables.last().putAll(functions.last().args)
         evaluate(functionDefinition.body)
         variables.pop()
         return NoneType()
@@ -152,7 +154,7 @@ class TypeChecker(
             comparison.comparator.line,
             comparison.comparator.index
         )
-        return NormalType("i8")
+        return NormalType(NormalTypes.I8)
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt): Type {
@@ -186,13 +188,12 @@ class TypeChecker(
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Type {
         var type = evaluate(instanceGet.expression)
-        if((type !is NormalType || defaultTypes.contains(type.typeName)) || type is PointerType && (type.subtype !is NormalType || defaultTypes.contains(
-                (type.subtype as NormalType).typeName))){
+        if(type !is StructType || type is PointerType && type.subtype !is StructType){
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The requested value is not a struct.")
             return NoneType()
         }
         if(type is PointerType) type = type.subtype
-        val structType = structs[(type as NormalType).typeName]!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
+        val structType = structs[(type as StructType).typeName]!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
         if(structType == null) {
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The struct does not have the requested value.")
             return NoneType()
@@ -226,7 +227,7 @@ class TypeChecker(
             logical.logical.line,
             logical.logical.index
         )
-        return NormalType("i8")
+        return NormalType(NormalTypes.I8)
     }
 
     override fun visitUnary(unary: Expression.Unary): Type {

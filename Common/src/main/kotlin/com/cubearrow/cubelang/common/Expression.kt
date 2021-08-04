@@ -14,7 +14,7 @@ abstract class Expression {
         }
     }
 
-    class VarInitialization (val name: Token, val type: Type, val valueExpression: Expression?) : Expression() {
+    class VarInitialization (val name: Token, var type: Type, val valueExpression: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarInitialization(this)
         }
