@@ -1,27 +1,12 @@
 import io;
 
-struct ie{
-    var test: i32;
-    var test2: i64;
-}
-fun fib(n: i32): i32{
-    if(n < 2) {
-        return n;
-    }
-    return fib(n - 1) + fib(n - 2);
-}
-
 fun main() {
-    var x = 1;
-    var y = 2;
-    var z = x + y;
-    printInt(z);
-    printInt(fib(30));
+    var x: [[i32: 5]: 5];
+    x[0][0] = 10;
+    x[0][2] = 20;
 
-    var testStruct: ie;
-    testStruct.test = 0;
-    var testStructPointer = &testStruct;
-    var testStructCopy = *testStructPointer;
-    printInt(testStructCopy.test);
+    var y = x[0];
+    printInt(y[0]);
+    printInt(y[2]);
 }
 

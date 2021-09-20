@@ -34,7 +34,7 @@ fun extendTo64Bit(register: TemporaryRegister, length: Int): String {
                 "cdqe"
         4 -> "cdqe"
         8 -> ""
-        else -> error("")
+        else -> error("Unknown byte size")
     }
     if (register.index != 0)
         result = "\npush rax\nmov ${getRegister("ax", length)},${getRegister(X86IRCompiler.TEMPORARY_REGISTERS[register.index], length)}\n$result\nmov ${
