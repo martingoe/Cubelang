@@ -13,7 +13,7 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     if (args.isNotEmpty()) {
-        Main("library").compileFile(args)
+        Main(System.getenv("CUBELANG_LIB") ?: error("Could not find the environment variable for the library path.")).compileFile(args)
     } else {
         println("No source file was provided")
         exitProcess(64)
