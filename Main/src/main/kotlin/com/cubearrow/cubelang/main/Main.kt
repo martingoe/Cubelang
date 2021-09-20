@@ -23,7 +23,6 @@ fun main(args: Array<String>) {
 
 class Main(private val libraryPath: String) {
     fun compileFile(sourceFile: Array<String>) {
-//        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
