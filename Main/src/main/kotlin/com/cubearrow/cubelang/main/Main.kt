@@ -1,13 +1,14 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.lexing.Lexer
-import com.cubearrow.cubelang.parser.Parser
-import com.cubearrow.cubelang.common.*
-import com.cubearrow.cubelang.common.errors.ErrorManager
+import com.cubearrow.cubelang.common.Expression
+import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.ir.IRCompiler
 import com.cubearrow.cubelang.ircompiler.X86IRCompiler
+import com.cubearrow.cubelang.lexing.Lexer
+import com.cubearrow.cubelang.parser.Parser
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -43,8 +44,7 @@ class Main(private val libraryPath: String) {
             val irCompiler = IRCompiler(expressions.value, libraryPath, DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
             val irValues = irCompiler.parse()
             println(irValues.joinToString("\n"))
-            println("\n")
-            resultFile.writeText(X86IRCompiler(irValues, irCompiler.structs).compile())
+            resultFile.writeText(X86IRCompiler(irValues, irCompiler.context.structs).compile())
         }
     }
 
@@ -55,6 +55,7 @@ class Main(private val libraryPath: String) {
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }
+
     /**
      * Maps a [List] of [Expression] which may only contain [Expression.ArgumentDefinition] to their substrings
      *
