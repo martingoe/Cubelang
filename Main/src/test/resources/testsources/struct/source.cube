@@ -9,6 +9,7 @@ fun getResult(struct1: test*): i32{
     var structDeref = *struct1;
     return structDeref.num1;
 }
+
 fun main() {
     var testStruct: test;
     testStruct.num1 = 10;

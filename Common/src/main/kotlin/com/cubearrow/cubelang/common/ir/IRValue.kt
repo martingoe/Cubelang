@@ -1,6 +1,6 @@
 package com.cubearrow.cubelang.common.ir
 
-import com.cubearrow.cubelang.common.NormalType
+import com.cubearrow.cubelang.common.StructType
 import com.cubearrow.cubelang.common.Type
 
 class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val result: ValueType?, val resultType: Type) {
@@ -13,9 +13,13 @@ class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val 
 interface ValueType
 
 class TemporaryRegister(val index: Int) : ValueType {
-
     override fun toString(): String {
         return "r$index"
+    }
+
+
+    override fun hashCode(): Int {
+        return index
     }
 
     override fun equals(other: Any?): Boolean {
@@ -28,13 +32,9 @@ class TemporaryRegister(val index: Int) : ValueType {
 
         return true
     }
-
-    override fun hashCode(): Int {
-        return index
-    }
 }
 
-class Variable(val name: String) : ValueType {
+class Variable(val name: String, val extraOffset: Int = 0) : ValueType {
     override fun toString(): String {
         return name
     }
@@ -56,8 +56,7 @@ class Variable(val name: String) : ValueType {
 }
 
 
-
-class StructSubvalue(val name: String, val structType: NormalType) : ValueType {
+class StructSubvalue(val name: String, val structType: StructType) : ValueType {
     override fun toString(): String {
         return name
     }
@@ -82,6 +81,7 @@ class StructSubvalue(val name: String, val structType: NormalType) : ValueType {
 
 
 }
+
 class FunctionLabel(val name: String) : ValueType {
 
     override fun toString(): String {
@@ -104,7 +104,7 @@ class FunctionLabel(val name: String) : ValueType {
     }
 }
 
-class TemporaryLabel(val index: Int) : ValueType {
+class TemporaryLabel(private val index: Int) : ValueType {
 
     override fun toString(): String {
         return ".l${index}"

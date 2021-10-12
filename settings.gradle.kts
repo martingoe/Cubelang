@@ -1,5 +1,6 @@
 rootProject.name = "Cubelang"
-include("Frontend")
-include("X86_64Backend")
-include("Common")
 include("Main")
+include("Frontend")
+include("IRX86_64Backend")
+include("IRMiddleend")
+include("Common")

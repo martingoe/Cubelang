@@ -1,19 +1,20 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.lexing.Lexer
-import com.cubearrow.cubelang.parser.Parser
-import com.cubearrow.cubelang.common.*
-import com.cubearrow.cubelang.common.errors.ErrorManager
+import com.cubearrow.cubelang.common.Expression
+import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
+import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.ir.IRCompiler
 import com.cubearrow.cubelang.ircompiler.X86IRCompiler
+import com.cubearrow.cubelang.lexing.Lexer
+import com.cubearrow.cubelang.parser.Parser
 import java.io.File
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     if (args.isNotEmpty()) {
-        Main().compileFile(args)
+        Main(System.getenv("CUBELANG_LIB") ?: error("Could not find the environment variable for the library path.")).compileFile(args)
     } else {
         println("No source file was provided")
         exitProcess(64)
@@ -21,9 +22,8 @@ fun main(args: Array<String>) {
 }
 
 
-class Main {
+class Main(private val libraryPath: String) {
     fun compileFile(sourceFile: Array<String>) {
-//        ASTGenerator("src/main/kotlin/com/cubearrow/cubelang/parser/", "src/main/resources/SyntaxGrammar.txt")
         val expressionsList = HashMap<String, List<Expression>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
@@ -41,11 +41,10 @@ class Main {
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
-            val irCompiler = IRCompiler(expressions.value, "Main/src/test/resources/library", DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
+            val irCompiler = IRCompiler(expressions.value, libraryPath, DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
             val irValues = irCompiler.parse()
             println(irValues.joinToString("\n"))
-            println("\n")
-            resultFile.writeText(X86IRCompiler(irValues, irCompiler.structs).compile())
+            resultFile.writeText(X86IRCompiler(irValues, irCompiler.context.structs).compile())
         }
     }
 
@@ -56,6 +55,7 @@ class Main {
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }
+
     /**
      * Maps a [List] of [Expression] which may only contain [Expression.ArgumentDefinition] to their substrings
      *

@@ -1,0 +1,8 @@
+import io;
+
+fun main(){
+    var ie: [i32: 5];
+    ie[4] = 2;
+    var iePtr = &ie;
+    printInt(iePtr[4]);
+}

@@ -3,9 +3,6 @@ package com.cubearrow.cubelang.common
 
 import com.cubearrow.cubelang.common.tokens.Token
 
-/**
- * This class is generated automatically by the [ASTGenerator]
- **/
 abstract class Expression {
 
     class Assignment (val name: Token, val valueExpression: Expression) : Expression() {
@@ -14,7 +11,7 @@ abstract class Expression {
         }
     }
 
-    class VarInitialization (val name: Token, val type: Type, val valueExpression: Expression?) : Expression() {
+    class VarInitialization (val name: Token, var type: Type, val valueExpression: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarInitialization(this)
         }

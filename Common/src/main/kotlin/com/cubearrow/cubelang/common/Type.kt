@@ -1,5 +1,8 @@
 package com.cubearrow.cubelang.common
 
+enum class NormalTypes{
+    I8, I16, I32, I64, CHAR, ANY
+}
 /**
  * The Type used to define arrays.
  *
@@ -52,10 +55,29 @@ class PointerType(var subtype: Type) : Type {
     }
 }
 
-class NormalType(var typeName: String) : Type {
+class NormalType(var type: NormalTypes) : Type {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is NormalType) return false
+
+        if (type != other.type) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return type.hashCode()
+    }
+
+    override fun toString(): String {
+        return type.toString()
+    }
+}
+
+class StructType(var typeName: String) : Type {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructType) return false
 
         if (typeName == "any" || other.typeName == "any") return true
         if (typeName != other.typeName) return false
@@ -87,20 +109,4 @@ class NoneType : Type{
         return "null"
     }
 }
-interface Type {
-    companion object {
-        fun getType(type: Type?, value: Any?): Type {
-            var valueToCompare = value
-            if (value is Expression.Literal) valueToCompare = value.value
-            return type ?: when (valueToCompare) {
-                is Int -> NormalType("i32")
-                is Double -> NormalType("double")
-                is String -> NormalType("string")
-                is Char -> NormalType("char")
-                //is ClassInstance -> valueToCompare.className
-                null -> NormalType("any")
-                else -> NormalType("any")
-            }
-        }
-    }
-}
+interface Type

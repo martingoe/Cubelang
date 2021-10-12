@@ -4,6 +4,9 @@ import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.errors.ErrorManager
+import java.lang.IllegalArgumentException
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 /**
@@ -324,13 +327,21 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         }
         return NoneType()
     }
+    private fun isNormalOrStructType(typeName: String): Type{
+        return try{
+            NormalType(NormalTypes.valueOf(typeName.uppercase(Locale.getDefault())))
+        } catch (exception: IllegalArgumentException){
+            StructType(typeName)
+        }
+    }
+
     private fun type(): Type {
         return if(peek(TokenType.IDENTIFIER) && tokens[current + 2].tokenType == TokenType.STAR){
             val substring = consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring
             advance()
-            PointerType(NormalType(substring))
+            return PointerType(isNormalOrStructType(substring))
         } else if(peek(TokenType.IDENTIFIER)) {
-            NormalType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring)
+            isNormalOrStructType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring)
         }
         else{
             consume(TokenType.CLOSEDL, "Expected '['.")

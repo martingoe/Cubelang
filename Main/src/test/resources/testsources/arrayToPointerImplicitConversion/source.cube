@@ -1,0 +1,11 @@
+import io;
+
+fun main() {
+    var x: [[i32: 5]: 5];
+    x[0][0] = 10;
+    x[0][2] = 20;
+
+    var y = x[0];
+    printInt(y[0]);
+    printInt(y[2]);
+}

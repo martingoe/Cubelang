@@ -11,8 +11,6 @@ class TypeChecker(
     private val errorManager: ErrorManager,
     private val definedFunctions: Map<String, List<Function>>
 ) : Expression.ExpressionVisitor<Type> {
-    private var defaultTypes = arrayOf("i64", "i32", "i16", "i8", "char")
-
     private var variables: Stack<MutableMap<String, Type>> = Stack()
     private val functions: MutableList<Function> = mutableListOf()
     private val structs: MutableMap<String, Struct> = mutableMapOf()
@@ -20,6 +18,7 @@ class TypeChecker(
     init {
         variables.push(mutableMapOf())
     }
+
     fun checkTypes() {
         expressions.forEach { evaluate(it) }
     }
@@ -53,6 +52,7 @@ class TypeChecker(
                 varInitialization.name.index
             )
         } else if (type is NoneType && actualType != null) {
+            varInitialization.type = actualType
             type = actualType
         } else if (type == NoneType() && actualType == null) {
             errorManager.error(
@@ -109,8 +109,8 @@ class TypeChecker(
 
     override fun visitLiteral(literal: Expression.Literal): Type {
         return when (literal.value) {
-            is Int -> NormalType("i32")
-            is Char -> NormalType("char")
+            is Int -> NormalType(NormalTypes.I32)
+            is Char -> NormalType(NormalTypes.CHAR)
             else -> error("Could not find the literal type.")
         }
     }
@@ -136,7 +136,8 @@ class TypeChecker(
                 functionDefinition.type
             )
         )
-        variables.push(functions.last().args as MutableMap<String, Type>?)
+        variables.push(mutableMapOf())
+        variables.last().putAll(functions.last().args)
         evaluate(functionDefinition.body)
         variables.pop()
         return NoneType()
@@ -152,7 +153,7 @@ class TypeChecker(
             comparison.comparator.line,
             comparison.comparator.index
         )
-        return NormalType("i8")
+        return NormalType(NormalTypes.I8)
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt): Type {
@@ -186,14 +187,13 @@ class TypeChecker(
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Type {
         var type = evaluate(instanceGet.expression)
-        if((type !is NormalType || defaultTypes.contains(type.typeName)) || type is PointerType && (type.subtype !is NormalType || defaultTypes.contains(
-                (type.subtype as NormalType).typeName))){
+        if (type !is StructType || type is PointerType && type.subtype !is StructType) {
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The requested value is not a struct.")
             return NoneType()
         }
-        if(type is PointerType) type = type.subtype
-        val structType = structs[(type as NormalType).typeName]!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
-        if(structType == null) {
+        if (type is PointerType) type = type.subtype
+        val structType = structs[(type as StructType).typeName]!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
+        if (structType == null) {
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The struct does not have the requested value.")
             return NoneType()
         }
@@ -203,7 +203,13 @@ class TypeChecker(
     override fun visitInstanceSet(instanceSet: Expression.InstanceSet): Type {
         val expectedType = evaluate(instanceSet.instanceGet)
         val actual = evaluate(instanceSet.value)
-        assertEqualTypes(expectedType, actual, "The expected type does not match the actual value.", instanceSet.instanceGet.identifier.line, instanceSet.instanceGet.identifier.index)
+        assertEqualTypes(
+            expectedType,
+            actual,
+            "The expected type does not match the actual value.",
+            instanceSet.instanceGet.identifier.line,
+            instanceSet.instanceGet.identifier.index
+        )
         return NoneType()
     }
 
@@ -226,7 +232,7 @@ class TypeChecker(
             logical.logical.line,
             logical.logical.index
         )
-        return NormalType("i8")
+        return NormalType(NormalTypes.I8)
     }
 
     override fun visitUnary(unary: Expression.Unary): Type {
@@ -238,15 +244,28 @@ class TypeChecker(
     }
 
     override fun visitArrayGet(arrayGet: Expression.ArrayGet): Type {
-        val type = evaluate(arrayGet.expression)
-        if (type !is ArrayType || type is PointerType && type.subType !is ArrayType) {
-            errorManager.error(-1, -1, "The requested value is not an array.")
+        var depth = 1
+        var currentArrayGet = arrayGet
+        while (currentArrayGet.expression is Expression.ArrayGet) {
+            depth++
+            currentArrayGet = currentArrayGet.expression as Expression.ArrayGet
         }
-        if (type is ArrayType)
-            return type.subType
-        else if (type is PointerType)
-            return (type.subtype as ArrayType).subType
-        return NoneType()
+
+        val type = evaluate(currentArrayGet.expression)
+        var resultType = type
+        for (i in 0 until depth) {
+            resultType = when(resultType){
+                is ArrayType -> resultType.subType
+                is PointerType -> resultType.subtype
+                else -> {
+                    errorManager.error(-1, -1, "The requested value is not an array.")
+                    return NoneType()
+                }
+            }
+        }
+        if(resultType is ArrayType)
+            return PointerType(resultType.subType)
+        return resultType
     }
 
     override fun visitArraySet(arraySet: Expression.ArraySet): Type {
@@ -262,11 +281,13 @@ class TypeChecker(
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): Type {
-        val variable = getVariables()[pointerGet.varCall.varName.substring]
+        var variable = getVariables()[pointerGet.varCall.varName.substring]
         if (variable == null) {
             errorManager.error(pointerGet.varCall.varName.line, pointerGet.varCall.varName.index, "The requested variable could not be found.")
             return NoneType()
         }
+        if (variable is ArrayType)
+            variable = variable.subType
         return PointerType(variable)
     }
 

@@ -1,31 +1,44 @@
 import io;
 
-struct testStruct{
-    var i: i32;
-    var j: i32;
+fun fib(n: i32): i32{
+    if(n < 2) {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+fun main() {
+#    var x: [[i32: 5]: 5];
+#    x[0][0] = 10;
+#    x[0][2] = 20;
+#
+#    var y = x[0];
+#    printInt(y[0]);
+#    printInt(y[2]);
+#    for(var i = 0; i < 20; i = i + 1)
+#        printInt(fib(40));
+
+    var x: [[i32: 500]: 500];
+    var y: [[i32: 500]: 500];
+
+    var res: [[i32: 500]: 500];
+
+    for(var i = 0; i < 500; i = i + 1){
+        for(var j = 0; j < 500; j = j + 1){
+            x[i][j] = i;
+            y[i][j] = j;
+        }
+    }
+
+    for(var xie = 0; xie < 50; xie = xie + 1){
+    for(var i = 0; i < 500; i = i + 1){
+        for(var j = 0; j < 500; j = j + 1){
+            res[i][j] = 0;
+            for (var k = 0; k < 500; k = k + 1){
+                res[i][j] = res[i][j] + x[i][k] * y[k][j];
+            }
+        }
+    }
+    }
+    printInt(res[0][2]);
 }
 
-fun test(test: char): char{
-    return test;
-}
-fun main(){
-    var test: testStruct;
-    var iderh = test.i;
-    var x = 0 + 3;
-    if(x == 3){
-        x = 2;
-    } else {
-        x = 0;
-    }
-    var ie = &x;
-    var xrie = *ie;
-    var iehor = ' ';
-    test(iehor);
-    var h: [i32: 5];
-    printInt(xrie);
-    h[xrie] = 20;
-    var xie = h[xrie];
-    h[xie] = xie;
-    printInt(xie);
-    printInt(x);
-}
