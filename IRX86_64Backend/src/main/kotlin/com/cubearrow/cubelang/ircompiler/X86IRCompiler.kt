@@ -70,22 +70,20 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.COPY_TO_STRUCT_GET -> compileCopyToStructGet(instruction)
             IRType.COPY_FROM_STRUCT_GET -> compileCopyFromStructGet(instruction)
             IRType.INCLUDE -> "%include \"${instruction.arg0}\"\n"
-            IRType.PUSH_REG -> if (instruction.arg0 is TemporaryRegister) "push ${
-                getRegister(
-                    TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index],
-                    8
-                )
-            }\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> acc + "push ${getRegister(s, 8)}\n" }
-            IRType.POP_REG -> if (instruction.arg0 is TemporaryRegister) "pop ${
-                getRegister(
-                    TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index],
-                    8
-                )
-            }\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> "pop ${getRegister(s, 8)}\n" + acc }
+            IRType.PUSH_REG -> pushOrPopInstruction(instruction, "push")
+            IRType.POP_REG -> pushOrPopInstruction(instruction, "pop")
             IRType.COPY_FROM_REG_OFFSET -> compileCopyFromRegOffset(instruction)
             IRType.CMP -> compileCmp(instruction)
         }
     }
+
+    private fun pushOrPopInstruction(instruction: IRValue, instructionString: String) =
+        if (instruction.arg0 is TemporaryRegister) "$instructionString ${
+            getRegister(
+                TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index],
+                8
+            )
+        }\n" else TEMPORARY_REGISTERS.fold("") { acc, s -> acc + "$instructionString ${getRegister(s, 8)}\n" }
 
     /**
      * Compiles a single compare instruction.
@@ -107,7 +105,12 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
      * @return Returns a string with the following format: 'mov resultArg, [leftArgReg + rightArg]'
      */
     private fun compileCopyFromRegOffset(instruction: IRValue): String {
-        return "mov ${getPointerValue(instruction.result!!, instruction.resultType.getLength())}, ${getASMPointerLength(instruction.resultType.getLength())} [${
+        return "mov ${
+            getPointerValue(
+                instruction.result!!,
+                instruction.resultType.getLength()
+            )
+        }, ${getASMPointerLength(instruction.resultType.getLength())} [${
             getRegister(
                 TEMPORARY_REGISTERS[(instruction.arg0 as TemporaryRegister).index], 8
             )
@@ -243,8 +246,8 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileCopyFromArrayElem(instruction: IRValue): String {
-        val len = if(instruction.resultType is ArrayType)  8 else instruction.resultType.getLength()
-        val instructionStr = if(instruction.resultType is PointerType) "lea" else "mov"
+        val len = if (instruction.resultType is ArrayType) 8 else instruction.resultType.getLength()
+        val instructionStr = if (instruction.resultType is PointerType) "lea" else "mov"
         if (instruction.arg0 is TemporaryRegister && instruction.arg1 is TemporaryRegister) {
             val result = extendTo64Bit(instruction.arg1 as TemporaryRegister, len)
             return "$result\n$instructionStr ${
@@ -276,8 +279,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                     len
                 )
             }\n"
-        }
-        else if (instruction.arg0 is Variable && instruction.arg1 is Literal) {
+        } else if (instruction.arg0 is Variable && instruction.arg1 is Literal) {
             val variable = getVariables()[(instruction.arg0 as Variable).name]!!
             return "$instructionStr ${
                 getPointerValue(
@@ -392,7 +394,12 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
 
     private fun copyFromRef(instruction: IRValue): String {
         val index = getVariables()[(instruction.arg0 as Variable).name]!!.index
-        return "lea ${getPointerValue(instruction.result!!, instruction.resultType.getLength())}, [rbp${if (index < 0) index.toString() else "+$index"}]\n"
+        return "lea ${
+            getPointerValue(
+                instruction.result!!,
+                instruction.resultType.getLength()
+            )
+        }, [rbp${if (index < 0) index.toString() else "+$index"}]\n"
     }
 
     private fun compileLabel(instruction: IRValue): String = "${instruction.result}:\n"
@@ -426,7 +433,12 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileOperationTwoArgs(op: String, instruction: IRValue) =
-        "$op ${getPointerValue(instruction.arg0!!, instruction.resultType.getLength())}, ${getPointerValue(instruction.arg1!!, instruction.resultType.getLength())}\n" +
+        "$op ${getPointerValue(instruction.arg0!!, instruction.resultType.getLength())}, ${
+            getPointerValue(
+                instruction.arg1!!,
+                instruction.resultType.getLength()
+            )
+        }\n" +
                 compileCopy(IRValue(IRType.COPY, instruction.arg0, null, instruction.result, instruction.resultType))
 
     /**

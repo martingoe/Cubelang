@@ -12,11 +12,9 @@ class ArrayManagementCompiler(private val context: IRCompilerContext) {
         val valueExpression = context.getValue(arraySet.value)
 
         compileArrayGet(arraySet.arrayGet)
-        val resultType = context.resultList.last().resultType
         val arrayValue = context.resultList.last().arg0
         val inBracketValue = context.resultList.last().arg1
-
-
+        val resultType = context.resultList.last().resultType
         context.resultList.removeLast()
 
         context.pushValue(
@@ -31,11 +29,9 @@ class ArrayManagementCompiler(private val context: IRCompilerContext) {
     }
     fun compileArrayGet(arrayGet: Expression.ArrayGet){
         val previousTemporaryRegisterIndex = context.currentTempRegisterIndex
-
         val arrayGets = getAllNestedArrayGets(arrayGet)
 
         var currentType = getTypeOfExpression(arrayGets.last().expression, context)
-
         val expressionValue = getExpressionValue(currentType, arrayGets)
 
         val resultOffsetRegister = TemporaryRegister(context.increaseTempRegisterIndex())

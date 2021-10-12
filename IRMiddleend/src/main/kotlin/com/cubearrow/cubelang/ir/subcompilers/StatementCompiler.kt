@@ -3,7 +3,6 @@ package com.cubearrow.cubelang.ir.subcompilers
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.NoneType
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions.Companion.definedFunctions
-import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.tokens.TokenType
 import com.cubearrow.cubelang.ir.IRCompilerContext
@@ -39,8 +38,6 @@ class StatementCompiler(private val context: IRCompilerContext) {
     fun compileFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
         context.clearUsedRegisters()
         resetIndexesForNewFunction()
-        context.functions.add(Function(functionDefinition.name.substring, functionDefinition.args.map { it as Expression.ArgumentDefinition }
-            .associate { it.name.substring to it.type }, functionDefinition.type))
         context.variables.push(mutableMapOf())
         pushValue(IRValue(IRType.FUNC_DEF, FunctionLabel(functionDefinition.name.substring), null, null, functionDefinition.type))
 

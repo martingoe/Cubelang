@@ -109,16 +109,4 @@ class NoneType : Type{
         return "null"
     }
 }
-interface Type {
-    companion object {
-        fun getType(type: Type?, value: Any?): Type {
-            var valueToCompare = value
-            if (value is Expression.Literal) valueToCompare = value.value
-            return type ?: when (valueToCompare) {
-                is Int -> NormalType(NormalTypes.I32)
-                is Char -> NormalType(NormalTypes.CHAR)
-                else -> NormalType(NormalTypes.ANY)
-            }
-        }
-    }
-}
+interface Type
