@@ -1,8 +1,6 @@
 package com.cubearrow.cubelang.ir
 
 import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.definitions.Function
-import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.ir.IRType
 import com.cubearrow.cubelang.common.ir.IRValue
 import com.cubearrow.cubelang.common.ir.Variable
@@ -11,13 +9,9 @@ import com.cubearrow.cubelang.ir.subcompilers.*
 
 class IRCompiler(
     private val expressions: List<Expression>,
-    private val stdlibPath: String,
-    private val definedFunctions: Map<String, List<Function>>,
-    private val errorManager: ErrorManager
+    private val stdlibPath: String
 ) : Expression.ExpressionVisitor<Unit> {
-    val context = IRCompilerContext(compilerInstance = this)
-    private fun resultList() = context.resultList
-    private fun variables() = context.variables
+    private val context = IRCompilerContext(compilerInstance = this)
     private val statementCompiler = StatementCompiler(context)
     private val copyCompiler = CopyCompiler(context)
     private val arrayManagementCompiler = ArrayManagementCompiler(context)
@@ -45,21 +39,12 @@ class IRCompiler(
 
 
     fun parse(): List<IRValue> {
-        TypeChecker(expressions, errorManager, definedFunctions).checkTypes()
-        expressions.filterIsInstance<Expression.FunctionDefinition>().forEach { it ->
-            context.functions.add(
-                Function(
-                    it.name.substring,
-                    it.args.map { it as Expression.ArgumentDefinition }.associate { it.name.substring to it.type },
-                    it.type
-                )
-            )
-        }
+        // TypeChecker(expressions, errorManager, definedFunctions).checkTypes()
 
         for (expression in expressions) {
             evaluate(expression)
         }
-        return cleanUpCopies(resultList())
+        return cleanUpCopies(context.resultList)
     }
 
     private fun cleanUpCopies(list: List<IRValue>): List<IRValue> {
@@ -89,10 +74,6 @@ class IRCompiler(
         return result.toList()
     }
 
-
-    private fun pushValue(value: IRValue) {
-        resultList().add(value)
-    }
 
     fun evaluate(expression: Expression) {
         expression.accept(this)
@@ -164,9 +145,7 @@ class IRCompiler(
     }
 
     override fun visitArgumentDefinition(argumentDefinition: Expression.ArgumentDefinition) {
-        variables().last()[argumentDefinition.name.substring] = argumentDefinition.type
-        pushValue(IRValue(IRType.VAR_DEF, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
-        pushValue(IRValue(IRType.POP_ARG, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
+        expressionCompiler.argumentDefinition(argumentDefinition)
     }
 
     override fun visitBlockStatement(blockStatement: Expression.BlockStatement) {

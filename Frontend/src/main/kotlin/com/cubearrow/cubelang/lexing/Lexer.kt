@@ -8,11 +8,11 @@ import com.cubearrow.cubelang.common.tokens.TokenType
 /**
  * This initiates a sequence of tokens from the content of a source file. This lexical analysis is used in the parser when creating the abstract syntax tree.
  *
- * Regular Expressions are avoided for preformance reasons.
+ * Regular Expressions are avoided for performance reasons.
  */
 
 class Lexer(private val fileContent: String) {
-    private var lineIndex = 0
+    private var column = 0
     var tokenSequence: MutableList<Token> = ArrayList()
     private var line = 1
     private var char: Char = ' '
@@ -54,15 +54,15 @@ class Lexer(private val fileContent: String) {
                         addToken(TokenType.OR, "||")
                 }
                 '#' -> comment()
-                '&' -> addWithConditional('&', TokenType.AND, TokenType.POINTER)
-                '<', '>' -> addWithConditional('=', TokenType.COMPARATOR)
-                '=' -> addWithConditional('=', TokenType.EQUALITY, TokenType.EQUALS)
-                '!' -> addWithConditional('=', TokenType.EQUALITY, TokenType.BANG)
+                '&' -> addConditionalNextChar('&', TokenType.AND, TokenType.POINTER)
+                '<', '>' -> addConditionalNextChar('=', TokenType.COMPARATOR)
+                '=' -> addConditionalNextChar('=', TokenType.EQUALITY, TokenType.EQUALS)
+                '!' -> addConditionalNextChar('=', TokenType.EQUALITY, TokenType.BANG)
                 '"' -> string()
                 '\'' -> char()
                 '\n' -> {
                     line++
-                    lineIndex = 1
+                    column = 1
                 }
                 else -> {
                     when {
@@ -82,35 +82,36 @@ class Lexer(private val fileContent: String) {
         addToken(TokenType.EOF, "")
     }
 
-    private fun addWithConditional(conditionalMatch: Char, type1: TokenType, type2: TokenType = type1) {
-        if (match(conditionalMatch))
-            addToken(type1, "$char$conditionalMatch")
+    private fun addConditionalNextChar(nextChar: Char, ifMatches: TokenType, elseToken: TokenType = ifMatches) {
+        if (match(nextChar))
+            addToken(ifMatches, "$char$nextChar")
         else
-            addToken(type2)
+            addToken(elseToken)
+    }
+
+    private fun errorOnCurrent(message: String) {
+        errorLibrary.error(line, column, message)
     }
 
     private fun char() {
-        var buffer = "\'"
+        var buffer = ""
         index++
         while (peek() != '\'' && index < fileContent.length) {
             if (peek() == '\n') line++
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            errorLibrary.error(line, lineIndex, "Unterminated char.")
+            errorOnCurrent("Unterminated char.")
             return
         }
 
-        buffer += advance()
-        val value = buffer.substring(1, buffer.length - 1)
-        index--
-        addToken(TokenType.CHAR, value)
+        addToken(TokenType.CHAR, buffer)
     }
 
     private fun comment() {
         while (peek() != '\n') advance()
         line++
-        lineIndex = 0
+        column = 0
     }
 
     private fun match(expected: Char): Boolean {
@@ -141,7 +142,7 @@ class Lexer(private val fileContent: String) {
 
     private fun advance(): Char {
         index++
-        lineIndex++
+        column++
         return fileContent[index - 1]
     }
 
@@ -153,14 +154,11 @@ class Lexer(private val fileContent: String) {
             buffer += advance()
         }
         if (index >= fileContent.length) {
-            errorLibrary.error(line, lineIndex, "Unterminated string.")
+            errorOnCurrent("Unterminated string.")
             return
         }
 
-        buffer += advance()
-        val value: String = buffer.substring(1, buffer.length - 1)
-        index--
-        addToken(TokenType.STRING, value)
+        addToken(TokenType.STRING, buffer)
     }
 
     private fun number(start: String) {
@@ -202,7 +200,7 @@ class Lexer(private val fileContent: String) {
     }
 
     private fun addToken(tokenType: TokenType, string: String) {
-        tokenSequence.add(Token(string, tokenType, line, lineIndex - string.length))
+        tokenSequence.add(Token(string, tokenType, line, column - string.length))
     }
 
     private fun isAlpha(c: Char): Boolean {
@@ -228,11 +226,11 @@ class Lexer(private val fileContent: String) {
 
     private fun catchTokenError(substring: String) {
         if (substring == " ") {
-            lineIndex++
+            column++
             return
         }
         if (substring.isNotBlank()) {
-            errorLibrary.error(line, lineIndex, "Unexpected token \"$substring\"")
+            errorOnCurrent("Unexpected token \"$substring\"")
         }
     }
 

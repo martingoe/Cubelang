@@ -5,6 +5,7 @@ import com.cubearrow.cubelang.common.NoneType
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions.Companion.definedFunctions
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.tokens.TokenType
+import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getInvJumpOperationFromComparator
 import com.cubearrow.cubelang.ir.getJmpOperationFromComparator
@@ -156,7 +157,7 @@ class StatementCompiler(private val context: IRCompilerContext) {
     }
 
     fun compileImportStmnt(importStmnt: Expression.ImportStmnt, stdlibPath: String) {
-        context.functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
+        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
         val name =
             (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
                 importStmnt.identifier.substring.substringBeforeLast(".")

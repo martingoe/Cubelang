@@ -8,7 +8,7 @@ package com.cubearrow.cubelang.common.tokens
  * @param line The line index from the source file
  * @param index The index of the character in the line
  */
-data class Token(var substring: String, var tokenType: TokenType, var line: Int, var index: Int){
+data class Token(var substring: String, var tokenType: TokenType, var line: Int = -1, var index: Int = -1){
     /**
      * Compares two Tokens based on the substring and the tokenType
      */

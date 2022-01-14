@@ -7,7 +7,6 @@ import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getIntTypeFromLength
-import com.cubearrow.cubelang.ir.getLength
 import com.cubearrow.cubelang.ir.splitStruct
 
 class CopyCompiler(private val context: IRCompilerContext) {

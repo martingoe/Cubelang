@@ -15,7 +15,6 @@ import kotlin.collections.ArrayList
 class Parser(private var tokens: List<Token>, private var errorManager: ErrorManager) {
     private var current = -1
 
-
     fun parse(): List<Expression> {
         val statements: MutableList<Expression> = ArrayList()
 
@@ -57,7 +56,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
 
     private fun expressionStatement(): Expression {
         val value = expression()
-        consume(TokenType.SEMICOLON, "Expected a ';' after a expression statement")
+        consume(TokenType.SEMICOLON, "Expected a ';' after an expression statement")
         return value
     }
 
@@ -241,7 +240,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
 
         while (true) {
             expression = if (match(TokenType.BRCKTL)) {
-                finishCall(expression)
+                finishCall(expression as Expression.VarCall)
             } else if (match(TokenType.DOT)) {
                 val name = consume(TokenType.IDENTIFIER, "Expected an identifier after '.'")
                 Expression.InstanceGet(expression, name)
@@ -252,7 +251,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         return expression
     }
 
-    private fun finishCall(callee: Expression): Expression {
+    private fun finishCall(callee: Expression.VarCall): Expression {
         val arguments: MutableList<Expression> = ArrayList()
 
         while (!peek(TokenType.BRCKTR)) {
@@ -271,21 +270,11 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             TokenType.NULLVALUE -> Expression.Literal(null)
             TokenType.STRING -> Expression.Literal(current())
             TokenType.IDENTIFIER -> {
-                var result: Expression = Expression.VarCall(current())
-                while(match(TokenType.CLOSEDL)) {
-                    val number = expression()
-                    consume(TokenType.CLOSEDR, "Expected ']'")
-                    result = Expression.ArrayGet(result, number)
-                }
-                result
+                lexIdentifier()
             }
             TokenType.CHAR -> Expression.Literal(current().substring[0])
             TokenType.NUMBER -> {
-                return if (!current().substring.contains(".")) {
-                    Expression.Literal(current().substring.toInt())
-                } else {
-                    Expression.Literal(current().substring.toDouble())
-                }
+                return number()
             }
             TokenType.BRCKTL -> {
                 val expression = expression()
@@ -295,6 +284,25 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             else -> throw ParseException("Expected an expression", previous())
 
         }
+    }
+
+    private fun number(): Expression {
+        return if (!current().substring.contains(".")) {
+            Expression.Literal(current().substring.toInt())
+        } else {
+            errorManager.error(current().line, current().index, "Floating point numbers are not available yet.")
+            throw ParseException("Floating point numbers are not available yet.", current())
+        }
+    }
+
+    private fun lexIdentifier(): Expression {
+        var result: Expression = Expression.VarCall(current())
+        while (match(TokenType.CLOSEDL)) {
+            val number = expression()
+            consume(TokenType.CLOSEDR, "Expected ']'")
+            result = Expression.ArrayGet(result, number)
+        }
+        return result
     }
 
     private fun expression(): Expression {
@@ -360,7 +368,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     private fun consume(tokenType: TokenType, errorMessage: String): Token {
         this.current++
         if (tokens[current].tokenType != tokenType) {
-            throw ParseException(errorMessage, tokens[current])
+            catchException(errorMessage, tokens[current])
         }
         return tokens[current]
     }
@@ -381,7 +389,6 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     }
 
 }
-
 
 class ParseException(override var message: String, var token: Token) : Throwable()
 

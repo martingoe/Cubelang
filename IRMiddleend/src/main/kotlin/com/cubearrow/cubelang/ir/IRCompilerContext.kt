@@ -2,8 +2,6 @@ package com.cubearrow.cubelang.ir
 
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.Type
-import com.cubearrow.cubelang.common.definitions.Function
-import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.ir.IRValue
 import com.cubearrow.cubelang.common.ir.ValueType
 import java.util.*
@@ -17,10 +15,9 @@ data class IRCompilerContext(
 
     var currentRegistersToSave: Int = 0,
 
+
     var resultList: MutableList<IRValue> = mutableListOf(),
     var variables: Stack<MutableMap<String, Type>> = Stack(),
-    val functions: MutableList<Function> = mutableListOf(),
-    val structs: MutableMap<String, Struct> = mutableMapOf(),
     val compilerInstance: IRCompiler
 ) {
     fun getVariables(): MutableMap<String, Type> {

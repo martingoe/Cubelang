@@ -1,18 +1,18 @@
 package com.cubearrow.cubelang.ir.subcompilers
 
 import com.cubearrow.cubelang.common.Expression
+import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.ir.IRCompiler
 import com.cubearrow.cubelang.ir.IRCompilerContext
-import com.cubearrow.cubelang.ir.getLength
 import com.cubearrow.cubelang.ir.getStructType
 
 class StructManagementCompiler(private val context: IRCompilerContext) {
     fun compileStructDefinition(structDefinition: Expression.StructDefinition) {
         val name = structDefinition.name.substring
         val variables = structDefinition.body.map { it.name.substring to it.type }
-        context.structs[name] = Struct(name, variables)
+        SymbolTableSingleton.getCurrentSymbolTable().structs[name] = Struct(name, variables)
         IRCompiler.lengthsOfTypes[name] = variables.fold(0) { acc, pair -> acc + pair.second.getLength() }
     }
 
@@ -36,7 +36,7 @@ class StructManagementCompiler(private val context: IRCompilerContext) {
                     Variable(varName),
                     StructSubvalue(instanceGet.identifier.substring, structType),
                     result,
-                    context.structs[structType.typeName]!!.variables.first { instanceGet.identifier.substring == it.first }.second
+                    SymbolTableSingleton.getCurrentSymbolTable().structs[structType.typeName]!!.variables.first { instanceGet.identifier.substring == it.first }.second
                 )
             )
         } else {
@@ -48,7 +48,7 @@ class StructManagementCompiler(private val context: IRCompilerContext) {
                     value,
                     StructSubvalue(instanceGet.identifier.substring, structType),
                     result,
-                    context.structs[structType.typeName]!!.variables.first { instanceGet.identifier.substring == it.first }.second
+                    SymbolTableSingleton.getCurrentSymbolTable().structs[structType.typeName]!!.variables.first { instanceGet.identifier.substring == it.first }.second
                 )
             )
         }

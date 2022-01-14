@@ -6,7 +6,6 @@ import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.ircompiler.utils.extendTo64Bit
 import com.cubearrow.cubelang.ircompiler.utils.getASMPointerLength
-import com.cubearrow.cubelang.ircompiler.utils.getLength
 import com.cubearrow.cubelang.ircompiler.utils.getRegister
 import java.util.*
 
@@ -246,6 +245,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileCopyFromArrayElem(instruction: IRValue): String {
+
         val len = if (instruction.resultType is ArrayType) 8 else instruction.resultType.getLength()
         val instructionStr = if (instruction.resultType is PointerType) "lea" else "mov"
         if (instruction.arg0 is TemporaryRegister && instruction.arg1 is TemporaryRegister) {

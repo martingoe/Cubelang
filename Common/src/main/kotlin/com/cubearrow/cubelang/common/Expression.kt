@@ -3,27 +3,27 @@ package com.cubearrow.cubelang.common
 
 import com.cubearrow.cubelang.common.tokens.Token
 
-abstract class Expression {
+abstract class Expression(var state: Int = 0) {
 
-    class Assignment (val name: Token, val valueExpression: Expression) : Expression() {
+    class Assignment (val name: Token, var valueExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }
     }
 
-    class VarInitialization (val name: Token, var type: Type, val valueExpression: Expression?) : Expression() {
+    class VarInitialization (val name: Token, var type: Type, var valueExpression: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitVarInitialization(this)
         }
     }
 
-    class Operation (val leftExpression: Expression, val operator: Token, val rightExpression: Expression) : Expression() {
+    class Operation (var leftExpression: Expression, val operator: Token, var rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitOperation(this)
         }
     }
 
-    class Call (val callee: Expression, val arguments: List<Expression>) : Expression() {
+    class Call (val callee: VarCall, var arguments: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitCall(this)
         }
@@ -41,37 +41,37 @@ abstract class Expression {
         }
     }
 
-    class FunctionDefinition (val name: Token, val args: List<Expression>, val type: Type, val body: Expression) : Expression() {
+    class FunctionDefinition (val name: Token, val args: List<Expression>, val type: Type, var body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitFunctionDefinition(this)
         }
     }
 
-    class Comparison (val leftExpression: Expression, val comparator: Token, val rightExpression: Expression) : Expression() {
+    class Comparison (var leftExpression: Expression, val comparator: Token, var rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitComparison(this)
         }
     }
 
-    class IfStmnt (val condition: Expression, val ifBody: Expression, val elseBody: Expression?) : Expression() {
+    class IfStmnt (val condition: Expression, var ifBody: Expression, var elseBody: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitIfStmnt(this)
         }
     }
 
-    class ReturnStmnt (val returnValue: Expression?) : Expression() {
+    class ReturnStmnt (var returnValue: Expression?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitReturnStmnt(this)
         }
     }
 
-    class WhileStmnt (val condition: Expression, val body: Expression) : Expression() {
+    class WhileStmnt (var condition: Expression, var body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitWhileStmnt(this)
         }
     }
 
-    class ForStmnt (val inBrackets: List<Expression>, val body: Expression) : Expression() {
+    class ForStmnt (var inBrackets: List<Expression>, var body: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitForStmnt(this)
         }
@@ -101,25 +101,25 @@ abstract class Expression {
         }
     }
 
-    class BlockStatement (val statements: List<Expression>) : Expression() {
+    class BlockStatement (var statements: List<Expression>) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitBlockStatement(this)
         }
     }
 
-    class Logical (val leftExpression: Expression, val logical: Token, val rightExpression: Expression) : Expression() {
+    class Logical (var leftExpression: Expression, val logical: Token, var rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLogical(this)
         }
     }
 
-    class Unary (val identifier: Token, val expression: Expression) : Expression() {
+    class Unary (val identifier: Token, var expression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitUnary(this)
         }
     }
 
-    class Grouping (val expression: Expression) : Expression() {
+    class Grouping (var expression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitGrouping(this)
         }
@@ -149,7 +149,7 @@ abstract class Expression {
         }
     }
 
-    class ValueFromPointer (val expression: Expression) : Expression() {
+    class ValueFromPointer (var expression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitValueFromPointer(this)
         }
@@ -160,6 +160,12 @@ abstract class Expression {
             return visitor.visitEmpty(this)
         }
     }
+    class FramePointer: Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            TODO("Not yet implemented")
+        }
+    }
+
     interface ExpressionVisitor<R> {
         fun visitAssignment(assignment: Assignment): R
         fun visitVarInitialization(varInitialization: VarInitialization): R

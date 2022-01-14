@@ -4,6 +4,7 @@ import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.errors.ErrorManager
+import com.cubearrow.cubelang.common.SymbolTableSingleton
 import java.util.*
 
 class TypeChecker(
@@ -11,12 +12,13 @@ class TypeChecker(
     private val errorManager: ErrorManager,
     private val definedFunctions: Map<String, List<Function>>
 ) : Expression.ExpressionVisitor<Type> {
+    var currentVarIndex = 0
+    var scope = Stack<Int>()
     private var variables: Stack<MutableMap<String, Type>> = Stack()
-    private val functions: MutableList<Function> = mutableListOf()
-    private val structs: MutableMap<String, Struct> = mutableMapOf()
 
     init {
         variables.push(mutableMapOf())
+        scope.push(-1)
     }
 
     fun checkTypes() {
@@ -24,26 +26,28 @@ class TypeChecker(
     }
 
     override fun visitAssignment(assignment: Expression.Assignment): Type {
-        val variable = getVariables()[assignment.name.substring]
-        if (variable == null) {
+        var variable: VarNode? = null
+        try {
+            variable = getVariables().first { it.name == assignment.name.substring }
+        } catch (e: NoSuchElementException) {
             errorManager.error(assignment.name.line, assignment.name.index, "The required variable (${assignment.name.substring} could not be found.")
         }
-        assertEqualTypes(
-            evaluate(assignment.valueExpression),
-            variable!!,
-            "The variable type and the value type do not match.",
-            assignment.name.line,
-            assignment.name.index
-        )
+        variable?.type?.let {
+            assertEqualTypes(
+                evaluate(assignment.valueExpression),
+                it,
+                "The variable type and the value type do not match.",
+                assignment.name.line,
+                assignment.name.index
+            )
+        }
         return NoneType()
     }
 
     override fun visitVarInitialization(varInitialization: Expression.VarInitialization): Type {
         var type = varInitialization.type
-        var actualType = varInitialization.valueExpression?.let { evaluate(it) }
+        val actualType = varInitialization.valueExpression?.let { evaluate(it) }
         if (type !is NoneType && actualType != null) {
-            if (varInitialization.valueExpression is Expression.Literal)
-                actualType = type
             assertEqualTypes(
                 type,
                 actualType,
@@ -52,16 +56,22 @@ class TypeChecker(
                 varInitialization.name.index
             )
         } else if (type is NoneType && actualType != null) {
-            varInitialization.type = actualType
-            type = actualType
-        } else if (type == NoneType() && actualType == null) {
+            if (actualType is NormalType && actualType.type == NormalTypes.ANY_INT) {
+                varInitialization.type = NormalType(NormalTypes.I32)
+                type = NormalType(NormalTypes.I32)
+            } else {
+                varInitialization.type = actualType
+                type = actualType
+            }
+        } else if (type == NoneType()) {
             errorManager.error(
                 varInitialization.name.line,
                 varInitialization.name.index,
                 "Variable initializations need either an explicit type or a value."
             )
         }
-        variables.last()[varInitialization.name.substring] = type
+        currentVarIndex += type.getLength()
+        SymbolTableSingleton.getCurrentSymbolTable().defineVariable(scope, varInitialization.name.substring, type, currentVarIndex)
         return NoneType()
     }
 
@@ -90,56 +100,62 @@ class TypeChecker(
     }
 
     override fun visitCall(call: Expression.Call): Type {
-        if (call.callee is Expression.VarCall) {
-            val function =
-                functions.firstOrNull { it.name == (call.callee as Expression.VarCall).varName.substring && it.args.size == call.arguments.size }
-            if (function == null) {
-                errorManager.error(-1, -1, "Could not find the called function.")
-                return NoneType()
-            }
-            var i = 0
-            for (arg in function.args) {
-                assertEqualTypes(evaluate(call.arguments[i]), arg.value, "Mismatched types when calling '${function.name}'.")
-                i++
-            }
-            return function.returnType ?: NoneType()
+        val function =
+            SymbolTableSingleton.getCurrentSymbolTable().functions.firstOrNull { it.name == call.callee.varName.substring && it.args.size == call.arguments.size }
+        if (function == null) {
+            errorManager.error(-1, -1, "Could not find the called function.")
+            return NoneType()
         }
-        TODO()
+        var i = 0
+        for (arg in function.args) {
+            assertEqualTypes(evaluate(call.arguments[i]), arg.value, "Mismatched types when calling '${function.name}'.")
+            i++
+        }
+        return function.returnType ?: NoneType()
     }
 
     override fun visitLiteral(literal: Expression.Literal): Type {
         return when (literal.value) {
-            is Int -> NormalType(NormalTypes.I32)
+            is Int -> NormalType(NormalTypes.ANY_INT)
             is Char -> NormalType(NormalTypes.CHAR)
             else -> error("Could not find the literal type.")
         }
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Type {
-        val variable = getVariables()[varCall.varName.substring]
-        if (variable == null) {
+        return try {
+            getVariables().first { it.name == varCall.varName.substring }.type
+        } catch (e: NoSuchElementException) {
             errorManager.error(varCall.varName.line, varCall.varName.index, "Could not find the requested variable '${varCall.varName.substring}")
-            return NoneType()
+            NoneType()
         }
-        return variable
     }
 
-    private fun getVariables(): MutableMap<String, Type> {
-        return variables.fold(mutableMapOf()) { acc, x -> acc.putAll(x); acc }
+    private fun getVariables(): List<VarNode> {
+        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesInCurrentScope(scope)
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): Type {
-        functions.add(
+        val args = functionDefinition.args.map { it as Expression.ArgumentDefinition }.associate { it.name.substring to it.type }
+        SymbolTableSingleton.getCurrentSymbolTable().functions.add(
             Function(
                 functionDefinition.name.substring,
-                functionDefinition.args.map { it as Expression.ArgumentDefinition }.associate { it.name.substring to it.type },
+                args,
                 functionDefinition.type
             )
         )
-        variables.push(mutableMapOf())
-        variables.last().putAll(functions.last().args)
+        SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
+        functionDefinition.args.forEach {
+            val argumentDefinition = it as Expression.ArgumentDefinition
+
+            currentVarIndex += argumentDefinition.type.getLength()
+            SymbolTableSingleton.getCurrentSymbolTable()
+                .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+        }
         evaluate(functionDefinition.body)
-        variables.pop()
+        scope.pop()
         return NoneType()
     }
 
@@ -181,18 +197,19 @@ class TypeChecker(
 
     override fun visitStructDefinition(structDefinition: Expression.StructDefinition): Type {
         val variables = structDefinition.body.map { it.name.substring to it.type }
-        structs[structDefinition.name.substring] = Struct(structDefinition.name.substring, variables)
+        SymbolTableSingleton.getCurrentSymbolTable().structs[structDefinition.name.substring] = Struct(structDefinition.name.substring, variables)
         return NoneType()
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Type {
         var type = evaluate(instanceGet.expression)
-        if (type !is StructType || type is PointerType && type.subtype !is StructType) {
+        if (type !is StructType || (type is PointerType && type.subtype !is StructType)) {
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The requested value is not a struct.")
             return NoneType()
         }
         if (type is PointerType) type = type.subtype
-        val structType = structs[(type as StructType).typeName]!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
+        val structType = SymbolTableSingleton.getCurrentSymbolTable()
+            .getStruct((type as StructType).typeName)!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
         if (structType == null) {
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The struct does not have the requested value.")
             return NoneType()
@@ -218,7 +235,11 @@ class TypeChecker(
     }
 
     override fun visitBlockStatement(blockStatement: Expression.BlockStatement): Type {
+        SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
         blockStatement.statements.forEach { evaluate(it) }
+        scope.pop()
         return NoneType()
     }
 
@@ -254,7 +275,7 @@ class TypeChecker(
         val type = evaluate(currentArrayGet.expression)
         var resultType = type
         for (i in 0 until depth) {
-            resultType = when(resultType){
+            resultType = when (resultType) {
                 is ArrayType -> resultType.subType
                 is PointerType -> resultType.subtype
                 else -> {
@@ -263,7 +284,7 @@ class TypeChecker(
                 }
             }
         }
-        if(resultType is ArrayType)
+        if (resultType is ArrayType)
             return PointerType(resultType.subType)
         return resultType
     }
@@ -276,19 +297,21 @@ class TypeChecker(
     }
 
     override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): Type {
-        functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
+        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
         return NoneType()
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): Type {
-        var variable = getVariables()[pointerGet.varCall.varName.substring]
-        if (variable == null) {
+        return try {
+            var variable = getVariables().first { it.name == pointerGet.varCall.varName.substring }.type
+
+            if (variable is ArrayType)
+                variable = variable.subType
+            PointerType(variable)
+        } catch (e: NoSuchElementException) {
             errorManager.error(pointerGet.varCall.varName.line, pointerGet.varCall.varName.index, "The requested variable could not be found.")
-            return NoneType()
+            NoneType()
         }
-        if (variable is ArrayType)
-            variable = variable.subType
-        return PointerType(variable)
     }
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Type {

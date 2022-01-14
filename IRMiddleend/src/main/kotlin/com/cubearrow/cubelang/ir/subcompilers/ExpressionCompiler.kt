@@ -1,9 +1,9 @@
 package com.cubearrow.cubelang.ir.subcompilers
 
-import com.cubearrow.cubelang.common.ArrayType
-import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.PointerType
+import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.ir.*
+import com.cubearrow.cubelang.common.ir.Variable
+import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getOperationFromString
 import com.cubearrow.cubelang.ir.getTypeOfLiteral
@@ -21,6 +21,11 @@ class ExpressionCompiler(private val context: IRCompilerContext) {
                 (context.resultList.last().resultType as PointerType).subtype
             )
         )
+    }
+    fun argumentDefinition(argumentDefinition: Expression.ArgumentDefinition){
+        context.variables.last()[argumentDefinition.name.substring] = argumentDefinition.type
+        context.pushValue(IRValue(IRType.VAR_DEF, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
+        context.pushValue(IRValue(IRType.POP_ARG, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
     }
 
     fun compilePointerGet(pointerGet: Expression.PointerGet){
@@ -58,8 +63,8 @@ class ExpressionCompiler(private val context: IRCompilerContext) {
             context.currentTempRegisterIndex = previousTempRegisterIndex
             context.pushValue(IRValue(IRType.PUSH_ARG, valueType, null, null, resultType))
         }
-        val functionName = (call.callee as Expression.VarCall).varName.substring
-        val type = context.functions.first { it.name == functionName }
+        val functionName = call.callee.varName.substring
+        val type = SymbolTableSingleton.getCurrentSymbolTable().functions.first { it.name == functionName }
         context.pushValue(IRValue(IRType.CALL, FunctionLabel(functionName), null, TemporaryRegister(0), type.returnType!!))
     }
 

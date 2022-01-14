@@ -2,9 +2,9 @@ package com.cubearrow.cubelang.ir.subcompilers
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.ir.*
+import com.cubearrow.cubelang.common.ir.Variable
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getAllNestedArrayGets
-import com.cubearrow.cubelang.ir.getLength
 import com.cubearrow.cubelang.ir.getTypeOfExpression
 
 class ArrayManagementCompiler(private val context: IRCompilerContext) {
