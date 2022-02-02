@@ -34,6 +34,7 @@ class ErrorManager(private val lines: List<String>, private var exitAfterError: 
         if (exitAfterError)
             exitProcess(65)
     }
+
     fun exitIfError(){
         if(containsError)
             exitProcess(65)

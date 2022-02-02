@@ -14,8 +14,7 @@ repositories {
 dependencies {
     implementation(project(":Common"))
     implementation(project(":Frontend"))
-    implementation(project(":IRMiddleend"))
-    implementation(project(":IRX86_64Backend"))
+    implementation(project(":InstructionSelection"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.21")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.0")

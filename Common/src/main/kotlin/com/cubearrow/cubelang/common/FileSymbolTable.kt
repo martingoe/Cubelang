@@ -30,7 +30,6 @@ class FileSymbolTable {
             accessibleVariables.addAll(currentNode.symbols.filterIsInstance(VarNode::class.java))
         }
         return accessibleVariables
-
     }
 
 
