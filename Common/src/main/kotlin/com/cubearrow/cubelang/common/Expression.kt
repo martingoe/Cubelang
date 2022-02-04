@@ -3,7 +3,9 @@ package com.cubearrow.cubelang.common
 
 import com.cubearrow.cubelang.common.tokens.Token
 
-abstract class Expression(var state: Int = 0) {
+abstract class Expression {
+
+    var resultType: Type? = null
 
     class Assignment (val name: Token, var valueExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
@@ -155,14 +157,9 @@ abstract class Expression(var state: Int = 0) {
         }
     }
 
-    class Empty (val any: Any?) : Expression() {
+    class Empty : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitEmpty(this)
-        }
-    }
-    class FramePointer: Expression() {
-        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
-            TODO("Not yet implemented")
         }
     }
 

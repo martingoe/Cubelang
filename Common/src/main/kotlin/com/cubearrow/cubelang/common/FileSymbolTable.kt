@@ -7,9 +7,9 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 object SymbolTableSingleton{
-    var currentIndex = 0
-    val fileSymbolTables: MutableList<FileSymbolTable> = ArrayList()
-    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]
+    var currentName: String = ""
+    var fileSymbolTables: MutableMap<String, FileSymbolTable> = HashMap()
+    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentName]!!
 }
 class FileSymbolTable {
     init {
@@ -17,7 +17,7 @@ class FileSymbolTable {
     }
     var structs: HashMap<String, Struct> = HashMap()
     var functions: MutableList<Function> = ArrayList()
-    var variables: Node = Scope(ArrayList())
+    private var variables: Node = Scope(ArrayList())
 
     fun getVariablesInCurrentScope(scope: Stack<Int>): List<VarNode>{
         val scopeClone: Stack<Int> = scope.clone() as Stack<Int>
@@ -30,7 +30,19 @@ class FileSymbolTable {
             accessibleVariables.addAll(currentNode.symbols.filterIsInstance(VarNode::class.java))
         }
         return accessibleVariables
+    }
 
+    fun getVariablesOffsetDefinedAtScope(scope: Stack<Int>): Int{
+        val node = getNodeAtScope(scope)
+        return getOffsetAtNode(node)
+    }
+
+    private fun getOffsetAtNode(node: Node): Int {
+        return when(node){
+            is VarNode -> node.type.getLength()
+            is Scope -> node.symbols.fold(0) { acc, node -> acc + getOffsetAtNode(node) }
+            else -> error("Unreachable")
+        }
     }
 
 

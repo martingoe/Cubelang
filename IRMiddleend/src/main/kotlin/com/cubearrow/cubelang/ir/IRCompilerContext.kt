@@ -1,7 +1,9 @@
 package com.cubearrow.cubelang.ir
 
 import com.cubearrow.cubelang.common.Expression
+import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.common.Type
+import com.cubearrow.cubelang.common.VarNode
 import com.cubearrow.cubelang.common.ir.IRValue
 import com.cubearrow.cubelang.common.ir.ValueType
 import java.util.*
@@ -11,17 +13,16 @@ data class IRCompilerContext(
     var currentTempRegisterIndex: Int = 0,
     var currentTempLabelIndex: Int = 0,
     var currentRegistersToSkip: MutableList<Int> = mutableListOf(),
-    var currentReturnLabelIndex: Int = 0,
 
     var currentRegistersToSave: Int = 0,
 
-
     var resultList: MutableList<IRValue> = mutableListOf(),
-    var variables: Stack<MutableMap<String, Type>> = Stack(),
+    var scope: Stack<Int> = Stack(),
+    // var variables: Stack<MutableMap<String, Type>> = Stack(),
     val compilerInstance: IRCompiler
 ) {
-    fun getVariables(): MutableMap<String, Type> {
-        return variables.fold(mutableMapOf()) { acc, x -> acc.putAll(x); acc }
+    private fun getVariables(): List<VarNode> {
+        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesInCurrentScope(scope)
     }
 
     fun pushValue(value: IRValue) = resultList.add(value)
@@ -47,5 +48,9 @@ data class IRCompilerContext(
             currentTempRegisterIndex++
         currentTempRegisterIndex++
         return beforeIncrease
+    }
+
+    fun getVariable(substring: String): VarNode {
+        return getVariables().first { it.name == substring }
     }
 }

@@ -23,13 +23,11 @@ class ExpressionCompiler(private val context: IRCompilerContext) {
         )
     }
     fun argumentDefinition(argumentDefinition: Expression.ArgumentDefinition){
-        context.variables.last()[argumentDefinition.name.substring] = argumentDefinition.type
-        context.pushValue(IRValue(IRType.VAR_DEF, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
         context.pushValue(IRValue(IRType.POP_ARG, null, null, Variable(argumentDefinition.name.substring), argumentDefinition.type))
     }
 
     fun compilePointerGet(pointerGet: Expression.PointerGet){
-        var type = context.getVariables()[pointerGet.varCall.varName.substring]!!
+        var type = context.getVariable(pointerGet.varCall.varName.substring).type
         if (type is ArrayType)
             type = type.subType
         context.pushValue(
@@ -75,7 +73,7 @@ class ExpressionCompiler(private val context: IRCompilerContext) {
                 Variable(varCall.varName.substring),
                 null,
                 TemporaryRegister(context.increaseTempRegisterIndex()),
-                context.getVariables()[varCall.varName.substring]!!
+                context.getVariable(varCall.varName.substring).type
             )
         )
     }

@@ -2,7 +2,6 @@ package com.cubearrow.cubelang.ir
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.ir.IRType
-import com.cubearrow.cubelang.common.SymbolTableSingleton
 
 fun getIntTypeFromLength(length: Int): NormalType {
     return when (length) {
@@ -84,19 +83,5 @@ fun getTypeOfLiteral(value: Any?): Type {
         is Int -> NormalType(NormalTypes.I32)
         is Char -> NormalType(NormalTypes.CHAR)
         else -> error("Could not find the literal type.")
-    }
-}
-
-fun getTypeOfExpression(expression: Expression, context: IRCompilerContext): Type? {
-    return when (expression) {
-        is Expression.Literal -> getTypeOfLiteral(expression.value)
-        is Expression.VarCall -> context.getVariables()[expression.varName.substring]!!
-        is Expression.ArrayGet -> (getTypeOfExpression(expression.expression, context) as ArrayType).subType
-        is Expression.Call -> SymbolTableSingleton.getCurrentSymbolTable().functions.first { it.name == expression.callee.varName.substring }.returnType
-        is Expression.Grouping -> getTypeOfExpression(expression.expression, context)
-        is Expression.Unary -> getTypeOfExpression(expression.expression, context)
-
-        is Expression.Operation -> getTypeOfExpression(expression.leftExpression, context)
-        else -> error("Unknown type.")
     }
 }

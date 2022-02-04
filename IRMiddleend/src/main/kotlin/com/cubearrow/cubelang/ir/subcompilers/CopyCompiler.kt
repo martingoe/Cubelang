@@ -3,7 +3,6 @@ package com.cubearrow.cubelang.ir.subcompilers
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.PointerType
 import com.cubearrow.cubelang.common.StructType
-import com.cubearrow.cubelang.common.Type
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getIntTypeFromLength
@@ -13,13 +12,8 @@ class CopyCompiler(private val context: IRCompilerContext) {
     fun compileVarInitialization(varInitialization: Expression.VarInitialization) {
         context.clearUsedRegisters()
 
-        val index = context.resultList.size
         if (varInitialization.valueExpression != null)
             compileCopy(varInitialization.name.substring, varInitialization.valueExpression!!)
-        val valueType: Type = varInitialization.type
-
-        context.variables.last()[varInitialization.name.substring] = valueType
-        context.resultList.add(index, IRValue(IRType.VAR_DEF, null, null, Variable(varInitialization.name.substring), valueType))
     }
 
     private fun compileCopy(name: String, value: Expression) {

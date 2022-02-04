@@ -1,6 +1,5 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.TreeRewriter
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.FileSymbolTable
 import com.cubearrow.cubelang.common.SymbolTableSingleton
@@ -28,6 +27,11 @@ fun main(args: Array<String>) {
 
 class Main(private val libraryPath: String) {
     fun compileFile(sourceFile: Array<String>) {
+        for(i in DefinedFunctions.definedFunctions){
+            SymbolTableSingleton.currentName = i.key
+            SymbolTableSingleton.fileSymbolTables[i.key] = FileSymbolTable()
+            SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(i.value)
+        }
         val expressionsList = HashMap<String, List<Expression>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
@@ -37,7 +41,11 @@ class Main(private val libraryPath: String) {
             val errorManager = ErrorManager(lines, false)
             errorManagers[source] = errorManager
             val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
-            addFunctionsToMap(source, expressions)
+
+            SymbolTableSingleton.fileSymbolTables[source] = FileSymbolTable()
+            expressions.filterIsInstance<Expression.FunctionDefinition>()
+                .forEach {SymbolTableSingleton.fileSymbolTables[source]!!.functions.add(Function(it.name.substring, mapArgumentDefinitions(it.args), it.type))}
+
             expressionsList[source] = expressions
         }
         errorManagers.forEach { it.value.exitIfError() }
@@ -46,24 +54,15 @@ class Main(private val libraryPath: String) {
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
-            SymbolTableSingleton.currentIndex = i
-            SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
+            SymbolTableSingleton.currentName = expressions.key
 
-            TypeChecker(expressions.value, errorManagers[expressions.key]!!, DefinedFunctions.definedFunctions).checkTypes()
+            TypeChecker(expressions.value, errorManagers[expressions.key]!!).checkTypes()
 
             val irCompiler = IRCompiler(expressions.value, libraryPath)
             val irValues = irCompiler.parse()
             println(irValues.joinToString("\n"))
             resultFile.writeText(X86IRCompiler(irValues, SymbolTableSingleton.getCurrentSymbolTable().structs).compile())
             i++
-        }
-    }
-
-    private fun addFunctionsToMap(fileName: String, expressions: List<Expression>) {
-        DefinedFunctions.definedFunctions[fileName] = ArrayList()
-        expressions.filterIsInstance<Expression.FunctionDefinition>().forEach {
-            val args = mapArgumentDefinitions(it.args)
-            DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }
 

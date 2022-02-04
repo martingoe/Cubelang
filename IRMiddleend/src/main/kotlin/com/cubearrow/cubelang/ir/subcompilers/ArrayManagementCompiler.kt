@@ -5,7 +5,6 @@ import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.ir.Variable
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getAllNestedArrayGets
-import com.cubearrow.cubelang.ir.getTypeOfExpression
 
 class ArrayManagementCompiler(private val context: IRCompilerContext) {
     fun compileArraySet(arraySet: Expression.ArraySet){
@@ -31,7 +30,7 @@ class ArrayManagementCompiler(private val context: IRCompilerContext) {
         val previousTemporaryRegisterIndex = context.currentTempRegisterIndex
         val arrayGets = getAllNestedArrayGets(arrayGet)
 
-        var currentType = getTypeOfExpression(arrayGets.last().expression, context)
+        var currentType = arrayGets.last().expression.resultType
         val expressionValue = getExpressionValue(currentType, arrayGets)
 
         val resultOffsetRegister = TemporaryRegister(context.increaseTempRegisterIndex())

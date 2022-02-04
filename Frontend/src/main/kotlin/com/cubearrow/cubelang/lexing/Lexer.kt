@@ -147,7 +147,7 @@ class Lexer(private val fileContent: String) {
     }
 
     private fun string() {
-        var buffer = "\""
+        var buffer = ""
         index++
         while (peek() != '"' && index < fileContent.length) {
             if (peek() == '\n') line++

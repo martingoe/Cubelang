@@ -34,7 +34,7 @@ class IRCompiler(
     }
 
     init {
-        context.variables.push(mutableMapOf())
+        context.scope.push(-1)
     }
 
 

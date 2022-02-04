@@ -9,10 +9,10 @@ import java.util.*
 
 class TypeChecker(
     private val expressions: List<Expression>,
-    private val errorManager: ErrorManager,
-    private val definedFunctions: Map<String, List<Function>>
+    private val errorManager: ErrorManager
 ) : Expression.ExpressionVisitor<Type> {
     var currentVarIndex = 0
+    var currentPosVarIndex = 16
     var scope = Stack<Int>()
     private var variables: Stack<MutableMap<String, Type>> = Stack()
 
@@ -85,6 +85,7 @@ class TypeChecker(
             operation.operator.line,
             operation.operator.index
         )
+        operation.resultType = leftType
         return leftType
     }
 
@@ -111,24 +112,29 @@ class TypeChecker(
             assertEqualTypes(evaluate(call.arguments[i]), arg.value, "Mismatched types when calling '${function.name}'.")
             i++
         }
+        call.resultType = function.returnType ?: NoneType()
         return function.returnType ?: NoneType()
     }
 
     override fun visitLiteral(literal: Expression.Literal): Type {
-        return when (literal.value) {
+        val type = when (literal.value) {
             is Int -> NormalType(NormalTypes.ANY_INT)
             is Char -> NormalType(NormalTypes.CHAR)
             else -> error("Could not find the literal type.")
         }
+        literal.resultType = type
+        return type
     }
 
     override fun visitVarCall(varCall: Expression.VarCall): Type {
-        return try {
+        val type = try {
             getVariables().first { it.name == varCall.varName.substring }.type
         } catch (e: NoSuchElementException) {
             errorManager.error(varCall.varName.line, varCall.varName.index, "Could not find the requested variable '${varCall.varName.substring}")
             NoneType()
         }
+        varCall.resultType = type
+        return type
     }
 
     private fun getVariables(): List<VarNode> {
@@ -136,6 +142,8 @@ class TypeChecker(
     }
 
     override fun visitFunctionDefinition(functionDefinition: Expression.FunctionDefinition): Type {
+        currentPosVarIndex = 16
+        currentVarIndex = 0
         val args = functionDefinition.args.map { it as Expression.ArgumentDefinition }.associate { it.name.substring to it.type }
         SymbolTableSingleton.getCurrentSymbolTable().functions.add(
             Function(
@@ -147,12 +155,19 @@ class TypeChecker(
         SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
         scope.push(scope.pop() + 1)
         scope.push(-1)
-        functionDefinition.args.forEach {
-            val argumentDefinition = it as Expression.ArgumentDefinition
+        for(i in 0 until functionDefinition.args.size){
+            val argumentDefinition = functionDefinition.args[i] as Expression.ArgumentDefinition
 
-            currentVarIndex += argumentDefinition.type.getLength()
-            SymbolTableSingleton.getCurrentSymbolTable()
-                .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+            if(i < ARGUMENT_REGISTER_SIZE) {
+                currentVarIndex += argumentDefinition.type.getLength()
+                SymbolTableSingleton.getCurrentSymbolTable()
+                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+            } else{
+                SymbolTableSingleton.getCurrentSymbolTable()
+                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, -currentPosVarIndex)
+                currentPosVarIndex += 8
+
+            }
         }
         evaluate(functionDefinition.body)
         scope.pop()
@@ -169,12 +184,14 @@ class TypeChecker(
             comparison.comparator.line,
             comparison.comparator.index
         )
+        comparison.resultType = NormalType(NormalTypes.I8)
         return NormalType(NormalTypes.I8)
     }
 
     override fun visitIfStmnt(ifStmnt: Expression.IfStmnt): Type {
         evaluate(ifStmnt.ifBody)
         evaluate(ifStmnt.condition)
+        ifStmnt.elseBody?.let { evaluate(it) }
         return NoneType()
     }
 
@@ -214,6 +231,7 @@ class TypeChecker(
             errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The struct does not have the requested value.")
             return NoneType()
         }
+        instanceGet.resultType = structType.second
         return structType.second
     }
 
@@ -242,7 +260,6 @@ class TypeChecker(
         scope.pop()
         return NoneType()
     }
-
     override fun visitLogical(logical: Expression.Logical): Type {
         val leftType = evaluate(logical.leftExpression)
         val rightType = evaluate(logical.rightExpression)
@@ -253,15 +270,20 @@ class TypeChecker(
             logical.logical.line,
             logical.logical.index
         )
+        logical.resultType = NormalType(NormalTypes.I8)
         return NormalType(NormalTypes.I8)
     }
 
     override fun visitUnary(unary: Expression.Unary): Type {
-        return evaluate(unary.expression)
+        val type = evaluate(unary.expression)
+        unary.resultType = type
+        return type
     }
 
     override fun visitGrouping(grouping: Expression.Grouping): Type {
-        return evaluate(grouping.expression)
+        val type = evaluate(grouping.expression)
+        grouping.resultType = type
+        return type
     }
 
     override fun visitArrayGet(arrayGet: Expression.ArrayGet): Type {
@@ -286,6 +308,7 @@ class TypeChecker(
         }
         if (resultType is ArrayType)
             return PointerType(resultType.subType)
+        arrayGet.resultType = resultType
         return resultType
     }
 
@@ -297,12 +320,12 @@ class TypeChecker(
     }
 
     override fun visitImportStmnt(importStmnt: Expression.ImportStmnt): Type {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
+        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(SymbolTableSingleton.fileSymbolTables[importStmnt.identifier.substring]!!.functions)
         return NoneType()
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): Type {
-        return try {
+        val type = try {
             var variable = getVariables().first { it.name == pointerGet.varCall.varName.substring }.type
 
             if (variable is ArrayType)
@@ -312,6 +335,8 @@ class TypeChecker(
             errorManager.error(pointerGet.varCall.varName.line, pointerGet.varCall.varName.index, "The requested variable could not be found.")
             NoneType()
         }
+        pointerGet.resultType = type
+        return type
     }
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Type {
@@ -320,10 +345,15 @@ class TypeChecker(
             errorManager.error(-1, -1, "Cannot read from a type which is not a pointer ($type).")
             return NoneType()
         }
+        valueFromPointer.resultType = type.subtype
         return type.subtype
     }
 
     override fun visitEmpty(empty: Expression.Empty): Type {
         return NoneType()
+    }
+
+    companion object {
+        const val ARGUMENT_REGISTER_SIZE = 6
     }
 }

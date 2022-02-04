@@ -2,10 +2,8 @@ package com.cubearrow.cubelang.ir.subcompilers
 
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.NoneType
-import com.cubearrow.cubelang.common.definitions.DefinedFunctions.Companion.definedFunctions
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.tokens.TokenType
-import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.ir.IRCompilerContext
 import com.cubearrow.cubelang.ir.getInvJumpOperationFromComparator
 import com.cubearrow.cubelang.ir.getJmpOperationFromComparator
@@ -23,12 +21,17 @@ class StatementCompiler(private val context: IRCompilerContext) {
         expression.accept(context.compilerInstance)
 
     fun compileBlockStmnt(blockStatement: Expression.BlockStatement) {
+        context.scope.push(context.scope.pop() + 1)
+        context.scope.push(-1)
+        pushValue(IRValue(IRType.NEW_SCOPE, null, null, null, NoneType()))
         for (statement in blockStatement.statements) {
             context.clearUsedRegisters()
             context.compilerInstance.evaluate(statement)
             if (statement is Expression.ReturnStmnt)
                 break
         }
+        pushValue(IRValue(IRType.POP_SCOPE, null, null, null, NoneType()))
+        context.scope.pop()
     }
 
     private fun resetIndexesForNewFunction() {
@@ -39,7 +42,9 @@ class StatementCompiler(private val context: IRCompilerContext) {
     fun compileFunctionDefinition(functionDefinition: Expression.FunctionDefinition) {
         context.clearUsedRegisters()
         resetIndexesForNewFunction()
-        context.variables.push(mutableMapOf())
+        context.scope.push(context.scope.pop() + 1)
+        context.scope.push(-1)
+        pushValue(IRValue(IRType.NEW_SCOPE, null, null, null, NoneType()))
         pushValue(IRValue(IRType.FUNC_DEF, FunctionLabel(functionDefinition.name.substring), null, null, functionDefinition.type))
 
         for (arg in functionDefinition.args)
@@ -48,10 +53,11 @@ class StatementCompiler(private val context: IRCompilerContext) {
         val pushIndex = context.resultList.size
         evaluate(functionDefinition.body)
 
-        pushLabel(context.currentReturnLabelIndex)
+        pushLabel(0)
         saveRegisters(context.currentRegistersToSave, pushIndex)
         pushValue(IRValue(IRType.RET, null, null, null, NoneType()))
-        context.variables.pop()
+        context.scope.pop()
+        pushValue(IRValue(IRType.POP_SCOPE, null, null, null, NoneType()))
     }
 
 
@@ -157,11 +163,12 @@ class StatementCompiler(private val context: IRCompilerContext) {
     }
 
     fun compileImportStmnt(importStmnt: Expression.ImportStmnt, stdlibPath: String) {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
         val name =
-            (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
-                importStmnt.identifier.substring.substringBeforeLast(".")
-            ).absolutePath) + ".asm"
+            (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER)
+                File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring
+            else
+                File(importStmnt.identifier.substring.substringBeforeLast(".")).absolutePath) + ".asm"
+
         pushValue(IRValue(IRType.INCLUDE, Literal(name), null, null, NoneType()))
     }
 

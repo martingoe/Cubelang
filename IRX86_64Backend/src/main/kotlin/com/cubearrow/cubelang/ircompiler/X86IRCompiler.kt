@@ -2,6 +2,8 @@ package com.cubearrow.cubelang.ircompiler
 
 import com.cubearrow.cubelang.common.ArrayType
 import com.cubearrow.cubelang.common.PointerType
+import com.cubearrow.cubelang.common.SymbolTableSingleton
+import com.cubearrow.cubelang.common.VarNode
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.ircompiler.utils.extendTo64Bit
@@ -10,28 +12,20 @@ import com.cubearrow.cubelang.ircompiler.utils.getRegister
 import java.util.*
 
 class X86IRCompiler(private val instructions: List<IRValue>, private val structs: MutableMap<String, Struct>) {
-    private var currentVarIndex = 0
     private var currentPushArgumentIndex = 0
     private var currentPopArgumentIndex = 0
-    private var positiveArgIndex = 16
+    private var scope: Stack<Int> = Stack()
 
     init {
-        for (struct in structs)
-            lengthsOfTypes[struct.key] = struct.value.variables.fold(0) { acc, pair -> acc + pair.second.getLength() }
+        scope.push(-1)
     }
-
     companion object {
         val TEMPORARY_REGISTERS = listOf("ax", "dx", "bx", "di", "si", "cx")
         val ARGUMENT_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
-
-        val lengthsOfTypes = mutableMapOf("I8" to 1, "I16" to 2, "I32" to 4, "I64" to 8, "CHAR" to 1)
     }
 
-    class X86Variable(var index: Int)
-
-    private val variables: Stack<MutableMap<String, X86Variable>> = Stack()
     fun compile(): String {
-        variables.push(mutableMapOf())
+        // variables.push(mutableMapOf())
         var result = "section .text\n    global main\n"
         for (instruction in instructions) {
             result += compileSingle(instruction)
@@ -65,7 +59,6 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.JMP_NE -> compileJmpNE(instruction)
             IRType.LABEL -> compileLabel(instruction)
             IRType.JMP -> compileJmp(instruction)
-            IRType.VAR_DEF -> compileVarDefinition(instruction)
             IRType.COPY_TO_STRUCT_GET -> compileCopyToStructGet(instruction)
             IRType.COPY_FROM_STRUCT_GET -> compileCopyFromStructGet(instruction)
             IRType.INCLUDE -> "%include \"${instruction.arg0}\"\n"
@@ -73,6 +66,15 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             IRType.POP_REG -> pushOrPopInstruction(instruction, "pop")
             IRType.COPY_FROM_REG_OFFSET -> compileCopyFromRegOffset(instruction)
             IRType.CMP -> compileCmp(instruction)
+            IRType.NEW_SCOPE -> {
+                scope.push(scope.pop() + 1)
+                scope.push(-1)
+                ""
+            }
+            IRType.POP_SCOPE -> {
+                scope.pop()
+                ""
+            }
         }
     }
 
@@ -142,14 +144,14 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
      */
     private fun compileDivOperation(instruction: IRValue): String {
         var result = "div ${getPointerValue(instruction.arg1!!, instruction.resultType.getLength())}\n"
-        if (instruction.result !is TemporaryRegister && (instruction.result!! as TemporaryRegister).index != 0)
+        if (instruction.result is TemporaryRegister && (instruction.result!! as TemporaryRegister).index != 0)
             result += "mov ${getRegister("ax", instruction.resultType.getLength())}, ${
                 getPointerValue(
                     instruction.result!!,
                     instruction.resultType.getLength()
                 )
             }\n"
-        if (instruction.arg0!! !is TemporaryRegister && (instruction.arg0 as TemporaryRegister).index != 0) {
+        if (instruction.arg0!! is TemporaryRegister && (instruction.arg0 as TemporaryRegister).index != 0) {
             result = "push rax\n$result\npop rax"
         }
         return result
@@ -158,7 +160,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     /**
      * Moves the value to the requested register and negates it.
      *
-     * @return Returs a string with the following format: 'mov arg0, result\nneg result\n'
+     * @return Returns a string with the following format: 'mov arg0, result\nneg result\n'
      */
     private fun compileNegUnary(instruction: IRValue): String {
         return "mov ${getPointerValue(instruction.result!!, instruction.resultType.getLength())}, ${
@@ -178,11 +180,11 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
      */
     private fun compileCopyFromStructGet(instruction: IRValue): String {
         if (instruction.arg0 is Variable) {
-            val variable = getVariables()[(instruction.arg0 as Variable).name]!!
+            val variable = getVariable((instruction.arg0 as Variable).name)
             val structSubvalue = instruction.arg1 as StructSubvalue
 
             val struct = structs[structSubvalue.structType.typeName]!!
-            val index = getStructIndex(struct, structSubvalue, variable.index)
+            val index = getStructIndex(struct, structSubvalue, variable.offset)
             return "mov ${
                 getPointerValue(
                     instruction.result!!,
@@ -205,11 +207,11 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
 
     private fun compileCopyToStructGet(instruction: IRValue): String {
         if (instruction.arg0 is Variable) {
-            val variable = getVariables()[(instruction.arg0 as Variable).name]!!
+            val variable = getVariable((instruction.arg0 as Variable).name)
             val structSubvalue = instruction.arg1 as StructSubvalue
 
             val struct = structs[structSubvalue.structType.typeName]!!
-            val index = getStructIndex(struct, structSubvalue, variable.index)
+            val index = getStructIndex(struct, structSubvalue, variable.offset)
             return "mov ${getASMPointerLength(instruction.resultType.getLength())}[${variableIndex(index)}], ${
                 getPointerValue(
                     instruction.result!!,
@@ -231,11 +233,11 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
             }, " +
                     "${getPointerValue(instruction.result!!, instruction.resultType.getLength())}\n"
         } else if (instruction.arg0 is Variable && instruction.arg1 is TemporaryRegister) {
-            val variable = getVariables()[(instruction.arg0 as Variable).name]!!
+            val variable = getVariable((instruction.arg0 as Variable).name)
             val result = extendTo64Bit(instruction.arg1 as TemporaryRegister, instruction.resultType.getLength())
             return "$result\nmov ${
                 getArrayElemPointer(
-                    variableIndex(variable.index),
+                    variableIndex(variable.offset),
                     getRegister(TEMPORARY_REGISTERS[(instruction.arg1 as TemporaryRegister).index], 8), instruction.resultType.getLength()
                 )
             }, " +
@@ -245,7 +247,6 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileCopyFromArrayElem(instruction: IRValue): String {
-
         val len = if (instruction.resultType is ArrayType) 8 else instruction.resultType.getLength()
         val instructionStr = if (instruction.resultType is PointerType) "lea" else "mov"
         if (instruction.arg0 is TemporaryRegister && instruction.arg1 is TemporaryRegister) {
@@ -265,7 +266,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                 )
             }\n"
         } else if (instruction.arg0 is Variable && instruction.arg1 is TemporaryRegister) {
-            val variable = getVariables()[(instruction.arg0 as Variable).name]!!
+            val variable = getVariable((instruction.arg0 as Variable).name)
             val result = extendTo64Bit(instruction.arg1 as TemporaryRegister, len)
             return "$result\n$instructionStr ${
                 getPointerValue(
@@ -274,13 +275,13 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                 )
             }, ${
                 getArrayElemPointer(
-                    variableIndex(variable.index),
+                    variableIndex(variable.offset),
                     getRegister(TEMPORARY_REGISTERS[(instruction.arg1 as TemporaryRegister).index], 8),
                     len
                 )
             }\n"
         } else if (instruction.arg0 is Variable && instruction.arg1 is Literal) {
-            val variable = getVariables()[(instruction.arg0 as Variable).name]!!
+            val variable = getVariable((instruction.arg0 as Variable).name)
             return "$instructionStr ${
                 getPointerValue(
                     instruction.result!!,
@@ -288,7 +289,7 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                 )
             }, ${
                 getArrayElemPointer(
-                    variableIndex(variable.index), (instruction.arg1 as Literal).value, len
+                    variableIndex(variable.offset), (instruction.arg1 as Literal).value, len
                 )
             }\n"
         }
@@ -341,9 +342,6 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
                 )
             }\n"
         }
-        currentVarIndex += instruction.resultType.getLength()
-        variables.last()[(instruction.result as Variable).name]!!.index = positiveArgIndex
-        positiveArgIndex += 8
         return ""
     }
 
@@ -361,15 +359,12 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun compileFuncDef(instruction: IRValue): String {
-        currentVarIndex = 0
+        // currentVarIndex = 0
         currentPopArgumentIndex = 0
-        positiveArgIndex = 16
-        val instructionIndex = instructions.indexOf(instruction)
-        var nextIndex = instructions.indexOfFirst { irValue -> irValue.type == IRType.FUNC_DEF && instructions.indexOf(irValue) > instructionIndex }
-        if (nextIndex == -1)
-            nextIndex = instructions.size - 1
-        val subRsp = instructions.subList(instructionIndex, nextIndex).filter { irValue -> irValue.type == IRType.VAR_DEF }
-            .fold(0) { acc, irValue -> acc + irValue.resultType.getLength() }
+
+
+        val subRsp = SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
+
         return """${instruction.arg0 as FunctionLabel}:
             |push rbp
             |mov rbp, rsp
@@ -393,13 +388,13 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     }
 
     private fun copyFromRef(instruction: IRValue): String {
-        val index = getVariables()[(instruction.arg0 as Variable).name]!!.index
+        val index = getVariable((instruction.arg0 as Variable).name).offset
         return "lea ${
             getPointerValue(
                 instruction.result!!,
                 instruction.resultType.getLength()
             )
-        }, [rbp${if (index < 0) index.toString() else "+$index"}]\n"
+        }, [rbp ${if (index < 0) "+ ${index * -1}" else "- $index"}]\n"
     }
 
     private fun compileLabel(instruction: IRValue): String = "${instruction.result}:\n"
@@ -420,11 +415,6 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
         return compileOperationTwoArgs("imul", instruction)
     }
 
-    private fun compileVarDefinition(instruction: IRValue): String {
-        currentVarIndex -= instruction.resultType.getLength()
-        variables.last()[(instruction.result as Variable).name] = X86Variable(currentVarIndex)
-        return ""
-    }
 
     private fun compilePlusOperation(instruction: IRValue): String {
         return if (instruction.arg0 is TemporaryRegister) {
@@ -463,8 +453,8 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
      */
     private fun variableIndex(index: Int): String {
         return if (index < 0)
-            "rbp${index}"
-        else "rbp+$index"
+            "rbp + ${index * -1}"
+        else "rbp - $index"
     }
 
     /**
@@ -475,8 +465,8 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     private fun getPointerValue(value: ValueType, valueType: Int): String {
         return when (value) {
             is Variable -> {
-                val variable = getVariables()[value.name]!!
-                "${getASMPointerLength(valueType)} [${variableIndex(variable.index + value.extraOffset)}]"
+                val variable = getVariable(value.name)
+                "${getASMPointerLength(valueType)} [${variableIndex(variable.offset + value.extraOffset)}]"
             }
             is TemporaryLabel, is FunctionLabel -> value.toString()
 
@@ -490,7 +480,11 @@ class X86IRCompiler(private val instructions: List<IRValue>, private val structs
     /**
      * Returns all the currently declared variables.
      */
-    private fun getVariables(): MutableMap<String, X86Variable> {
-        return variables.fold(mutableMapOf()) { acc, x -> acc.putAll(x); acc }
+    private fun getVariables(): List<VarNode> {
+        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesInCurrentScope(scope)
+    }
+
+    private fun getVariable(name: String): VarNode {
+        return getVariables().first { name == it.name }
     }
 }

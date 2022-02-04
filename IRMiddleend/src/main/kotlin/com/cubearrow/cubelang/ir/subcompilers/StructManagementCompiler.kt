@@ -28,8 +28,8 @@ class StructManagementCompiler(private val context: IRCompilerContext) {
     private fun getInstanceGetOrSet(instanceGet: Expression.InstanceGet, irType: IRType, result: ValueType) {
         if (instanceGet.expression is Expression.VarCall) {
             val varName = (instanceGet.expression as Expression.VarCall).varName.substring
-            val variable = context.getVariables()[varName] ?: error("Could not find the variable")
-            val structType = getStructType(variable)
+            val variable = context.getVariable(varName)
+            val structType = getStructType(variable.type)
             context.pushValue(
                 IRValue(
                     irType,
