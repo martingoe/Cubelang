@@ -45,7 +45,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         } catch (error: ParseException){
             catchException(error.message, error.token)
         }
-        return Expression.Empty(null)
+        return Expression.Empty()
     }
 
     private fun importStatement(): Expression {
@@ -123,13 +123,13 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         consume(TokenType.BRCKTL, "Expected a '(' after 'for'")
 
         val init = when {
-            match(TokenType.SEMICOLON) -> Expression.Empty(null)
+            match(TokenType.SEMICOLON) -> Expression.Empty()
             match(TokenType.VAR) -> variableDefinition()
             else -> throw ParseException("Expected a variable definition or null in the initialization of a for loop", previous())
         }
         val condition = if (match(TokenType.SEMICOLON)) Expression.Literal(true) else orExpression()
         consume(TokenType.SEMICOLON, "Expected a ';' after the condition of the for loop")
-        val incrementor = if (peek(TokenType.BRCKTR)) Expression.Empty(null) else expression()
+        val incrementor = if (peek(TokenType.BRCKTR)) Expression.Empty() else expression()
         consume(TokenType.BRCKTR, "expect ')' after clauses")
         return Expression.ForStmnt(listOf(init, condition, incrementor), statement())
     }
