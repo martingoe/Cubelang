@@ -272,16 +272,19 @@ class TypeChecker(
 
     override fun visitArrayGet(arrayGet: Expression.ArrayGet): Type {
         var depth = 1
-        var currentArrayGet = arrayGet
-        while (currentArrayGet.expression is Expression.ArrayGet) {
+        val arrayGetList = mutableListOf(arrayGet)
+        while (arrayGetList.last().expression is Expression.ArrayGet) {
             depth++
-            currentArrayGet = currentArrayGet.expression as Expression.ArrayGet
+            arrayGetList.add(arrayGetList.last().expression as Expression.ArrayGet)
         }
 
-        val type = evaluate(currentArrayGet.expression)
+        val type = evaluate(arrayGetList.last().expression)
         var resultType = type
         for (i in 0 until depth) {
+            arrayGetList[i].resultType = resultType
+
             resultType = when (resultType) {
+
                 is ArrayType -> resultType.subType
                 is PointerType -> resultType.subtype
                 else -> {

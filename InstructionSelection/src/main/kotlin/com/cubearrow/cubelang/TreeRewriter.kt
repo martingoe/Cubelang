@@ -5,6 +5,7 @@ import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import java.util.*
+import kotlin.collections.ArrayList
 
 class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.ExpressionVisitor<Expression> {
     private var currentVarIndex = 0
@@ -187,21 +188,62 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         }
     }
     override fun visitArrayGet(arrayGet: Expression.ArrayGet): Expression {
-        if(arrayGet.expression is Expression.VarCall){
-            val variable = getVariable((arrayGet.expression as Expression.VarCall).varName)
-            variable.offset
-            if(arrayGet.inBrackets is Expression.Literal){
-                val index = variable.offset - getLiteralValue((arrayGet.inBrackets as Expression.Literal).value) * getSubtype(variable.type)!!.getLength()
-                return Expression.ValueFromPointer(
+        val arrayGets = getArrayGets(arrayGet)
+        if(arrayGets.last().expression is Expression.VarCall){
+            val variable = getVariable((arrayGets.last().expression as Expression.VarCall).varName)
+            var index = variable.offset
+
+            if(arrayGets.all { it.inBrackets is Expression.Literal }){
+
+                arrayGets.forEach {
+                    index -= it.resultType.getLength() * getLiteralValue((it.inBrackets as Expression.Literal).value)
+                }
+                val result = Expression.ValueFromPointer(
                     Expression.Operation(
                         Expression.FramePointer(),
                         Token("-", TokenType.PLUSMINUS),
                         Expression.Literal(index)
                     )
                 )
+                result.resultType = arrayGet.resultType
+                return result
             }
+
+            var resultAddition = Expression.Operation(evaluateExpression(arrayGets.last().inBrackets), Token("*", TokenType.STAR), Expression.Literal(arrayGets.last().resultType.getLength()))
+            arrayGets.dropLast(1).reversed().forEach {
+                resultAddition = Expression.Operation(
+                    resultAddition,
+                    Token("+", TokenType.PLUSMINUS),
+                    Expression.Operation(
+                        evaluateExpression(it.inBrackets),
+                        Token("*", TokenType.STAR),
+                        Expression.Literal(it.resultType.getLength())
+                    )
+                )
+            }
+            return Expression.ValueFromPointer(
+                Expression.Operation(
+                    Expression.Operation(
+                        Expression.FramePointer(),
+                        Token("-", TokenType.PLUSMINUS),
+                        Expression.Literal(index)
+                    ),
+                    Token("+", TokenType.PLUSMINUS),
+                    resultAddition
+                )
+            )
         }
+
         TODO()
+    }
+
+    private fun getArrayGets(arrayGet: Expression.ArrayGet): List<Expression.ArrayGet>{
+        val result: MutableList<Expression.ArrayGet> = ArrayList()
+        result.add(arrayGet)
+        while(result.last().expression is Expression.ArrayGet){
+            result.add(result.last().expression as Expression.ArrayGet)
+        }
+        return result
     }
 
     private fun getVariable(varName: Token): VarNode {
@@ -233,7 +275,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
 
     fun rewriteMultiple(expressions: List<Statement>) {
         expressions.forEach { rewrite(it) }
-
     }
 
     override fun visitValueToPointer(valueToPointer: Expression.ValueToPointer): Expression {

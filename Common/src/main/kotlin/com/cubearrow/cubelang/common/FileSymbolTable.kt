@@ -31,6 +31,18 @@ class FileSymbolTable {
         }
         return accessibleVariables
     }
+    fun getVariablesOffsetDefinedAtScope(scope: Stack<Int>): Int{
+        val node = getNodeAtScope(scope)
+        return getOffsetAtNode(node)
+    }
+
+    private fun getOffsetAtNode(node: Node): Int {
+        return when(node){
+            is VarNode -> node.type.getLength()
+            is Scope -> node.symbols.fold(0) { acc, node -> acc + getOffsetAtNode(node) }
+            else -> error("Unreachable")
+        }
+    }
 
 
     fun getStruct(name: String): Struct? = structs[name]

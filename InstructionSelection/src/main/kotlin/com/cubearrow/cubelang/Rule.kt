@@ -4,6 +4,10 @@ import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.NormalType
 import com.cubearrow.cubelang.common.NormalTypes
 import com.cubearrow.cubelang.common.Type
+import com.cubearrow.cubelang.common.ir.IRType
+import com.cubearrow.cubelang.common.ir.IRValue
+import com.cubearrow.cubelang.common.ir.Literal
+import com.cubearrow.cubelang.common.ir.TemporaryRegister
 import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
@@ -50,10 +54,13 @@ class PlusOperationRegLit : Rule() {
 
     override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
         val castExpression = expression as Expression.Operation
-        if ((castExpression.rightExpression as Expression.Literal).value == 1)
-            emitter.emit("inc ${castExpression.leftExpression}")
+        val reg = castExpression.leftExpression as Expression.Register
+        val temporaryRegister = TemporaryRegister(reg.index)
+        val value = getLiteralValue((castExpression.rightExpression as Expression.Literal).value)
+        if (value == 1)
+            emitter.emit(IRValue(IRType.INC, temporaryRegister, null, null, expression.resultType))
         else {
-            emitter.emit("add ${castExpression.leftExpression}, ${castExpression.rightExpression}")
+            emitter.emit(IRValue(IRType.PLUS_OP, temporaryRegister, Literal(value.toString()), temporaryRegister, expression.resultType))
         }
         return castExpression.leftExpression
     }

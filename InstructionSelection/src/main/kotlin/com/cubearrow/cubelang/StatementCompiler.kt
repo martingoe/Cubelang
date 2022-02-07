@@ -42,8 +42,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
     }
 
     private fun getFunctionOffset(): Int {
-        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesInCurrentScope(scope).fold(0)
-        { acc, varNode -> acc + varNode.type.getLength() }
+        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
     }
 
 
@@ -144,7 +143,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
     }
 
     override fun visitStructDefinition(structDefinition: Statement.StructDefinition) {
-        TODO("Not yet implemented")
+        return
     }
 
     override fun visitInstanceSet(instanceSet: Statement.InstanceSet): Any? {
@@ -178,8 +177,8 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
         emitter.emit("%include $name")
     }
 
-    override fun visitEmpty(empty: Statement.Empty): Any? {
-        TODO("Not yet implemented")
+    override fun visitEmpty(empty: Statement.Empty) {
+    return
     }
 
     override fun visitExpressionStatement(expressionStatement: Statement.ExpressionStatement) {

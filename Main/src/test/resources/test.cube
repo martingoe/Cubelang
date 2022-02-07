@@ -21,6 +21,7 @@ fun main() {
     var y: [[i32: 500]: 500];
 
     var res: [[i32: 500]: 500];
+    x[0][1];
 
     for(var i = 0; i < 500; i = i + 1){
         for(var j = 0; j < 500; j = j + 1){
@@ -39,7 +40,7 @@ fun main() {
         }
     }
     }
-    printInt(res[0][2]);
+    printInt(res[0][2] / 2 * 5);
 
 #    setSeed(2);
     for(var i: i64 = 0; i < 20; i = i + 1)
