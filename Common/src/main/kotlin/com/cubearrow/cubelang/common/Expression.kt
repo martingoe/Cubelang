@@ -7,7 +7,7 @@ abstract class Expression(
     var state: Int = 0,
     var match: MutableMap<Char, Int> = HashMap(),
     var cost: MutableMap<Char, Int> = HashMap(),
-    var b: Array<Int> = Array(19) { 0 },
+    var b: Array<Int> = Array(20) { 0 },
     var resultType: Type = NoneType()
 ) {
 

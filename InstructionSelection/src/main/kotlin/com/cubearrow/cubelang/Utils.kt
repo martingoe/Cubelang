@@ -4,6 +4,22 @@ import com.cubearrow.cubelang.common.Expression
 
 class Utils {
     companion object {
+        /**
+         * Splits the length of a struct in a set of lenghts of 2^n where 1 <= n <= 3.
+         */
+        fun splitStruct(structLength: Int): List<Int> {
+            var remainder = structLength
+            val result = mutableListOf<Int>()
+            for (i in arrayOf(8, 4, 2, 1)) {
+                for (j in 0 until (remainder / i)) {
+                    result.add(i)
+                }
+                remainder %= i
+            }
+            return result
+        }
+
+
         fun setNthChild(index: Int, newExpression: Expression, parent: Expression) {
             when (parent) {
                 is Expression.Operation -> {

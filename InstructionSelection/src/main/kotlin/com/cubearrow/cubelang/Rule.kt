@@ -1,9 +1,6 @@
 package com.cubearrow.cubelang
 
-import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.NormalType
-import com.cubearrow.cubelang.common.NormalTypes
-import com.cubearrow.cubelang.common.Type
+import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.ir.IRType
 import com.cubearrow.cubelang.common.ir.IRValue
 import com.cubearrow.cubelang.common.ir.Literal
@@ -20,7 +17,7 @@ abstract class Rule {
     abstract fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression
 
     companion object {
-        const val RULE_COUNT = 19
+        const val RULE_COUNT = 20
     }
 }
 
@@ -352,6 +349,57 @@ class MovFromOffset : Rule() {
         return reg
     }
 }
+class MovOffsetToOffset : Rule() {
+    override val expression: Expression
+        get() = Expression.Assignment(Expression.ValueFromPointer(Expression.Operation(Expression.FramePointer(), Token("-", TokenType.PLUSMINUS), Expression.Literal(null))),
+                Expression.ValueFromPointer(Expression.Operation(Expression.FramePointer(), Token("-", TokenType.PLUSMINUS), Expression.Literal(null))))
+    override val resultSymbol: Char
+        get() = 'r'
+
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+        return 2
+    }
+
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+        expression as Expression.Assignment
+        var leftOffset = getLiteralValue((((expression.valueExpression as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
+        var rightOffset = getLiteralValue((((expression.leftSide as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
+
+        if(expression.valueExpression.resultType is StructType){
+            val lengths = Utils.splitStruct(expression.valueExpression.resultType.getLength())
+
+            lengths.forEach {
+                val reg = getReg(getIntTypeForLength(it), trie)
+                emitter.emit("mov $reg, ${getASMPointer(it)} [rbp - $rightOffset]")
+                emitter.emit("mov ${getASMPointer(it)} [rbp - $leftOffset], $reg")
+
+                leftOffset -= it
+                rightOffset -= it
+
+                currentRegister--
+            }
+            return getReg(expression.valueExpression.resultType, trie)
+
+        }
+
+        val reg = getReg(expression.valueExpression.resultType, trie)
+        emitter.emit("mov $reg, ${getASMPointer(expression.valueExpression.resultType.getLength())} [rbp - $rightOffset]")
+        emitter.emit("mov ${getASMPointer(expression.valueExpression.resultType.getLength())} [rbp - $leftOffset], $reg")
+        return reg
+
+    }
+
+    private fun getIntTypeForLength(length: Int): Type {
+        return when(length){
+            1 -> NormalType(NormalTypes.I8)
+            2 -> NormalType(NormalTypes.I16)
+            4 -> NormalType(NormalTypes.I32)
+            8 -> NormalType(NormalTypes.I64)
+
+            else -> error("Unknown size")
+        }
+    }
+}
 
 fun getReg(type: Type, trie: Trie): Expression {
     return Expression.Register(currentRegister++, type, trie.isArgument)
@@ -475,6 +523,8 @@ fun getRules(): List<Rule> {
 
     result.add(DivOperationRegLit())
     result.add(DivOperationRegReg())
+
+    result.add(MovOffsetToOffset())
 
     result.add(ValueFromPointer())
     result.add(MovRegToReg())

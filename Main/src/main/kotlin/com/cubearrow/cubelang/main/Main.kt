@@ -53,9 +53,7 @@ class Main(private val libraryPath: String) {
 
             TreeRewriter().rewriteMultiple(expressions.value)
             StatementCompiler(ASMEmitter(), trie, libraryPath).evaluateList(expressions.value)
-//            val operation = Expression.Operation(Expression.Literal(null), Token("+", TokenType.PLUSMINUS), Expression.Register())
-//            trie.visit(operation)
-//            trie.emitCodeForExpression(operation)
+
             println(trie.trieEntries)
             i++
         }
@@ -72,7 +70,7 @@ class Main(private val libraryPath: String) {
     /**
      * Maps a [List] of [Statement] which may only contain [Statement.ArgumentDefinition] to their substrings
      *
-     * @throws TypeCastException Throws this exception when one of the elements of the expressions are not a [Statement.VarCall]
+     * @throws TypeCastException Throws this exception when one of the elements of the expressions are not a [Statement.ArgumentDefinition]
      * @param expressions The expressions whose names are to be returned
      * @return Returns a [Map] of [String]s mapped to [String]s with the substrings of the identifier of the [Statement.ArgumentDefinition]
      */
