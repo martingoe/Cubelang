@@ -27,7 +27,11 @@ class TypeChecker(
 
     override fun visitAssignment(assignment: Expression.Assignment): Type {
         val type = evaluate(assignment.leftSide)
-        assertEqualTypes(type, evaluate(assignment.valueExpression), "The two types do not match.", -1, -1)
+        val valueType = evaluate(assignment.valueExpression)
+        assertEqualTypes(type, valueType, "The two types do not match.", -1, -1)
+        if(valueType is NormalType && valueType.type == NormalTypes.ANY_INT){
+            assignment.valueExpression.resultType = type
+        }
         assignment.resultType = type
         return type
     }
@@ -46,6 +50,7 @@ class TypeChecker(
         } else if (type is NoneType && actualType != null) {
             if (actualType is NormalType && actualType.type == NormalTypes.ANY_INT) {
                 varInitialization.type = NormalType(NormalTypes.I32)
+                varInitialization.valueExpression!!.resultType = NormalType(NormalTypes.I32)
                 type = NormalType(NormalTypes.I32)
             } else {
                 varInitialization.type = actualType
@@ -130,6 +135,7 @@ class TypeChecker(
     }
 
     override fun visitFunctionDefinition(functionDefinition: Statement.FunctionDefinition): Type {
+        currentVarIndex = 0
         val args = functionDefinition.args.map { it as Statement.ArgumentDefinition }.associate { it.name.substring to it.type }
         SymbolTableSingleton.getCurrentSymbolTable().functions.add(
             Function(
@@ -141,12 +147,26 @@ class TypeChecker(
         SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
         scope.push(scope.pop() + 1)
         scope.push(-1)
-        functionDefinition.args.forEach {
-            val argumentDefinition = it as Statement.ArgumentDefinition
 
-            currentVarIndex += argumentDefinition.type.getLength()
-            SymbolTableSingleton.getCurrentSymbolTable()
-                .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+        var i = 0
+        var posOffset = 16
+        functionDefinition.args.forEach {
+            val ARGUMENT_REG_COUNT = 6
+            if(i < ARGUMENT_REG_COUNT) {
+                val argumentDefinition = it as Statement.ArgumentDefinition
+
+                currentVarIndex += argumentDefinition.type.getLength()
+                SymbolTableSingleton.getCurrentSymbolTable()
+                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+            } else{
+                val argumentDefinition = it as Statement.ArgumentDefinition
+
+                currentVarIndex += argumentDefinition.type.getLength()
+                SymbolTableSingleton.getCurrentSymbolTable()
+                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, -posOffset)
+                posOffset += 8
+            }
+            i++
         }
         evaluateStmnt(functionDefinition.body)
         scope.pop()
@@ -163,7 +183,10 @@ class TypeChecker(
             comparison.comparator.line,
             comparison.comparator.index
         )
-        comparison.resultType = NormalType(NormalTypes.I8)
+        if(rightType is NormalType && rightType.type == NormalTypes.ANY_INT){
+            comparison.rightExpression.resultType = comparison.leftExpression.resultType
+        }
+        comparison.resultType = leftType
         return NormalType(NormalTypes.I8)
     }
 
@@ -273,9 +296,12 @@ class TypeChecker(
     override fun visitArrayGet(arrayGet: Expression.ArrayGet): Type {
         var depth = 1
         val arrayGetList = mutableListOf(arrayGet)
+        evaluate(arrayGet.inBrackets)
         while (arrayGetList.last().expression is Expression.ArrayGet) {
             depth++
             arrayGetList.add(arrayGetList.last().expression as Expression.ArrayGet)
+//            evaluate(arrayGetList.last().expression)
+            evaluate(arrayGetList.last().inBrackets)
         }
 
         val type = evaluate(arrayGetList.last().expression)
@@ -284,7 +310,6 @@ class TypeChecker(
             arrayGetList[i].resultType = resultType
 
             resultType = when (resultType) {
-
                 is ArrayType -> resultType.subType
                 is PointerType -> resultType.subtype
                 else -> {
@@ -294,7 +319,7 @@ class TypeChecker(
             }
         }
         if (resultType is ArrayType)
-            return PointerType(resultType.subType)
+            resultType =  PointerType(resultType.subType)
         arrayGet.resultType = resultType
         return resultType
     }
@@ -312,14 +337,16 @@ class TypeChecker(
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): Type {
+        val varCall = pointerGet.expression as Expression.VarCall
+
         val type = try {
-            var variable = getVariables().first { it.name == pointerGet.varCall.varName.substring }.type
+            var variable = getVariables().first { it.name == varCall.varName.substring }.type
 
             if (variable is ArrayType)
                 variable = variable.subType
             PointerType(variable)
         } catch (e: NoSuchElementException) {
-            errorManager.error(pointerGet.varCall.varName.line, pointerGet.varCall.varName.index, "The requested variable could not be found.")
+            errorManager.error(varCall.varName.line, varCall.varName.index, "The requested variable could not be found.")
             NoneType()
         }
         pointerGet.resultType = type
@@ -355,6 +382,10 @@ class TypeChecker(
 
     override fun acceptFramePointer(framePointer: Expression.FramePointer): Type {
         framePointer.resultType = NormalType(NormalTypes.I64)
+        return NormalType(NormalTypes.I64)
+    }
+
+    override fun acceptExtendTo64Bits(extendTo64Bit: Expression.ExtendTo64Bit): Type {
         return NormalType(NormalTypes.I64)
     }
 }

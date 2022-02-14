@@ -7,7 +7,7 @@ abstract class Expression(
     var state: Int = 0,
     var match: MutableMap<Char, Int> = HashMap(),
     var cost: MutableMap<Char, Int> = HashMap(),
-    var b: Array<Int> = Array(20) { 0 },
+    var b: Array<Int> = Array(23) { 0 },
     var resultType: Type = NoneType()
 ) {
 
@@ -24,7 +24,7 @@ abstract class Expression(
         }
     }
 
-    class Literal(val value: Any?) : Expression() {
+    class Literal(var value: Any?) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLiteral(this)
         }
@@ -65,7 +65,7 @@ abstract class Expression(
         }
     }
 
-    class PointerGet(val varCall: VarCall) : Expression() {
+    class PointerGet(var expression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitPointerGet(this)
         }
@@ -112,6 +112,7 @@ abstract class Expression(
         fun visitRegister(register: Register): T
         fun visitAssignment(assignment: Assignment): T
         fun acceptFramePointer(framePointer: FramePointer): T
+        fun acceptExtendTo64Bits(extendTo64Bit: ExtendTo64Bit): T
     }
 
     class Logical(var leftExpression: Expression, val logical: Token, var rightExpression: Expression) : Expression() {
@@ -131,13 +132,22 @@ abstract class Expression(
 
     }
 
-    class Register(var index: Int = -1, var type: Type = NoneType(), val argument: Boolean = false) : Expression() {
+    class Register(var index: Int = -1, var type: Type = NoneType()) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitRegister(this)
         }
 
         override fun toString(): String {
-            return "${if (!argument) "r" else "R"}${index}"
+            return "r${index}"
+//            return if (!argument) getRegister(NORMAL_REGISTER[index], type.getLength()) else getRegister(ARG_REGISTERS[index], type.getLength())
+        }
+
+
+    }
+
+    class ExtendTo64Bit(var expression: Expression) : Expression() {
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.acceptExtendTo64Bits(this)
         }
 
     }

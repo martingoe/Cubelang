@@ -1,25 +1,30 @@
 package com.cubearrow.cubelang
 
 import com.cubearrow.cubelang.common.*
+import com.cubearrow.cubelang.common.Expression.*
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 import java.util.*
 import kotlin.collections.ArrayList
 
-class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.ExpressionVisitor<Expression> {
+class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Expression> {
+    constructor(scope: Stack<Int>) {
+        this.scope = scope
+    }
+
     private var currentVarIndex = 0
     var scope: Stack<Int> = Stack()
     private fun rewrite(expression: Statement): Statement {
         return evaluate(expression)
     }
 
-    init {
+    constructor() {
         scope.push(-1)
     }
 
     private fun evaluate(expression: Statement): Statement = expression.accept(this)
-    override fun visitAssignment(assignment: Expression.Assignment): Expression {
+    override fun visitAssignment(assignment: Assignment): Expression {
         assignment.valueExpression = evaluateExpression(assignment.valueExpression)
         assignment.leftSide = evaluateExpression(assignment.leftSide)
         return assignment
@@ -31,7 +36,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
 
     override fun visitVarInitialization(varInitialization: Statement.VarInitialization): Statement {
         varInitialization.valueExpression?.let {
-            val assignment = Expression.Assignment(evaluateExpression(Expression.VarCall(varInitialization.name)), evaluateExpression(it))
+            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it))
             assignment.resultType = varInitialization.type
             return Statement.ExpressionStatement(assignment)
         }
@@ -39,29 +44,28 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
     }
 
 
-
-    override fun visitOperation(operation: Expression.Operation): Expression {
+    override fun visitOperation(operation: Operation): Expression {
         operation.leftExpression = evaluateExpression(operation.leftExpression)
         operation.rightExpression = evaluateExpression(operation.rightExpression)
         return operation
     }
 
-    override fun visitCall(call: Expression.Call): Expression {
+    override fun visitCall(call: Call): Expression {
         call.arguments = call.arguments.map { evaluateExpression(it) }
         return call
     }
 
-    override fun visitLiteral(literal: Expression.Literal): Expression {
+    override fun visitLiteral(literal: Literal): Expression {
         return literal
     }
 
-    override fun visitVarCall(varCall: Expression.VarCall): Expression {
+    override fun visitVarCall(varCall: VarCall): Expression {
         val index = getVarIndex(varCall.varName.substring)
-        val result =  Expression.ValueFromPointer(
-            Expression.Operation(
-                Expression.FramePointer(),
+        val result = ValueFromPointer(
+            Operation(
+                FramePointer(),
                 Token("-", TokenType.PLUSMINUS),
-                Expression.Literal(index)
+                Literal(index)
             )
         )
         result.resultType = varCall.resultType
@@ -92,7 +96,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         return functionDefinition
     }
 
-    override fun visitComparison(comparison: Expression.Comparison): Expression {
+    override fun visitComparison(comparison: Comparison): Expression {
         comparison.leftExpression = evaluateExpression(comparison.leftExpression)
         comparison.rightExpression = evaluateExpression(comparison.rightExpression)
         return comparison
@@ -126,23 +130,27 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         return structDefinition
     }
 
-    override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Expression {
+    override fun visitInstanceGet(instanceGet: InstanceGet): Expression {
+        val expression = evaluateExpression(instanceGet.expression)
 //        TODO()
         val index = getInstanceGetIndex(
-            SymbolTableSingleton.getCurrentSymbolTable().getStruct(instanceGet.identifier.substring)!!,
-            instanceGet.expression as Expression.VarCall
+            SymbolTableSingleton.getCurrentSymbolTable().getStruct((instanceGet.expression.resultType as StructType).typeName)!!,
+            instanceGet.identifier.substring
         )
-        return Expression.ValueFromPointer(
-            Expression.Operation(
-                Expression.FramePointer(),
-                Token("-", TokenType.PLUSMINUS),
-                Expression.Literal(index)
-            )
-        )
+        if (expression is Expression.ValueFromPointer &&
+            expression.expression is Operation &&
+            (expression.expression as Operation).leftExpression is FramePointer &&
+            ((expression.expression as Operation).rightExpression is Literal)) {
+            val temp = ((expression.expression as Operation).rightExpression as Literal).value as Int - index
+            ((expression.expression as Operation).rightExpression as Literal).value = temp
+            expression.resultType = instanceGet.resultType
+            return expression
+        }
+        TODO()
     }
 
-    private fun getInstanceGetIndex(struct: Struct, structSubvalue: Expression.VarCall): Int {
-        val requestedVar = struct.variables.first { pair -> pair.first == structSubvalue.varName.substring }
+    private fun getInstanceGetIndex(struct: Struct, structSubvalue: String): Int {
+        val requestedVar = struct.variables.first { pair -> pair.first == structSubvalue }
         val argumentsBefore = struct.variables.subList(0, struct.variables.indexOf(requestedVar))
         return argumentsBefore.fold(0) { acc, pair -> acc + pair.second.getLength() }
     }
@@ -163,85 +171,142 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         return blockStatement
     }
 
-    override fun visitLogical(logical: Expression.Logical): Expression {
+    override fun visitLogical(logical: Logical): Expression {
         logical.leftExpression = evaluateExpression(logical.leftExpression)
         logical.rightExpression = evaluateExpression(logical.rightExpression)
         return logical
     }
 
-    override fun visitUnary(unary: Expression.Unary): Expression {
+    override fun visitUnary(unary: Unary): Expression {
         unary.expression = evaluateExpression(unary.expression)
         return unary
     }
 
-    override fun visitGrouping(grouping: Expression.Grouping): Expression {
+    override fun visitGrouping(grouping: Grouping): Expression {
         // TODO: Is a grouping still needed or can you return the evaluated subexpression?
         grouping.expression = evaluateExpression(grouping.expression)
         return grouping
     }
 
-    private fun getSubtype(type: Type): Type?{
-        return when(type){
+    private fun getSubtype(type: Type): Type? {
+        return when (type) {
             is PointerType -> type.subtype
             is ArrayType -> type.subType
             else -> null
         }
     }
-    override fun visitArrayGet(arrayGet: Expression.ArrayGet): Expression {
+
+    override fun visitArrayGet(arrayGet: ArrayGet): Expression {
         val arrayGets = getArrayGets(arrayGet)
-        if(arrayGets.last().expression is Expression.VarCall){
-            val variable = getVariable((arrayGets.last().expression as Expression.VarCall).varName)
-            var index = variable.offset
-
-            if(arrayGets.all { it.inBrackets is Expression.Literal }){
-
-                arrayGets.forEach {
-                    index -= it.resultType.getLength() * getLiteralValue((it.inBrackets as Expression.Literal).value)
-                }
-                val result = Expression.ValueFromPointer(
-                    Expression.Operation(
-                        Expression.FramePointer(),
-                        Token("-", TokenType.PLUSMINUS),
-                        Expression.Literal(index)
-                    )
-                )
-                result.resultType = arrayGet.resultType
-                return result
+        if (arrayGets.last().expression is VarCall) {
+            val index = getVariable((arrayGets.last().expression as VarCall).varName).offset
+            var expression = getArrayGetOfVariable(arrayGet, arrayGets, index)
+            if (arrayGet.resultType is PointerType) {
+                expression = PointerGet(expression)
+                expression.resultType = arrayGet.resultType
             }
-
-            var resultAddition = Expression.Operation(evaluateExpression(arrayGets.last().inBrackets), Token("*", TokenType.STAR), Expression.Literal(arrayGets.last().resultType.getLength()))
-            arrayGets.dropLast(1).reversed().forEach {
-                resultAddition = Expression.Operation(
-                    resultAddition,
-                    Token("+", TokenType.PLUSMINUS),
-                    Expression.Operation(
-                        evaluateExpression(it.inBrackets),
-                        Token("*", TokenType.STAR),
-                        Expression.Literal(it.resultType.getLength())
-                    )
-                )
-            }
-            return Expression.ValueFromPointer(
-                Expression.Operation(
-                    Expression.Operation(
-                        Expression.FramePointer(),
-                        Token("-", TokenType.PLUSMINUS),
-                        Expression.Literal(index)
-                    ),
-                    Token("+", TokenType.PLUSMINUS),
-                    resultAddition
-                )
-            )
+            return expression
         }
 
         TODO()
     }
 
-    private fun getArrayGets(arrayGet: Expression.ArrayGet): List<Expression.ArrayGet>{
-        val result: MutableList<Expression.ArrayGet> = ArrayList()
+    private fun getArrayGetOfVariable(
+        arrayGet: ArrayGet,
+        arrayGets: List<ArrayGet>,
+        index: Int
+    ): Expression {
+        var index1 = index
+        if (arrayGet.expression.resultType is PointerType) {
+            if (arrayGets.size != 1)
+                error("Cannot have nested array gets with pointer types")
+
+            if (arrayGet.inBrackets is Literal) {
+                val firstVal = ValueFromPointer(
+                    Operation(
+                        FramePointer(),
+                        Token("-", TokenType.PLUSMINUS),
+                        Literal(index1)
+                    )
+                )
+                firstVal.resultType = arrayGet.expression.resultType
+                val value =
+                    ValueFromPointer(
+                        Operation(
+                            firstVal,
+                            Token("-", TokenType.PLUSMINUS),
+                            Literal(-getLiteralValue((arrayGet.inBrackets as Literal).value) * getSubtype(arrayGet.expression.resultType)!!.getLength())
+                        )
+
+                    )
+                value.resultType = arrayGet.resultType
+                return value
+            }
+        }
+        if (arrayGets.all { it.inBrackets is Literal }) {
+
+            arrayGets.forEach {
+                index1 -= it.resultType.getLength() * getLiteralValue((it.inBrackets as Literal).value)
+            }
+            val result = ValueFromPointer(
+                Operation(
+                    FramePointer(),
+                    Token("-", TokenType.PLUSMINUS),
+                    Literal(index1)
+                )
+            )
+            result.resultType = arrayGet.resultType
+            return result
+        }
+
+        var resultAddition = Operation(
+            evaluateExpression(arrayGets.last().inBrackets),
+            Token("*", TokenType.STAR),
+            Literal(arrayGets.last().resultType.getLength())
+        )
+        resultAddition.resultType = arrayGets.last().inBrackets.resultType
+        arrayGets.dropLast(1).reversed().forEach {
+            val mult = Operation(
+                evaluateExpression(it.inBrackets),
+                Token("*", TokenType.STAR),
+                Literal(it.resultType.getLength())
+            )
+            mult.resultType = it.inBrackets.resultType
+            resultAddition = Operation(
+                resultAddition,
+                Token("+", TokenType.PLUSMINUS),
+                mult
+            )
+            resultAddition.resultType = mult.resultType
+        }
+
+        val extendTo64Bit = ExtendTo64Bit(resultAddition)
+        extendTo64Bit.resultType = resultAddition.resultType
+
+        val value = Operation(
+            FramePointer(),
+            Token("-", TokenType.PLUSMINUS),
+            Literal(index1)
+        )
+        value.resultType = NormalType(NormalTypes.I64)
+        val result = ValueFromPointer(
+            Operation(
+                value,
+                Token("+", TokenType.PLUSMINUS),
+                extendTo64Bit
+            )
+        )
+        result.resultType = arrayGet.resultType
+        result.expression.resultType = NormalType(NormalTypes.I64)
+
+        return result
+    }
+
+    private fun getArrayGets(arrayGet: ArrayGet): List<ArrayGet> {
+        val result: MutableList<ArrayGet> = ArrayList()
         result.add(arrayGet)
-        while(result.last().expression is Expression.ArrayGet){
-            result.add(result.last().expression as Expression.ArrayGet)
+        while (result.last().expression is ArrayGet) {
+            result.add(result.last().expression as ArrayGet)
         }
         return result
     }
@@ -260,11 +325,14 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
     }
 
     override fun visitPointerGet(pointerGet: Expression.PointerGet): Expression {
+        pointerGet.expression = evaluateExpression(pointerGet.expression)
         return pointerGet
     }
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Expression {
         valueFromPointer.expression = evaluateExpression(valueFromPointer.expression)
+//        result.resultType = valueFromPointer.resultType
+//        return result
         return valueFromPointer
     }
 
@@ -277,7 +345,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         expressions.forEach { rewrite(it) }
     }
 
-    override fun visitValueToPointer(valueToPointer: Expression.ValueToPointer): Expression {
+    override fun visitValueToPointer(valueToPointer: ValueToPointer): Expression {
         valueToPointer.value = evaluateExpression(valueToPointer.value)
         valueToPointer.pointer = evaluateExpression(valueToPointer.pointer)
         return valueToPointer
@@ -288,11 +356,17 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, Expression.Expressio
         return expressionStatement
     }
 
-    override fun visitRegister(register: Expression.Register): Expression {
+    override fun visitRegister(register: Register): Expression {
         return register
     }
 
-    override fun acceptFramePointer(framePointer: Expression.FramePointer): Expression {
+    override fun acceptFramePointer(framePointer: FramePointer): Expression {
         return framePointer
+    }
+
+    override fun acceptExtendTo64Bits(extendTo64Bit: ExtendTo64Bit): Expression {
+        extendTo64Bit.expression = evaluateExpression(extendTo64Bit.expression)
+
+        return extendTo64Bit
     }
 }

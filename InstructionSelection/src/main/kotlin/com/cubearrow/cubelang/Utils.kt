@@ -64,6 +64,10 @@ class Utils {
                     else if (index == 1)
                         parent.rightExpression = newExpression
                 }
+                is Expression.ExtendTo64Bit -> {
+                    if(index == 0)
+                        parent.expression = newExpression
+                }
             }
             // TODO("Children missing?")
         }
@@ -94,6 +98,9 @@ class Utils {
                 }
                 is Expression.Comparison -> {
                     return listOf(expression.leftExpression, expression.rightExpression)
+                }
+                is Expression.ExtendTo64Bit -> {
+                    return listOf(expression.expression)
                 }
             }
             // TODO: Are children missing?

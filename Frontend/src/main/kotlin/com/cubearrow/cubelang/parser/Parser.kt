@@ -40,7 +40,9 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 else -> {
                     if (peek(TokenType.EQUALS)) {
                         current--
-                        return Statement.ExpressionStatement(assignment())
+                        val assignment = assignment()
+                        consume(TokenType.SEMICOLON, "Expected a ; after an assignment")
+                        return Statement.ExpressionStatement(assignment)
                     }
                     if(current().tokenType != TokenType.SEMICOLON)
                         current--
@@ -135,7 +137,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         val condition =
             if (match(TokenType.SEMICOLON)) Statement.ExpressionStatement(Expression.Literal(true)) else Statement.ExpressionStatement(orExpression())
         consume(TokenType.SEMICOLON, "Expected a ';' after the condition of the for loop")
-        val incrementor = if (peek(TokenType.BRCKTR)) Statement.Empty(null) else statement()
+        val incrementor = if (peek(TokenType.BRCKTR)) Statement.Empty(null) else Statement.ExpressionStatement(expression())
         consume(TokenType.BRCKTR, "expect ')' after clauses")
         return Statement.ForStmnt(listOf(init, condition, incrementor), statement())
     }

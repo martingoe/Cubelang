@@ -73,4 +73,8 @@ class ASTGetSymbol: Expression.ExpressionVisitor<Char> {
         return 'f'
     }
 
+    override fun acceptExtendTo64Bits(extendTo64Bit: Expression.ExtendTo64Bit): Char {
+        return 'e'
+    }
+
 }

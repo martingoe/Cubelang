@@ -16,6 +16,8 @@ struct x {
 fun main() {
     var structArray: [x: 5];
     var structcopy = structArray[0];
+    structArray[0].j = 20;
+    printInt(structArray[0].j);
 
     var x: [[i32: 500]: 500];
     var y: [[i32: 500]: 500];
@@ -23,32 +25,21 @@ fun main() {
     var res: [[i32: 500]: 500];
     x[0][1];
 
-    for(var i = 0; i < 500; i = i + 1){
-        for(var j = 0; j < 500; j = j + 1){
-            x[i][j] = i;
-            y[i][j] = j;
-        }
-    }
+    #for(var i = 0; i < 5; i = i + 1){
+    #    for(var j = 0; j < 5; j = j + 1){
+    #        x[i][j] = i;
+    #        y[i][j] = j;
+    #    }
+    #}
 
-    for(var xie = 0; xie < 50; xie = xie + 1){
-    for(var i = 0; i < 500; i = i + 1){
-        for(var j = 0; j < 500; j = j + 1){
-            res[i][j] = 0;
-            for (var k = 0; k < 500; k = k + 1){
-                res[i][j] = res[i][j] + x[i][k] * y[k][j];
-            }
-        }
-    }
-    }
-    printInt(res[0][2] / 2 * 5);
-
-#    setSeed(2);
-    for(var i: i64 = 0; i < 20; i = i + 1)
-        var x = 2;
-    var prev = 4;
-    for(var i = 0; i < 100; i = i + 1){
-        prev = randomI32(prev);
-        printInt(prev);
-    }
-    printInt(getUnixTime());
+    #for(var xie = 0; xie < 50; xie = xie + 1){
+    #for(var i = 0; i < 500; i = i + 1){
+    #    for(var j = 0; j < 500; j = j + 1){
+    #        res[i][j] = 0;
+    #        for (var k = 0; k < 500; k = k + 1){
+    #            res[i][j] = res[i][j] + x[i][k] * y[k][j];
+    #        }
+    #    }
+    #}
+    #}
 }

@@ -27,6 +27,7 @@ fun main(args: Array<String>) {
 
 class Main(private val libraryPath: String) {
     fun compileFile(sourceFile: Array<String>) {
+        SymbolTableSingleton.resetAll()
         val expressionsList = HashMap<String, List<Statement>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
@@ -42,17 +43,19 @@ class Main(private val libraryPath: String) {
         errorManagers.forEach { it.value.exitIfError() }
 
         var i = 0
-        val trie = Trie(getRules())
+        val trie = Trie(getRules(), ASMEmitter())
         for (expressions in expressionsList) {
-//            val file = File(expressions.key)
-//            val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
+            val file = File(expressions.key)
+            val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
             SymbolTableSingleton.currentIndex = i
             SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
 
             TypeChecker(expressions.value, errorManagers[expressions.key]!!, DefinedFunctions.definedFunctions).checkTypes()
 
             TreeRewriter().rewriteMultiple(expressions.value)
-            StatementCompiler(ASMEmitter(), trie, libraryPath).evaluateList(expressions.value)
+            trie.emitter = ASMEmitter()
+            StatementCompiler(trie.emitter, trie, libraryPath).evaluateList(expressions.value)
+            resultFile.writeText(trie.emitter.finishedString)
 
             println(trie.trieEntries)
             i++

@@ -2,12 +2,11 @@ package com.cubearrow.cubelang
 
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
+import java.util.*
 
 
-class Trie(private val rules: List<Rule>) {
-    var isArgument: Boolean = false
+class Trie(private val rules: List<Rule>, var emitter: ASMEmitter) {
     var trieEntries: MutableList<TrieEntry> = ArrayList()
-    private val emitter: ASMEmitter = ASMEmitter()
 
     private val astGetSymbol = ASTGetSymbol()
 
@@ -20,6 +19,39 @@ class Trie(private val rules: List<Rule>) {
         for (i in rules.indices) {
             buildTrieFromExpression(rules[i].expression, i)
         }
+        buildFailureFunctions()
+    }
+
+    private fun buildFailureFunctions() {
+        val queue: PriorityQueue<Int> = PriorityQueue()
+        queue.addAll(trieEntries[0].next)
+        while (queue.isNotEmpty()) {
+            val r = queue.poll()
+
+            for (s in trieEntries[r].next) {
+                queue.add(s)
+                // state = f(r)?
+                var state = trieEntries[r].failureState
+                while (trieEntries[state].next.none { trieEntries[it].value == trieEntries[s].value } && state != 0)
+                    state = trieEntries[state].failureState
+                val newFailureState = trieEntries[state].next.firstOrNull { trieEntries[it].value == trieEntries[s].value } ?: 0
+                trieEntries[s].failureState = newFailureState
+                trieEntries[s].isAccepting = combineAcceptingStates(trieEntries[s].isAccepting, trieEntries[newFailureState].isAccepting)
+            }
+
+        }
+    }
+
+    private fun combineAcceptingStates(accepting: Array<Pair<Boolean, Int>>, accepting1: Array<Pair<Boolean, Int>>): Array<Pair<Boolean, Int>> {
+        val newArray: Array<Pair<Boolean, Int>> = Array(accepting.size) {Pair(false, 0)}
+        for(i in accepting.indices){
+            if(accepting[i].first)
+                newArray[i] = accepting[i]
+            if(accepting1[i].first)
+                newArray[i] = accepting1[i]
+        }
+        return newArray
+
     }
 
     private fun buildTrieFromExpression(expression: Expression, ruleIndex: Int, currentState: Int = 0) {
@@ -27,7 +59,7 @@ class Trie(private val rules: List<Rule>) {
         val newState = generateTrieEntryIfNeeded(currentState, ruleChar)
         val children = Utils.getChildren(expression)
         if (children.isEmpty())
-            trieEntries[newState].isAccepting[ruleIndex] = true
+            trieEntries[newState].isAccepting[ruleIndex] = Pair(true, trieEntries[newState].length)
 
         children.forEachIndexed { index, child ->
             val indexState = generateTrieEntryIfNeeded(newState, index.toChar())
@@ -49,7 +81,8 @@ class Trie(private val rules: List<Rule>) {
 
     fun emitCodeForExpression(visitedExpression: Expression): Expression {
         visit(visitedExpression)
-        val rule = visitedExpression.match['r'] ?: TODO("NO RULE for ${visitedExpression::class}")
+        val rule = visitedExpression.match['r'] ?:
+        TODO("NO RULE for ${visitedExpression::class}")
 
         emitSubRuleReductions(rules[rule].expression, visitedExpression)
         return rules[rule].constructString(visitedExpression, emitter, this)
@@ -64,6 +97,7 @@ class Trie(private val rules: List<Rule>) {
             if (ruleChildren[i]::class != actualChildren[i]::class) {
                 // Update new child
                 val ruleToApply = actualChildren[i].match[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO("Can this be reached?")
+
                 emitSubRuleReductions(rules[ruleToApply].expression, actualChildren[i])
                 val newExpression = rules[ruleToApply].constructString(actualChildren[i], emitter, this)
                 Utils.setNthChild(i, newExpression, actual)
@@ -76,8 +110,7 @@ class Trie(private val rules: List<Rule>) {
     }
 
 
-
-    fun visit(expression: Expression, previous: Int = 0, index: Int = -1) {
+    private fun visit(expression: Expression, previous: Int = 0, index: Int = -1) {
         if (index != -1) {
             val indexState = succ(previous, index.toChar())
             val finalState = succ(indexState, astGetSymbol.evaluate(expression))
@@ -94,9 +127,6 @@ class Trie(private val rules: List<Rule>) {
     }
 
     private fun postProcess(expression: Expression, children: List<Expression>, previousState: Int = 0, index: Int = -1) {
-        // TODO: have to reset expression.b?
-        for (i in expression.b.indices)
-            expression.b[i] = 0
         setPartial(expression, expression.state)
         if (children.isNotEmpty()) {
             for (i in rules.indices) {
@@ -119,8 +149,8 @@ class Trie(private val rules: List<Rule>) {
                 if (possibleNewCost < (expression.cost[rules[i].resultSymbol] ?: Int.MAX_VALUE)) {
                     expression.cost[rules[i].resultSymbol] = possibleNewCost
                     expression.match[rules[i].resultSymbol] = i
-                    // Expression is root
 
+                    // Expression is root
                     val x: Int = if (index == -1) {
                         succ(0, rules[i].resultSymbol)
                     } else {
@@ -134,8 +164,8 @@ class Trie(private val rules: List<Rule>) {
 
     private fun setPartial(expression: Expression, state: Int) {
         for (rule in rules.indices) {
-            if (trieEntries[state].isAccepting[rule]) {
-                expression.b[rule] = expression.b[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].length))
+            if (trieEntries[state].isAccepting[rule].first) {
+                expression.b[rule] = expression.b[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].isAccepting[rule].second))
             }
         }
     }
@@ -161,23 +191,14 @@ class Trie(private val rules: List<Rule>) {
         } catch (e: NoSuchElementException) {
             if (trieEntries[from].failureState == from)
                 return 0
-            // TODO: Is this right? Or just return failure state
             val newState = succ(trieEntries[from].failureState, to_value)
             newState
         }
     }
-
-    fun emitCodeForCallExpression(arg: Expression) {
-        this.isArgument = true
-        emitCodeForExpression(arg)
-        this.isArgument = false
-    }
-
-
 }
 
 class TrieEntry(val value: Char, val length: Int) {
     var next: MutableList<Int> = ArrayList()
-    var isAccepting: Array<Boolean> = Array(Rule.RULE_COUNT) { false }
+    var isAccepting: Array<Pair<Boolean, Int>> = Array(Rule.RULE_COUNT) { Pair(false, 0) }
     var failureState: Int = 0
 }
