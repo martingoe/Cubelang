@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
 import com.cubearrow.cubelang.common.Expression
 
@@ -38,7 +38,7 @@ class ASTGetSymbol: Expression.ExpressionVisitor<Char> {
     }
 
     override fun visitUnary(unary: Expression.Unary): Char {
-        return unary.identifier.substring[0]
+        return 'r'
     }
 
     override fun visitGrouping(grouping: Expression.Grouping): Char {

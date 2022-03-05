@@ -7,24 +7,22 @@ abstract class Expression(
     var state: Int = 0,
     var match: MutableMap<Char, Int> = HashMap(),
     var cost: MutableMap<Char, Int> = HashMap(),
-    var b: Array<Int> = Array(23) { 0 },
+    var b: Array<Int> = Array(25) { 0 },
     var resultType: Type = NoneType()
 ) {
-
-
     class Operation(var leftExpression: Expression, val operator: Token, var rightExpression: Expression) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitOperation(this)
         }
     }
 
-    class Call(val callee: VarCall, var arguments: List<Expression>) : Expression() {
+    class Call(val callee: VarCall, var arguments: List<Expression>, val bracket: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitCall(this)
         }
     }
 
-    class Literal(var value: Any?) : Expression() {
+    class Literal(var value: Any?, val token: Token? = null) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitLiteral(this)
         }
@@ -59,7 +57,7 @@ abstract class Expression(
         }
     }
 
-    class ArrayGet(val expression: Expression, val inBrackets: Expression) : Expression() {
+    class ArrayGet(val expression: Expression, val inBrackets: Expression, val bracket: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitArrayGet(this)
         }
@@ -71,7 +69,7 @@ abstract class Expression(
         }
     }
 
-    class ValueFromPointer(var expression: Expression) : Expression() {
+    class ValueFromPointer(var expression: Expression, val star: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitValueFromPointer(this)
         }
@@ -89,7 +87,7 @@ abstract class Expression(
         }
     }
 
-    class Assignment(var leftSide: Expression, var valueExpression: Expression) : Expression() {
+    class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }
@@ -139,7 +137,6 @@ abstract class Expression(
 
         override fun toString(): String {
             return "r${index}"
-//            return if (!argument) getRegister(NORMAL_REGISTER[index], type.getLength()) else getRegister(ARG_REGISTERS[index], type.getLength())
         }
 
 

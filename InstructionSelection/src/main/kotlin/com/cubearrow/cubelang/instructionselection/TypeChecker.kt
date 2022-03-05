@@ -1,10 +1,11 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.definitions.Struct
 import com.cubearrow.cubelang.common.errors.ErrorManager
 import com.cubearrow.cubelang.common.SymbolTableSingleton
+import com.cubearrow.cubelang.common.tokens.Token
 import java.util.*
 
 class TypeChecker(
@@ -28,7 +29,7 @@ class TypeChecker(
     override fun visitAssignment(assignment: Expression.Assignment): Type {
         val type = evaluate(assignment.leftSide)
         val valueType = evaluate(assignment.valueExpression)
-        assertEqualTypes(type, valueType, "The two types do not match.", -1, -1)
+        assertEqualTypes(type, valueType, "The two types do not match.", assignment.equals)
         if(valueType is NormalType && valueType.type == NormalTypes.ANY_INT){
             assignment.valueExpression.resultType = type
         }
@@ -44,8 +45,7 @@ class TypeChecker(
                 type,
                 actualType,
                 "The implicit type ($actualType) does not match the explicit type ($type).",
-                varInitialization.name.line,
-                varInitialization.name.index
+                varInitialization.name
             )
         } else if (type is NoneType && actualType != null) {
             if (actualType is NormalType && actualType.type == NormalTypes.ANY_INT) {
@@ -58,8 +58,7 @@ class TypeChecker(
             }
         } else if (type == NoneType()) {
             errorManager.error(
-                varInitialization.name.line,
-                varInitialization.name.index,
+                varInitialization.name,
                 "Variable initializations need either an explicit type or a value."
             )
         }
@@ -75,16 +74,15 @@ class TypeChecker(
             leftType,
             rightType,
             "Cannot compute mathematical operations on mismatching types ($leftType and $rightType)",
-            operation.operator.line,
-            operation.operator.index
+            operation.operator
         )
         operation.resultType = leftType
         return leftType
     }
 
-    private fun assertEqualTypes(type1: Type, type2: Type, errorMessage: String, line: Int = -1, index: Int = -1) {
+    private fun assertEqualTypes(type1: Type, type2: Type, errorMessage: String, token: Token) {
         if (type1 != type2) {
-            errorManager.error(line, index, errorMessage)
+            errorManager.error(token, errorMessage)
             TODO()
         }
     }
@@ -97,12 +95,12 @@ class TypeChecker(
         val function =
             SymbolTableSingleton.getCurrentSymbolTable().functions.firstOrNull { it.name == call.callee.varName.substring && it.args.size == call.arguments.size }
         if (function == null) {
-            errorManager.error(-1, -1, "Could not find the called function.")
+            errorManager.error(call.bracket, "Could not find the called function.")
             return NoneType()
         }
         var i = 0
         for (arg in function.args) {
-            assertEqualTypes(evaluate(call.arguments[i]), arg.value, "Mismatched types when calling '${function.name}'.")
+            assertEqualTypes(evaluate(call.arguments[i]), arg.value, "Mismatched types when calling '${function.name}'.", call.bracket)
             i++
         }
         call.resultType = function.returnType ?: NoneType()
@@ -113,7 +111,10 @@ class TypeChecker(
         val type = when (literal.value) {
             is Int -> NormalType(NormalTypes.ANY_INT)
             is Char -> NormalType(NormalTypes.CHAR)
-            else -> error("Could not find the literal type.")
+            else -> {
+                errorManager.error(literal.token!!, "Could not find the literal type.")
+                NormalType(NormalTypes.ANY)
+            }
         }
         literal.resultType = type
         return type
@@ -123,7 +124,7 @@ class TypeChecker(
         val type = try {
             getVariables().first { it.name == varCall.varName.substring }.type
         } catch (e: NoSuchElementException) {
-            errorManager.error(varCall.varName.line, varCall.varName.index, "Could not find the requested variable '${varCall.varName.substring}")
+            errorManager.error(varCall.varName, "Could not find the requested variable '${varCall.varName.substring}")
             NoneType()
         }
         varCall.resultType = type
@@ -180,8 +181,7 @@ class TypeChecker(
             leftType,
             rightType,
             "Cannot compute comparisons on mismatching types ($leftType and $rightType)",
-            comparison.comparator.line,
-            comparison.comparator.index
+            comparison.comparator
         )
         if(rightType is NormalType && rightType.type == NormalTypes.ANY_INT){
             comparison.rightExpression.resultType = comparison.leftExpression.resultType
@@ -223,32 +223,21 @@ class TypeChecker(
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Type {
         var type = evaluate(instanceGet.expression)
         if (type !is StructType || (type is PointerType && type.subtype !is StructType)) {
-            errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The requested value is not a struct.")
+            errorManager.error(instanceGet.identifier, "The requested value is not a struct.")
             return NoneType()
         }
-        if (type is PointerType) type = type.subtype
+        else if (type is PointerType) type = type.subtype
         val structType = SymbolTableSingleton.getCurrentSymbolTable()
             .getStruct((type as StructType).typeName)!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
         if (structType == null) {
-            errorManager.error(instanceGet.identifier.line, instanceGet.identifier.index, "The struct does not have the requested value.")
+            errorManager.error(instanceGet.identifier, "The struct does not have the requested value.")
             return NoneType()
         }
         instanceGet.resultType = structType.second
         return structType.second
     }
 
-    override fun visitInstanceSet(instanceSet: Statement.InstanceSet): Type {
-        val expectedType = evaluate(instanceSet.instanceGet)
-        val actual = evaluate(instanceSet.value)
-        assertEqualTypes(
-            expectedType,
-            actual,
-            "The expected type does not match the actual value.",
-            instanceSet.instanceGet.identifier.line,
-            instanceSet.instanceGet.identifier.index
-        )
-        return NoneType()
-    }
+
 
     override fun visitArgumentDefinition(argumentDefinition: Statement.ArgumentDefinition): Type {
         return argumentDefinition.type
@@ -274,8 +263,7 @@ class TypeChecker(
             leftType,
             rightType,
             "Cannot compute logical expressions on mismatching types ($leftType and $rightType)",
-            logical.logical.line,
-            logical.logical.index
+            logical.logical
         )
         logical.resultType = NormalType(NormalTypes.I8)
         return NormalType(NormalTypes.I8)
@@ -313,7 +301,7 @@ class TypeChecker(
                 is ArrayType -> resultType.subType
                 is PointerType -> resultType.subtype
                 else -> {
-                    errorManager.error(-1, -1, "The requested value is not an array.")
+                    errorManager.error(arrayGet.bracket, "The requested value is not an array.")
                     return NoneType()
                 }
             }
@@ -324,12 +312,6 @@ class TypeChecker(
         return resultType
     }
 
-    override fun visitArraySet(arraySet: Statement.ArraySet): Type {
-        val expectedType = evaluate(arraySet.arrayGet)
-        val actualType = evaluate(arraySet.value)
-        assertEqualTypes(expectedType, actualType, "Could not assign the type '$actualType' to the type '$expectedType'.")
-        return NoneType()
-    }
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt): Type {
         SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
@@ -346,7 +328,7 @@ class TypeChecker(
                 variable = variable.subType
             PointerType(variable)
         } catch (e: NoSuchElementException) {
-            errorManager.error(varCall.varName.line, varCall.varName.index, "The requested variable could not be found.")
+            errorManager.error(varCall.varName, "The requested variable could not be found.")
             NoneType()
         }
         pointerGet.resultType = type
@@ -356,7 +338,7 @@ class TypeChecker(
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Type {
         val type = evaluate(valueFromPointer.expression)
         if (type !is PointerType) {
-            errorManager.error(-1, -1, "Cannot read from a type which is not a pointer ($type).")
+            errorManager.error(valueFromPointer.star, "Cannot read from a type which is not a pointer ($type).")
             return NoneType()
         }
         valueFromPointer.resultType = type.subtype

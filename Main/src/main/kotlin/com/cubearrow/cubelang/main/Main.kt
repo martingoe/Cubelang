@@ -1,17 +1,17 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.StatementCompiler
-import com.cubearrow.cubelang.TreeRewriter
-import com.cubearrow.cubelang.Trie
-import com.cubearrow.cubelang.TypeChecker
+import com.cubearrow.cubelang.instructionselection.StatementCompiler
+import com.cubearrow.cubelang.instructionselection.TreeRewriter
+import com.cubearrow.cubelang.instructionselection.Trie
+import com.cubearrow.cubelang.instructionselection.TypeChecker
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.errors.ErrorManager
-import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
+import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
-import com.cubearrow.cubelang.getRules
+import com.cubearrow.cubelang.instructionselection.getRules
 import java.io.File
 import kotlin.system.exitProcess
 

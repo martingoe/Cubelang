@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.Expression.*
@@ -36,7 +36,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitVarInitialization(varInitialization: Statement.VarInitialization): Statement {
         varInitialization.valueExpression?.let {
-            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it))
+            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it),Token("=", TokenType.EQUALS))
             assignment.resultType = varInitialization.type
             return Statement.ExpressionStatement(assignment)
         }
@@ -66,7 +66,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                 FramePointer(),
                 Token("-", TokenType.PLUSMINUS),
                 Literal(index)
-            )
+            ), Token("*", TokenType.STAR)
         )
         result.resultType = varCall.resultType
         return result
@@ -132,7 +132,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitInstanceGet(instanceGet: InstanceGet): Expression {
         val expression = evaluateExpression(instanceGet.expression)
-//        TODO()
         val index = getInstanceGetIndex(
             SymbolTableSingleton.getCurrentSymbolTable().getStruct((instanceGet.expression.resultType as StructType).typeName)!!,
             instanceGet.identifier.substring
@@ -140,7 +139,8 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
         if (expression is Expression.ValueFromPointer &&
             expression.expression is Operation &&
             (expression.expression as Operation).leftExpression is FramePointer &&
-            ((expression.expression as Operation).rightExpression is Literal)) {
+            ((expression.expression as Operation).rightExpression is Literal)
+        ) {
             val temp = ((expression.expression as Operation).rightExpression as Literal).value as Int - index
             ((expression.expression as Operation).rightExpression as Literal).value = temp
             expression.resultType = instanceGet.resultType
@@ -153,10 +153,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
         val requestedVar = struct.variables.first { pair -> pair.first == structSubvalue }
         val argumentsBefore = struct.variables.subList(0, struct.variables.indexOf(requestedVar))
         return argumentsBefore.fold(0) { acc, pair -> acc + pair.second.getLength() }
-    }
-
-    override fun visitInstanceSet(instanceSet: Statement.InstanceSet): Statement {
-        TODO("Create a valuetopointer expression")
     }
 
     override fun visitArgumentDefinition(argumentDefinition: Statement.ArgumentDefinition): Statement {
@@ -227,7 +223,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                         FramePointer(),
                         Token("-", TokenType.PLUSMINUS),
                         Literal(index1)
-                    )
+                    ), Token("*", TokenType.STAR)
                 )
                 firstVal.resultType = arrayGet.expression.resultType
                 val value =
@@ -236,7 +232,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                             firstVal,
                             Token("-", TokenType.PLUSMINUS),
                             Literal(-getLiteralValue((arrayGet.inBrackets as Literal).value) * getSubtype(arrayGet.expression.resultType)!!.getLength())
-                        )
+                        ), Token("*", TokenType.STAR)
 
                     )
                 value.resultType = arrayGet.resultType
@@ -253,7 +249,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                     FramePointer(),
                     Token("-", TokenType.PLUSMINUS),
                     Literal(index1)
-                )
+                ), Token("*", TokenType.STAR)
             )
             result.resultType = arrayGet.resultType
             return result
@@ -294,7 +290,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                 value,
                 Token("+", TokenType.PLUSMINUS),
                 extendTo64Bit
-            )
+            ), Token("*", TokenType.STAR)
         )
         result.resultType = arrayGet.resultType
         result.expression.resultType = NormalType(NormalTypes.I64)
@@ -316,9 +312,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
     }
 
 
-    override fun visitArraySet(arraySet: Statement.ArraySet): Statement {
-        TODO("Not yet implemented")
-    }
+
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt): Statement {
         return importStmnt

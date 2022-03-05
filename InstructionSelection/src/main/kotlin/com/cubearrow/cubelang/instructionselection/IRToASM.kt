@@ -1,7 +1,7 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
 import com.cubearrow.cubelang.common.ir.*
-import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
+import com.cubearrow.cubelang.common.ASMEmitter
 
 class IRToASM {
     companion object{
@@ -17,6 +17,7 @@ class IRToASM {
                     IRType.INC -> "inc ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
                     IRType.DEC -> "dec ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
                     IRType.SAL -> "sal ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${irValue.arg1}"
+                    IRType.NEG_UNARY -> "neg ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
                     IRType.COPY_FROM_DEREF -> "mov ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}, ${getASMPointerSize(irValue.resultType.getLength())} [${getPointerValue(irValue.arg0!!, 8)}]"
                     IRType.COPY_TO_DEREF -> "mov ${getASMPointerSize(irValue.resultType.getLength())} [${getPointerValue(irValue.arg0!!, 8)}], ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
                     IRType.CALL -> {
@@ -131,6 +132,7 @@ class IRToASM {
                 is Literal -> value.value
                 is FramePointer -> value.toString()
                 is RegOffset -> "[${getPointerValue(value.temporaryRegister, 8)} - ${value.offset}]"
+                is FramePointerOffset -> "${value.literal} " + if(value.temporaryRegister != null) " + ${getPointerValue(value.temporaryRegister!!, 8)} * ${value.offset!!}" else ""
                 else -> error("")
             }
         }

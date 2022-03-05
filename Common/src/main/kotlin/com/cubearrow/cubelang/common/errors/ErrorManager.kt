@@ -1,6 +1,7 @@
 package com.cubearrow.cubelang.common.errors
 
 import com.cubearrow.cubelang.common.ConsoleColor
+import com.cubearrow.cubelang.common.tokens.Token
 import kotlin.system.exitProcess
 
 class ErrorManager(private val lines: List<String>, private var exitAfterError: Boolean) {
@@ -33,6 +34,9 @@ class ErrorManager(private val lines: List<String>, private var exitAfterError: 
         containsError = true
         if (exitAfterError)
             exitProcess(65)
+    }
+    fun error(token: Token, message: String){
+        error(token.line, token.index, message)
     }
 
     fun exitIfError(){

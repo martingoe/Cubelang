@@ -1,7 +1,7 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
 import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
+import com.cubearrow.cubelang.common.ASMEmitter
 import java.util.*
 
 

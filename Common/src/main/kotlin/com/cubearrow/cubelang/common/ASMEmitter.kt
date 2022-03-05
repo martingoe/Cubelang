@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.common.nasm_rules
+package com.cubearrow.cubelang.common
 
 import com.cubearrow.cubelang.common.ir.IRValue
 

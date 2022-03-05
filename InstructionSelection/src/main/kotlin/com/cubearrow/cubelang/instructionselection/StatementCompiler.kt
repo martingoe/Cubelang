@@ -1,18 +1,18 @@
-package com.cubearrow.cubelang
+package com.cubearrow.cubelang.instructionselection
 
-import com.cubearrow.cubelang.IRToASM.Companion.emitASMForIR
+import com.cubearrow.cubelang.instructionselection.IRToASM.Companion.emitASMForIR
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.Statement
 import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.ir.*
-import com.cubearrow.cubelang.common.nasm_rules.ASMEmitter
+import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.common.tokens.TokenType
 import java.io.File
 import java.util.*
 
+private const val REGISTER_COUNT: Int = 6
 class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
-    private val REGISTER_COUNT: Int = 6
     private var scope: Stack<Int> = Stack()
     var lIndex = 2
 
@@ -56,24 +56,16 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
     }
 
     private fun setAllocatedRegister(regIndex: Int, interval: LiveInterval) {
-        // TODO
         for (i in interval.start..interval.end) {
-            if (emitter.resultIRValues[i].arg0 is TemporaryRegister) {
-                if ((emitter.resultIRValues[i].arg0 as TemporaryRegister).index == interval.virtualRegIndex)
-                    (emitter.resultIRValues[i].arg0 as TemporaryRegister).allocatedIndex = regIndex
-            }
-            if (emitter.resultIRValues[i].arg1 is TemporaryRegister) {
-                if ((emitter.resultIRValues[i].arg1 as TemporaryRegister).index == interval.virtualRegIndex)
-                    (emitter.resultIRValues[i].arg1 as TemporaryRegister).allocatedIndex = regIndex
-            }
-            if (emitter.resultIRValues[i].arg0 is RegOffset) {
-                if ((emitter.resultIRValues[i].arg0 as RegOffset).temporaryRegister.index == interval.virtualRegIndex)
-                    (emitter.resultIRValues[i].arg0 as RegOffset).temporaryRegister.allocatedIndex = regIndex
-            }
-            if (emitter.resultIRValues[i].arg1 is RegOffset) {
-                if ((emitter.resultIRValues[i].arg1 as RegOffset).temporaryRegister.index == interval.virtualRegIndex)
-                    (emitter.resultIRValues[i].arg1 as RegOffset).temporaryRegister.allocatedIndex = regIndex
-            }
+            emitter.resultIRValues[i].arg0?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
+            emitter.resultIRValues[i].arg1?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
+        }
+    }
+    private fun setAllocatedRegister(irValue: ValueType, regIndex: Int, virtualRegIndex: Int){
+        when(irValue){
+            is TemporaryRegister -> if(irValue.index == virtualRegIndex) irValue.allocatedIndex = regIndex
+            is RegOffset -> if(irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
+            is FramePointerOffset -> if(irValue.temporaryRegister != null && irValue.temporaryRegister!!.index == virtualRegIndex) irValue.temporaryRegister!!.allocatedIndex = regIndex
         }
     }
 
@@ -100,23 +92,31 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
         return resultList
     }
 
-    private fun addLiveInterval(arg0: ValueType?, resultList: MutableList<LiveInterval>, index: Int) {
-        arg0?.let {
-            if (arg0 is TemporaryRegister) {
+    private fun addLiveInterval(value: ValueType?, resultList: MutableList<LiveInterval>, index: Int) {
+        value?.let {
+            if (value is TemporaryRegister) {
                 // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == arg0.index }) {
-                    resultList.add(LiveInterval(arg0.index, index, index))
+                if (resultList.none { it.virtualRegIndex == value.index }) {
+                    resultList.add(LiveInterval(value.index, index, index))
                 } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == arg0.index }
+                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
                     resultList[indexOfFirst].end = index
                 }
             }
-            if(arg0 is RegOffset){
+            if (value is RegOffset) {
                 // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == arg0.temporaryRegister.index }) {
-                    resultList.add(LiveInterval(arg0.temporaryRegister.index, index, index))
+                if (resultList.none { it.virtualRegIndex == value.temporaryRegister.index }) {
+                    resultList.add(LiveInterval(value.temporaryRegister.index, index, index))
                 } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == arg0.temporaryRegister.index }
+                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister.index }
+                    resultList[indexOfFirst].end = index
+                }
+            }
+            if(value is FramePointerOffset && value.temporaryRegister != null){
+                if (resultList.none { it.virtualRegIndex == value.temporaryRegister!!.index }) {
+                    resultList.add(LiveInterval(value.temporaryRegister!!.index, index, index))
+                } else {
+                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister!!.index }
                     resultList[indexOfFirst].end = index
                 }
             }
@@ -231,7 +231,6 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
     }
 
 
-
     override fun visitWhileStmnt(whileStmnt: Statement.WhileStmnt) {
         val resetLIndex = lIndex++
         val exitIndex = lIndex++
@@ -264,10 +263,6 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
         return
     }
 
-    override fun visitInstanceSet(instanceSet: Statement.InstanceSet): Any? {
-        TODO("Not yet implemented")
-    }
-
     override fun visitArgumentDefinition(argumentDefinition: Statement.ArgumentDefinition): Any? {
         TODO("Not yet implemented")
     }
@@ -279,10 +274,6 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie,
             evaluate(stmnt)
         }
         scope.pop()
-    }
-
-    override fun visitArraySet(arraySet: Statement.ArraySet): Any? {
-        TODO("Not yet implemented")
     }
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt) {

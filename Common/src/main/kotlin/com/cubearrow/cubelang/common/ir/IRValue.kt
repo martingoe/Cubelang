@@ -56,6 +56,30 @@ class RegOffset(val temporaryRegister: TemporaryRegister, var offset: String): V
 
 
 }
+
+
+class FramePointerOffset(val literal: String, val temporaryRegister: TemporaryRegister? = null, var offset: String? = null): ValueType{
+    override fun toString(): String {
+        return "[r$temporaryRegister - $offset]"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as RegOffset
+
+        if (temporaryRegister != other.temporaryRegister) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return temporaryRegister.hashCode()
+    }
+
+
+}
 class FramePointer : ValueType{
     override fun toString(): String {
         return "rbp"

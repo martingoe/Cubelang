@@ -85,7 +85,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 val parameterName = consume(TokenType.IDENTIFIER, "Expected a parameter name")
                 val type = getType()
                 if (type is NoneType)
-                    errorManager.error(current().line, current().index, "Expected an argument type")
+                    errorManager.error(current(), "Expected an argument type")
                 args.add(Statement.ArgumentDefinition(parameterName, type))
 
                 if (!match(TokenType.COMMA)) break
@@ -135,7 +135,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             else -> throw ParseException("Expected a variable definition or null in the initialization of a for loop", previous())
         }
         val condition =
-            if (match(TokenType.SEMICOLON)) Statement.ExpressionStatement(Expression.Literal(true)) else Statement.ExpressionStatement(orExpression())
+            if (match(TokenType.SEMICOLON)) Statement.ExpressionStatement(Expression.Literal(true, current())) else Statement.ExpressionStatement(orExpression())
         consume(TokenType.SEMICOLON, "Expected a ';' after the condition of the for loop")
         val incrementor = if (peek(TokenType.BRCKTR)) Statement.Empty(null) else Statement.ExpressionStatement(expression())
         consume(TokenType.BRCKTR, "expect ')' after clauses")
@@ -171,9 +171,10 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     private fun assignment(): Expression {
         val leftSide = orExpression()
         if(match(TokenType.EQUALS)){
+            val equals = current()
             previous()
             val value = orExpression()
-            return Expression.Assignment(leftSide, value)
+            return Expression.Assignment(leftSide, value, equals)
         }
         return leftSide
     }
@@ -246,6 +247,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     }
 
     private fun finishCall(callee: Expression.VarCall): Expression {
+        val bracket = current()
         val arguments: MutableList<Expression> = ArrayList()
 
         while (!peek(TokenType.BRCKTR)) {
@@ -254,19 +256,19 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 arguments.add(expression())
         }
         consume(TokenType.BRCKTR, "Expected a ')' closing the call")
-        return Expression.Call(callee, arguments)
+        return Expression.Call(callee, arguments, bracket)
     }
 
     private fun primary(): Expression {
         return when (advance().tokenType) {
             TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
-            TokenType.STAR -> Expression.ValueFromPointer(call())
-            TokenType.NULLVALUE -> Expression.Literal(null)
-            TokenType.STRING -> Expression.Literal(current())
+            TokenType.STAR -> Expression.ValueFromPointer(call(), current())
+            TokenType.NULLVALUE -> Expression.Literal(null, current())
+            TokenType.STRING -> Expression.Literal(current(), current())
             TokenType.IDENTIFIER -> {
                 lexIdentifier()
             }
-            TokenType.CHAR -> Expression.Literal(current().substring[0])
+            TokenType.CHAR -> Expression.Literal(current().substring[0], current())
             TokenType.NUMBER -> {
                 return number()
             }
@@ -282,19 +284,20 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
 
     private fun number(): Expression {
         return if (!current().substring.contains(".")) {
-            Expression.Literal(current().substring.toInt())
+            Expression.Literal(current().substring.toInt(), current())
         } else {
-            errorManager.error(current().line, current().index, "Floating point numbers are not available yet.")
+            errorManager.error(current(), "Floating point numbers are not available yet.")
             throw ParseException("Floating point numbers are not available yet.", current())
         }
     }
 
     private fun lexIdentifier(): Expression {
+        val bracket = current()
         var result: Expression = Expression.VarCall(current())
         while (match(TokenType.CLOSEDL)) {
             val number = expression()
             consume(TokenType.CLOSEDR, "Expected ']'")
-            result = Expression.ArrayGet(result, number)
+            result = Expression.ArrayGet(result, number, bracket)
         }
         return result
     }
@@ -379,7 +382,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     }
 
     private fun catchException(message: String, token: Token) {
-        errorManager.error(token.line, token.index, message)
+        errorManager.error(token, message)
         skipError()
     }
 

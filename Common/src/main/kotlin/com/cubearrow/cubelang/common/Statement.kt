@@ -50,13 +50,6 @@ abstract class Statement {
     }
 
 
-
-    class InstanceSet (val instanceGet: Expression.InstanceGet, val value: Expression) : Statement() {
-        override fun <R> accept(visitor: StatementVisitor<R>): R {
-            return visitor.visitInstanceSet(this)
-        }
-    }
-
     class ArgumentDefinition (val name: Token, val type: Type) : Statement() {
         override fun <R> accept(visitor: StatementVisitor<R>): R {
             return visitor.visitArgumentDefinition(this)
@@ -69,14 +62,6 @@ abstract class Statement {
         }
     }
 
-
-
-
-    class ArraySet (val arrayGet: Expression.ArrayGet, val value: Expression) : Statement() {
-        override fun <R> accept(visitor: StatementVisitor<R>): R {
-            return visitor.visitArraySet(this)
-        }
-    }
 
     class ImportStmnt (val identifier: Token) : Statement() {
         override fun <R> accept(visitor: StatementVisitor<R>): R {
@@ -106,10 +91,8 @@ abstract class Statement {
         fun visitWhileStmnt(whileStmnt: WhileStmnt): R
         fun visitForStmnt(forStmnt: ForStmnt): R
         fun visitStructDefinition(structDefinition: StructDefinition): R
-        fun visitInstanceSet(instanceSet: InstanceSet): R
         fun visitArgumentDefinition(argumentDefinition: ArgumentDefinition): R
         fun visitBlockStatement(blockStatement: BlockStatement): R
-        fun visitArraySet(arraySet: ArraySet): R
         fun visitImportStmnt(importStmnt: ImportStmnt): R
         fun visitEmpty(empty: Empty): R
         fun visitExpressionStatement(expressionStatement: ExpressionStatement): R
