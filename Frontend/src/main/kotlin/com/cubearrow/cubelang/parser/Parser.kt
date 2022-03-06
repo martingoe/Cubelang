@@ -10,23 +10,22 @@ import kotlin.collections.ArrayList
 
 
 /**
- * This class creates a [List] of [Expression]s that form an abstract syntax tree.
+ * This class creates a [List] of [Statement]s that form an abstract syntax tree.
  */
 class Parser(private var tokens: List<Token>, private var errorManager: ErrorManager) {
     private var current = -1
 
-
-    fun parse(): List<Expression> {
-        val statements: MutableList<Expression> = ArrayList()
+    fun parse(): List<Statement> {
+        val statements: MutableList<Statement> = ArrayList()
 
         while (!isAtEnd()) {
-            if(peek(TokenType.EOF)) break
+            if (peek(TokenType.EOF)) break
             statements.add(statement())
         }
         return statements
     }
 
-    private fun statement(): Expression {
+    private fun statement(): Statement {
         try {
             return when (advance().tokenType) {
                 TokenType.IMPORT -> importStatement()
@@ -39,48 +38,55 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 TokenType.FUN -> functionStatement()
                 TokenType.RETURN -> returnStatement()
                 else -> {
-                    current--
+                    if (peek(TokenType.EQUALS)) {
+                        current--
+                        val assignment = assignment()
+                        consume(TokenType.SEMICOLON, "Expected a ; after an assignment")
+                        return Statement.ExpressionStatement(assignment)
+                    }
+                    if(current().tokenType != TokenType.SEMICOLON)
+                        current--
                     return expressionStatement()
                 }
             }
-        } catch (error: ParseException){
+        } catch (error: ParseException) {
             catchException(error.message, error.token)
         }
-        return Expression.Empty(null)
+        return Statement.Empty(null)
     }
 
-    private fun importStatement(): Expression {
+    private fun importStatement(): Statement {
         val name = advance()
         consume(TokenType.SEMICOLON, "Expected a ; after the import statement")
-        return Expression.ImportStmnt(name)
+        return Statement.ImportStmnt(name)
     }
 
-    private fun expressionStatement(): Expression {
+    private fun expressionStatement(): Statement {
         val value = expression()
-        consume(TokenType.SEMICOLON, "Expected a ';' after a expression statement")
-        return value
+        consume(TokenType.SEMICOLON, "Expected a ';' after an expression statement")
+        return Statement.ExpressionStatement(value)
     }
 
-    private fun returnStatement(): Expression {
+    private fun returnStatement(): Statement {
         var value: Expression? = null
         if (!peek(TokenType.SEMICOLON))
             value = expression()
         consume(TokenType.SEMICOLON, "Expected a ';' after the return statement")
-        return Expression.ReturnStmnt(value)
+        return Statement.ReturnStmnt(value)
     }
 
-    private fun functionStatement(): Expression {
+    private fun functionStatement(): Statement {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier for the function name")
         consume(TokenType.BRCKTL, "Expected '(' after a function name.")
 
-        val args: MutableList<Expression> = ArrayList()
+        val args: MutableList<Statement> = ArrayList()
         if (!peek(TokenType.BRCKTR)) {
             while (true) {
                 val parameterName = consume(TokenType.IDENTIFIER, "Expected a parameter name")
                 val type = getType()
-                if(type is NoneType)
-                    errorManager.error(current().line, current().index, "Expected an argument type")
-                args.add(Expression.ArgumentDefinition(parameterName, type))
+                if (type is NoneType)
+                    errorManager.error(current(), "Expected an argument type")
+                args.add(Statement.ArgumentDefinition(parameterName, type))
 
                 if (!match(TokenType.COMMA)) break
             }
@@ -88,18 +94,18 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         consume(TokenType.BRCKTR, "Expected a ')' closing the argument definitions")
         val type = getType()
 
-        return Expression.FunctionDefinition(name, args, type, statement())
+        return Statement.FunctionDefinition(name, args, type, statement())
     }
 
-    private fun structDefinition(): Expression {
+    private fun structDefinition(): Statement {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier as the class name")
         consume(TokenType.CURLYL, "Expected '{' starting the class body")
-        val methods: MutableList<Expression.VarInitialization> = ArrayList()
+        val methods: MutableList<Statement.VarInitialization> = ArrayList()
         while (!peek(TokenType.CURLYR) && !isAtEnd()) {
             when {
                 match(TokenType.VAR) -> {
                     methods.add(variableDefinition())
-                    if(methods.last().valueExpression != null){
+                    if (methods.last().valueExpression != null) {
                         throw ParseException("Variables inside a struct can not be initialized and must have a valid type.", previous())
                     }
                 }
@@ -107,82 +113,70 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             }
         }
         consume(TokenType.CURLYR, "")
-        return Expression.StructDefinition(name, methods)
+        return Statement.StructDefinition(name, methods)
     }
 
-    private fun blockStatement(): Expression {
-        val statements: MutableList<Expression> = ArrayList()
+    private fun blockStatement(): Statement {
+        val statements: MutableList<Statement> = ArrayList()
 
         while (!peek(TokenType.CURLYR) && !isAtEnd())
             statements.add(statement())
 
         consume(TokenType.CURLYR, "Expected a '}' closing the code block")
-        return Expression.BlockStatement(statements)
+        return Statement.BlockStatement(statements)
     }
 
-    private fun forStatement(): Expression {
+    private fun forStatement(): Statement {
         consume(TokenType.BRCKTL, "Expected a '(' after 'for'")
 
         val init = when {
-            match(TokenType.SEMICOLON) -> Expression.Empty(null)
+            match(TokenType.SEMICOLON) -> Statement.Empty(null)
             match(TokenType.VAR) -> variableDefinition()
             else -> throw ParseException("Expected a variable definition or null in the initialization of a for loop", previous())
         }
-        val condition = if (match(TokenType.SEMICOLON)) Expression.Literal(true) else orExpression()
+        val condition =
+            if (match(TokenType.SEMICOLON)) Statement.ExpressionStatement(Expression.Literal(true, current())) else Statement.ExpressionStatement(orExpression())
         consume(TokenType.SEMICOLON, "Expected a ';' after the condition of the for loop")
-        val incrementor = if (peek(TokenType.BRCKTR)) Expression.Empty(null) else expression()
+        val incrementor = if (peek(TokenType.BRCKTR)) Statement.Empty(null) else Statement.ExpressionStatement(expression())
         consume(TokenType.BRCKTR, "expect ')' after clauses")
-        return Expression.ForStmnt(listOf(init, condition, incrementor), statement())
+        return Statement.ForStmnt(listOf(init, condition, incrementor), statement())
     }
 
-    private fun whileStatement(): Expression {
+    private fun whileStatement(): Statement {
         consume(TokenType.BRCKTL, "Expected a '(' after 'while'")
         val condition = orExpression()
         consume(TokenType.BRCKTR, "Expected a ')' closing the condition")
-        return Expression.WhileStmnt(condition, statement())
+        return Statement.WhileStmnt(condition, statement())
     }
 
-    private fun ifStatement(): Expression {
+    private fun ifStatement(): Statement {
         consume(TokenType.BRCKTL, "Expected a '(' after 'if'")
         val condition = orExpression()
         consume(TokenType.BRCKTR, "Expected a ')' closing the condition")
         val thenBranch = statement()
-        var elseBranch: Expression? = null
+        var elseBranch: Statement? = null
         if (match(TokenType.ELSE))
             elseBranch = statement()
-        return Expression.IfStmnt(condition, thenBranch, elseBranch)
+        return Statement.IfStmnt(condition, thenBranch, elseBranch)
     }
 
-    private fun variableDefinition(): Expression.VarInitialization {
+    private fun variableDefinition(): Statement.VarInitialization {
         val name = consume(TokenType.IDENTIFIER, "Expected a name for the variable")
         val type = getType()
         val value = if (match(TokenType.EQUALS)) expression() else null
         consume(TokenType.SEMICOLON, "Expected a ';' after the variable definition.")
-        return Expression.VarInitialization(name, type, value)
+        return Statement.VarInitialization(name, type, value)
     }
 
     private fun assignment(): Expression {
-        val expression = orExpression()
-
-        if (match(TokenType.EQUALS)) {
-            val equals = previous()
-            val value = assignment()
-            return when (expression) {
-                is Expression.VarCall -> {
-                    Expression.Assignment(expression.varName, value)
-                }
-                is Expression.InstanceGet -> {
-                    Expression.InstanceSet(expression, value)
-                }
-                is Expression.ArrayGet -> {
-                    Expression.ArraySet(expression, value)
-                }
-                else -> {
-                    throw ParseException("Invalid assignment target", equals)
-                }
-            }
+        val leftSide = orExpression()
+        if(match(TokenType.EQUALS)){
+            val equals = current()
+            previous()
+            val value = orExpression()
+            return Expression.Assignment(leftSide, value, equals)
         }
-        return expression
+        return leftSide
     }
 
     private fun orExpression(): Expression {
@@ -241,7 +235,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
 
         while (true) {
             expression = if (match(TokenType.BRCKTL)) {
-                finishCall(expression)
+                finishCall(expression as Expression.VarCall)
             } else if (match(TokenType.DOT)) {
                 val name = consume(TokenType.IDENTIFIER, "Expected an identifier after '.'")
                 Expression.InstanceGet(expression, name)
@@ -252,7 +246,8 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         return expression
     }
 
-    private fun finishCall(callee: Expression): Expression {
+    private fun finishCall(callee: Expression.VarCall): Expression {
+        val bracket = current()
         val arguments: MutableList<Expression> = ArrayList()
 
         while (!peek(TokenType.BRCKTR)) {
@@ -261,31 +256,21 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 arguments.add(expression())
         }
         consume(TokenType.BRCKTR, "Expected a ')' closing the call")
-        return Expression.Call(callee, arguments)
+        return Expression.Call(callee, arguments, bracket)
     }
 
     private fun primary(): Expression {
         return when (advance().tokenType) {
             TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
-            TokenType.STAR -> Expression.ValueFromPointer(call())
-            TokenType.NULLVALUE -> Expression.Literal(null)
-            TokenType.STRING -> Expression.Literal(current())
+            TokenType.STAR -> Expression.ValueFromPointer(call(), current())
+            TokenType.NULLVALUE -> Expression.Literal(null, current())
+            TokenType.STRING -> Expression.Literal(current(), current())
             TokenType.IDENTIFIER -> {
-                var result: Expression = Expression.VarCall(current())
-                while(match(TokenType.CLOSEDL)) {
-                    val number = expression()
-                    consume(TokenType.CLOSEDR, "Expected ']'")
-                    result = Expression.ArrayGet(result, number)
-                }
-                result
+                lexIdentifier()
             }
-            TokenType.CHAR -> Expression.Literal(current().substring[0])
+            TokenType.CHAR -> Expression.Literal(current().substring[0], current())
             TokenType.NUMBER -> {
-                return if (!current().substring.contains(".")) {
-                    Expression.Literal(current().substring.toInt())
-                } else {
-                    Expression.Literal(current().substring.toDouble())
-                }
+                return number()
             }
             TokenType.BRCKTL -> {
                 val expression = expression()
@@ -295,6 +280,26 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             else -> throw ParseException("Expected an expression", previous())
 
         }
+    }
+
+    private fun number(): Expression {
+        return if (!current().substring.contains(".")) {
+            Expression.Literal(current().substring.toInt(), current())
+        } else {
+            errorManager.error(current(), "Floating point numbers are not available yet.")
+            throw ParseException("Floating point numbers are not available yet.", current())
+        }
+    }
+
+    private fun lexIdentifier(): Expression {
+        val bracket = current()
+        var result: Expression = Expression.VarCall(current())
+        while (match(TokenType.CLOSEDL)) {
+            val number = expression()
+            consume(TokenType.CLOSEDR, "Expected ']'")
+            result = Expression.ArrayGet(result, number, bracket)
+        }
+        return result
     }
 
     private fun expression(): Expression {
@@ -310,6 +315,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         }
         return false
     }
+
     private fun peek(): Token = tokens[current + 1]
 
     private fun match(tokenType: TokenType): Boolean {
@@ -327,23 +333,23 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         }
         return NoneType()
     }
-    private fun isNormalOrStructType(typeName: String): Type{
-        return try{
+
+    private fun isNormalOrStructType(typeName: String): Type {
+        return try {
             NormalType(NormalTypes.valueOf(typeName.uppercase(Locale.getDefault())))
-        } catch (exception: IllegalArgumentException){
+        } catch (exception: IllegalArgumentException) {
             StructType(typeName)
         }
     }
 
     private fun type(): Type {
-        return if(peek(TokenType.IDENTIFIER) && tokens[current + 2].tokenType == TokenType.STAR){
+        return if (peek(TokenType.IDENTIFIER) && tokens[current + 2].tokenType == TokenType.STAR) {
             val substring = consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring
             advance()
             return PointerType(isNormalOrStructType(substring))
-        } else if(peek(TokenType.IDENTIFIER)) {
+        } else if (peek(TokenType.IDENTIFIER)) {
             isNormalOrStructType(consume(TokenType.IDENTIFIER, "Expected a type identifier after ':'").substring)
-        }
-        else{
+        } else {
             consume(TokenType.CLOSEDL, "Expected '['.")
             val name = type()
             consume(TokenType.COLON, "Expected an ':' in the argument type.")
@@ -360,7 +366,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     private fun consume(tokenType: TokenType, errorMessage: String): Token {
         this.current++
         if (tokens[current].tokenType != tokenType) {
-            throw ParseException(errorMessage, tokens[current])
+            catchException(errorMessage, tokens[current])
         }
         return tokens[current]
     }
@@ -375,13 +381,12 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         }
     }
 
-    private fun catchException(message: String, token: Token){
-        errorManager.error(token.line, token.index, message)
+    private fun catchException(message: String, token: Token) {
+        errorManager.error(token, message)
         skipError()
     }
 
 }
-
 
 class ParseException(override var message: String, var token: Token) : Throwable()
 

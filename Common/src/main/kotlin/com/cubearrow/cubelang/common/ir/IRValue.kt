@@ -1,11 +1,10 @@
 package com.cubearrow.cubelang.common.ir
 
-import com.cubearrow.cubelang.common.StructType
 import com.cubearrow.cubelang.common.Type
 
-class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val result: ValueType?, val resultType: Type) {
+class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val resultType: Type) {
     override fun toString(): String {
-        return """$type, $arg0, $arg1, $result : $resultType
+        return """$type, $arg0, $arg1 : $resultType
         """.trimMargin()
     }
 }
@@ -13,6 +12,7 @@ class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val 
 interface ValueType
 
 class TemporaryRegister(val index: Int) : ValueType {
+    var allocatedIndex: Int = -1
     override fun toString(): String {
         return "r$index"
     }
@@ -34,49 +34,65 @@ class TemporaryRegister(val index: Int) : ValueType {
     }
 }
 
-class Variable(val name: String, val extraOffset: Int = 0) : ValueType {
+class RegOffset(val temporaryRegister: TemporaryRegister, var offset: String): ValueType{
     override fun toString(): String {
-        return name
+        return "[r$temporaryRegister - $offset]"
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as Variable
+        other as RegOffset
 
-        if (name != other.name) return false
+        if (temporaryRegister != other.temporaryRegister) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        return name.hashCode()
+        return temporaryRegister.hashCode()
     }
+
+
 }
 
 
-class StructSubvalue(val name: String, val structType: StructType) : ValueType {
+class FramePointerOffset(val literal: String, val temporaryRegister: TemporaryRegister? = null, var offset: String? = null): ValueType{
     override fun toString(): String {
-        return name
+        return "[r$temporaryRegister - $offset]"
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as StructSubvalue
+        other as RegOffset
 
-        if (name != other.name) return false
-        if (structType != other.structType) return false
+        if (temporaryRegister != other.temporaryRegister) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + structType.hashCode()
-        return result
+        return temporaryRegister.hashCode()
+    }
+
+
+}
+class FramePointer : ValueType{
+    override fun toString(): String {
+        return "rbp"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
     }
 
 
@@ -101,13 +117,6 @@ class FunctionLabel(val name: String) : ValueType {
 
     override fun hashCode(): Int {
         return name.hashCode()
-    }
-}
-
-class TemporaryLabel(private val index: Int) : ValueType {
-
-    override fun toString(): String {
-        return ".l${index}"
     }
 }
 

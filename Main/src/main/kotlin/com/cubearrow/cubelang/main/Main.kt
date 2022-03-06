@@ -1,14 +1,17 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.Type
+import com.cubearrow.cubelang.instructionselection.StatementCompiler
+import com.cubearrow.cubelang.instructionselection.TreeRewriter
+import com.cubearrow.cubelang.instructionselection.ExpressionMatchingTrie
+import com.cubearrow.cubelang.instructionselection.TypeChecker
+import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
 import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.errors.ErrorManager
-import com.cubearrow.cubelang.ir.IRCompiler
-import com.cubearrow.cubelang.ircompiler.X86IRCompiler
+import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.lexing.Lexer
 import com.cubearrow.cubelang.parser.Parser
+import com.cubearrow.cubelang.instructionselection.getRules
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -24,7 +27,8 @@ fun main(args: Array<String>) {
 
 class Main(private val libraryPath: String) {
     fun compileFile(sourceFile: Array<String>) {
-        val expressionsList = HashMap<String, List<Expression>>()
+        SymbolTableSingleton.resetAll()
+        val expressionsList = HashMap<String, List<Statement>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
@@ -38,32 +42,40 @@ class Main(private val libraryPath: String) {
         }
         errorManagers.forEach { it.value.exitIfError() }
 
+        var i = 0
+        val trie = ExpressionMatchingTrie(getRules(), ASMEmitter())
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
-            val irCompiler = IRCompiler(expressions.value, libraryPath, DefinedFunctions.definedFunctions, errorManagers[expressions.key]!!)
-            val irValues = irCompiler.parse()
-            println(irValues.joinToString("\n"))
-            resultFile.writeText(X86IRCompiler(irValues, irCompiler.context.structs).compile())
+            SymbolTableSingleton.currentIndex = i
+            SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
+
+            TypeChecker(expressions.value, errorManagers[expressions.key]!!, DefinedFunctions.definedFunctions).checkTypes()
+
+            TreeRewriter().rewriteMultiple(expressions.value)
+            trie.emitter = ASMEmitter()
+            StatementCompiler(trie.emitter, trie, libraryPath).evaluateList(expressions.value)
+            resultFile.writeText(trie.emitter.finishedString)
+            i++
         }
     }
 
-    private fun addFunctionsToMap(fileName: String, expressions: List<Expression>) {
+    private fun addFunctionsToMap(fileName: String, expressions: List<Statement>) {
         DefinedFunctions.definedFunctions[fileName] = ArrayList()
-        expressions.filterIsInstance<Expression.FunctionDefinition>().forEach {
+        expressions.filterIsInstance<Statement.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
             DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }
 
     /**
-     * Maps a [List] of [Expression] which may only contain [Expression.ArgumentDefinition] to their substrings
+     * Maps a [List] of [Statement] which may only contain [Statement.ArgumentDefinition] to their substrings
      *
-     * @throws TypeCastException Throws this exception when one of the elements of the expressions are not a [Expression.VarCall]
+     * @throws TypeCastException Throws this exception when one of the elements of the expressions are not a [Statement.ArgumentDefinition]
      * @param expressions The expressions whose names are to be returned
-     * @return Returns a [Map] of [String]s mapped to [String]s with the substrings of the identifier of the [Expression.ArgumentDefinition]
+     * @return Returns a [Map] of [String]s mapped to [String]s with the substrings of the identifier of the [Statement.ArgumentDefinition]
      */
-    private fun mapArgumentDefinitions(expressions: List<Expression>): Map<String, Type> {
-        return expressions.associate { Pair((it as Expression.ArgumentDefinition).name.substring, it.type) }
+    private fun mapArgumentDefinitions(expressions: List<Statement>): Map<String, Type> {
+        return expressions.associate { Pair((it as Statement.ArgumentDefinition).name.substring, it.type) }
     }
 }

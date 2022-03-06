@@ -14,11 +14,14 @@ class DefinedFunctions {
                 Function("printPointer", mapOf("value" to PointerType(NormalType(NormalTypes.ANY))), NoneType())
             ),
             "time" to mutableListOf(
-                Function("getCurrentTime", mapOf(), NormalType(NormalTypes.I32))
+                Function("getUnixTime", mapOf(), NormalType(NormalTypes.I32))
             ),
             "IntMath" to mutableListOf(
                 Function("min", mapOf("first" to NormalType(NormalTypes.I32), "sec" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I32)),
                 Function("max", mapOf("first" to NormalType(NormalTypes.I32), "sec" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I32))
+            ),
+            "random" to mutableListOf(
+                Function("randomI32", mapOf("previous" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I32))
             )
         )
     }
