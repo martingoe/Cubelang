@@ -70,7 +70,7 @@ abstract class Statement {
     }
 
 
-    class Empty (val any: Any?) : Statement() {
+    class Empty : Statement() {
         override fun <R> accept(visitor: StatementVisitor<R>): R {
             return visitor.visitEmpty(this)
         }
