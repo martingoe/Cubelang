@@ -6,25 +6,35 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-object SymbolTableSingleton{
-    var currentName: String = ""
-    var fileSymbolTables: MutableMap<String, FileSymbolTable> = HashMap()
-    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentName]!!
-}
-class FileSymbolTable {
-    init {
-        println("Singleton class invoked")
+/**
+ * A singleton holding all information about variable names etc.
+ * This saves a [[FileSymbolTable]] for every file.
+ */
+object SymbolTableSingleton {
+    var currentIndex = 0
+    var fileSymbolTables: MutableList<FileSymbolTable> = ArrayList()
+    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]
+    fun resetAll() {
+        currentIndex = 0
+        fileSymbolTables = ArrayList()
+
     }
+}
+
+/**
+ * Saves all
+ */
+class FileSymbolTable {
     var structs: HashMap<String, Struct> = HashMap()
     var functions: MutableList<Function> = ArrayList()
-    private var variables: Node = Scope(ArrayList())
+    var variables: Node = Scope(ArrayList())
 
-    fun getVariablesInCurrentScope(scope: Stack<Int>): List<VarNode>{
+    fun getVariablesInCurrentScope(scope: Stack<Int>): List<VarNode> {
         val scopeClone: Stack<Int> = scope.clone() as Stack<Int>
         var currentNode = variables
         val accessibleVariables: MutableList<VarNode> = ArrayList()
 
-        while (scopeClone.size > 1){
+        while (scopeClone.size > 1) {
             currentNode = (currentNode as Scope).symbols.filterIsInstance<Scope>()[scopeClone.removeAt(0)]
 
             accessibleVariables.addAll(currentNode.symbols.filterIsInstance(VarNode::class.java))
@@ -32,13 +42,16 @@ class FileSymbolTable {
         return accessibleVariables
     }
 
-    fun getVariablesOffsetDefinedAtScope(scope: Stack<Int>): Int{
+    /**
+     * Returns the summed offset of all variables defined in the given scope.
+     */
+    fun getVariablesOffsetDefinedAtScope(scope: Stack<Int>): Int {
         val node = getNodeAtScope(scope)
         return getOffsetAtNode(node)
     }
 
     private fun getOffsetAtNode(node: Node): Int {
-        return when(node){
+        return when (node) {
             is VarNode -> node.type.getLength()
             is Scope -> node.symbols.fold(0) { acc, node -> acc + getOffsetAtNode(node) }
             else -> error("Unreachable")
@@ -68,6 +81,7 @@ class FileSymbolTable {
 
 
 }
+
 open class Node
-class VarNode(val name: String, val type: Type, val offset: Int): Node()
-class Scope(val symbols: MutableList<Node>): Node()
+class VarNode(val name: String, val type: Type, val offset: Int) : Node()
+class Scope(val symbols: MutableList<Node>) : Node()

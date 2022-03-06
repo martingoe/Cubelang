@@ -1,4 +1,6 @@
 import io;
+import random;
+import time;
 
 fun fib(n: i32): i32{
     if(n < 2) {
@@ -6,39 +8,47 @@ fun fib(n: i32): i32{
     }
     return fib(n - 1) + fib(n - 2);
 }
+#struct x {
+#    var i: i32;
+#    var j: i32;
+#    var k: i32;
+#}
 fun main() {
-#    var x: [[i32: 5]: 5];
-#    x[0][0] = 10;
-#    x[0][2] = 20;
-#
-#    var y = x[0];
-#    printInt(y[0]);
-#    printInt(y[2]);
-#    for(var i = 0; i < 20; i = i + 1)
-#        printInt(fib(40));
+    var test: [i32: 5];
+    for(var i = 0; i < 20; i = i + 1)
+        printInt(test[i]);
 
-    var x: [[i32: 500]: 500];
-    var y: [[i32: 500]: 500];
-
-    var res: [[i32: 500]: 500];
-
-    for(var i = 0; i < 500; i = i + 1){
-        for(var j = 0; j < 500; j = j + 1){
-            x[i][j] = i;
-            y[i][j] = j;
-        }
-    }
-
-    for(var xie = 0; xie < 50; xie = xie + 1){
-    for(var i = 0; i < 500; i = i + 1){
-        for(var j = 0; j < 500; j = j + 1){
-            res[i][j] = 0;
-            for (var k = 0; k < 500; k = k + 1){
-                res[i][j] = res[i][j] + x[i][k] * y[k][j];
-            }
-        }
-    }
-    }
-    printInt(res[0][2]);
+        printInt(fib(40));
 }
+#    var structArray: [x: 5];
+#    var structcopy = structArray[0];
+#    structArray[0].j = 20;
+#    printInt(structArray[0].j);
+#
+#    printInt(-structArray[0].j);
+#
+#    var x: [[i32: 500]: 500];
+#    var y: [[i32: 500]: 500];
+#
+#    var res: [[i32: 500]: 500];
+#    x[0][1];
+#
+#    for(var i = 0; i < 5; i = i + 1){
+#        for(var j = 0; j < 5; j = j + 1){
+#            x[i][j] = i;
+#            y[i][j] = j;
+#            printInt(x[i][j]);
+#        }
+#    }
 
+    #for(var xie = 0; xie < 50; xie = xie + 1){
+    #for(var i = 0; i < 500; i = i + 1){
+    #    for(var j = 0; j < 500; j = j + 1){
+    #        res[i][j] = 0;
+    #        for (var k = 0; k < 500; k = k + 1){
+    #            res[i][j] = res[i][j] + x[i][k] * y[k][j];
+    #        }
+    #    }
+    #}
+    #}
+#}

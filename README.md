@@ -87,7 +87,9 @@ These are very useful resources that I have used to get started with this projec
 
 * [Crafting interpreters](https://craftinginterpreters.com/) - A book about creating programming languages
 * [Compiler Explorer](https://godbolt.org) - A website that simulates compilers like gcc and displays the x86 output
-
+* Alfred V. Aho, Mahadevan Ganapathi, and Steven W. K. Tjiang. Code generation
+  using tree matching and dynamic programming.
+* Massimiliano Poletto and Vivek Sarkar. Linear scan register allocation.
 
 
 ## License
