@@ -12,7 +12,7 @@ import java.io.File
 import java.util.*
 
 private const val REGISTER_COUNT: Int = 6
-class StatementCompiler(private val emitter: ASMEmitter, private val trie: Trie, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
+class StatementCompiler(private val emitter: ASMEmitter, private val trie: ExpressionMatchingTrie, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
     var lIndex = 2
 

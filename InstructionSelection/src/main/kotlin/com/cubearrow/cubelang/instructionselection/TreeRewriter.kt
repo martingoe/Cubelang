@@ -8,13 +8,16 @@ import com.cubearrow.cubelang.common.tokens.TokenType
 import java.util.*
 import kotlin.collections.ArrayList
 
+/**
+ * Converts memory access like [[Expression.VarCall]]s to offsets from the frame pointer as defined in the [[SymbolTableSingleton]].
+ */
 class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Expression> {
+    private var currentVarIndex = 0
+    private var scope: Stack<Int> = Stack()
     constructor(scope: Stack<Int>) {
         this.scope = scope
     }
 
-    private var currentVarIndex = 0
-    var scope: Stack<Int> = Stack()
     private fun rewrite(expression: Statement): Statement {
         return evaluate(expression)
     }
@@ -311,9 +314,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
         return getVariables().first { it.name == varName.substring }
     }
 
-
-
-
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt): Statement {
         return importStmnt
     }
@@ -325,8 +325,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Expression {
         valueFromPointer.expression = evaluateExpression(valueFromPointer.expression)
-//        result.resultType = valueFromPointer.resultType
-//        return result
         return valueFromPointer
     }
 
@@ -337,12 +335,6 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     fun rewriteMultiple(expressions: List<Statement>) {
         expressions.forEach { rewrite(it) }
-    }
-
-    override fun visitValueToPointer(valueToPointer: ValueToPointer): Expression {
-        valueToPointer.value = evaluateExpression(valueToPointer.value)
-        valueToPointer.pointer = evaluateExpression(valueToPointer.pointer)
-        return valueToPointer
     }
 
     override fun visitExpressionStatement(expressionStatement: Statement.ExpressionStatement): Statement {

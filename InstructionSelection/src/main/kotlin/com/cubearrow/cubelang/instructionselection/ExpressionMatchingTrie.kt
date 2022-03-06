@@ -5,8 +5,11 @@ import com.cubearrow.cubelang.common.ASMEmitter
 import java.util.*
 
 
-class Trie(private val rules: List<Rule>, var emitter: ASMEmitter) {
-    var trieEntries: MutableList<TrieEntry> = ArrayList()
+/**
+ * The trie used to match expressions to immediate representation values.
+ */
+class ExpressionMatchingTrie(private val rules: List<Rule>, var emitter: ASMEmitter) {
+    private var trieEntries: MutableList<TrieEntry> = ArrayList()
 
     private val astGetSymbol = ASTGetSymbol()
 
@@ -79,13 +82,18 @@ class Trie(private val rules: List<Rule>, var emitter: ASMEmitter) {
         }
     }
 
-    fun emitCodeForExpression(visitedExpression: Expression): Expression {
-        visit(visitedExpression)
-        val rule = visitedExpression.match['r'] ?:
-        TODO("NO RULE for ${visitedExpression::class}")
+    /**
+     * Uses the given [[ASMEmitter]] to emit the rules needed for the expression. This method both finds and executes the necessary rules.
+     *
+     * @return Returns the [[Expression]] returned from the [[Rule.constructString]] method.
+     */
+    fun emitCodeForExpression(expression: Expression): Expression {
+        visit(expression)
+        val rule = expression.match['r'] ?:
+        TODO("NO RULE for ${expression::class}")
 
-        emitSubRuleReductions(rules[rule].expression, visitedExpression)
-        return rules[rule].constructString(visitedExpression, emitter, this)
+        emitSubRuleReductions(rules[rule].expression, expression)
+        return rules[rule].constructString(expression, emitter, this)
     }
 
     private fun emitSubRuleReductions(rule: Expression, actual: Expression) {
@@ -105,8 +113,6 @@ class Trie(private val rules: List<Rule>, var emitter: ASMEmitter) {
                 emitSubRuleReductions(ruleChildren[i], actualChildren[i])
             }
         }
-
-
     }
 
 
@@ -195,10 +201,10 @@ class Trie(private val rules: List<Rule>, var emitter: ASMEmitter) {
             newState
         }
     }
-}
 
-class TrieEntry(val value: Char, val length: Int) {
-    var next: MutableList<Int> = ArrayList()
-    var isAccepting: Array<Pair<Boolean, Int>> = Array(Rule.RULE_COUNT) { Pair(false, 0) }
-    var failureState: Int = 0
+    private class TrieEntry(val value: Char, val length: Int) {
+        var next: MutableList<Int> = ArrayList()
+        var isAccepting: Array<Pair<Boolean, Int>> = Array(Rule.RULE_COUNT) { Pair(false, 0) }
+        var failureState: Int = 0
+    }
 }

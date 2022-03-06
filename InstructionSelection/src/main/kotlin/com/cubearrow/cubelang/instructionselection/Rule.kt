@@ -11,7 +11,7 @@ abstract class Rule {
     abstract val resultSymbol: Char
 
     abstract fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int
-    abstract fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression
+    abstract fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression
 
     companion object {
         const val RULE_COUNT = 25
@@ -49,7 +49,7 @@ class PlusOperationRegReg : Rule() {
     }
 
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         emitter.emit(
             IRValue(
@@ -71,7 +71,7 @@ class PlusOperationRegLit : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -97,7 +97,7 @@ class PlusOperationLitReg : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.rightExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -122,7 +122,7 @@ class SubOperationRegLit : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -147,7 +147,7 @@ class ExtendTo64BitsRule : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = (expression as Expression.ExtendTo64Bit).expression as Expression.Register
         emitter.emit(IRValue(IRType.EXTEND_TO_64BITS, TemporaryRegister(reg.index), null, expression.resultType))
 
@@ -166,7 +166,7 @@ class SubOperationRegReg : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -186,7 +186,7 @@ class DivOperationRegReg : Rule() {
         return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -206,7 +206,7 @@ class MulOperationRegReg : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -227,7 +227,7 @@ class MulOperationRegLit : Rule() {
         return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val left = TemporaryRegister((castExpression.leftExpression as Expression.Register).index)
         val right = Literal(getLiteralValue((castExpression.rightExpression as Expression.Literal).value).toString())
@@ -256,7 +256,7 @@ class MulOperationLitReg : Rule() {
         return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Operation
         val left = TemporaryRegister((castExpression.rightExpression as Expression.Register).index)
         val right = Literal(getLiteralValue((castExpression.leftExpression as Expression.Literal).value).toString())
@@ -275,7 +275,7 @@ class LiteralToReg : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = getReg(expression.resultType)
         val literal = Literal(
             getLiteralValue(
@@ -297,7 +297,7 @@ class MovRegToReg : Rule() {
         return 1 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val leftReg = (castExpression.leftSide) as Expression.Register
@@ -318,7 +318,7 @@ class NegateRule : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
 
         val reg = (expression as Expression.Unary).expression as Expression.Register
         emitter.emit(IRValue(IRType.NEG_UNARY, TemporaryRegister(reg.index), null, expression.resultType))
@@ -340,7 +340,7 @@ class MovPointerRegToReg : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val valueFromPointer = castExpression.leftSide as Expression.ValueFromPointer
@@ -375,7 +375,7 @@ class MovOffsetToReg : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val valueFromPointer = castExpression.leftSide as Expression.ValueFromPointer
@@ -408,7 +408,7 @@ class MovFromFPOffset : Rule() {
         return 3
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -441,7 +441,7 @@ class MovFromRegOffset : Rule() {
         return 3
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -483,7 +483,7 @@ class MovFromRegOffsetWithAdder : Rule() {
         return 3
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -536,7 +536,7 @@ class MovOffsetToOffset : Rule() {
         return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         expression as Expression.Assignment
         var rightOffset =
             getLiteralValue((((expression.valueExpression as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
@@ -613,7 +613,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
         return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         expression as Expression.Assignment
         val varCallOffset =
             getLiteralValue(((((expression.valueExpression as Expression.ValueFromPointer).expression as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
@@ -670,7 +670,7 @@ class ValueFromPointer : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = expression as Expression.ValueFromPointer
         val valueRegister = castExpression.expression as Expression.Register
         val reg = getReg(valueRegister.type)
@@ -695,7 +695,7 @@ class PointerGet : Rule() {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val castExpression = (expression as Expression.PointerGet).expression as Expression.ValueFromPointer
         val reg = getReg(expression.resultType)
         val operation = castExpression.expression as Expression.Operation
@@ -716,7 +716,7 @@ class FramePointerRule : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         val reg = getReg(NormalType(NormalTypes.I64))
         emitter.emit(IRValue(IRType.COPY, TemporaryRegister(reg.index), FramePointer(), NormalType(NormalTypes.I64)))
         return reg
@@ -733,7 +733,7 @@ class CallRule : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         expression as Expression.Call
         for (arg in expression.arguments) {
             val result = trie.emitCodeForExpression(arg)
@@ -764,7 +764,7 @@ class ComparisonRegReg : Rule() {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: Trie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
         expression as Expression.Comparison
         val tempReg1 = TemporaryRegister((expression.leftExpression as Expression.Register).index)
         val tempReg2 = TemporaryRegister((expression.rightExpression as Expression.Register).index)

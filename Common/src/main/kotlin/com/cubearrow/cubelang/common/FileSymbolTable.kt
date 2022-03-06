@@ -6,6 +6,10 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
+/**
+ * A singleton holding all information about variable names etc.
+ * This saves a [[FileSymbolTable]] for every file.
+ */
 object SymbolTableSingleton {
     var currentIndex = 0
     var fileSymbolTables: MutableList<FileSymbolTable> = ArrayList()
@@ -17,11 +21,10 @@ object SymbolTableSingleton {
     }
 }
 
+/**
+ * Saves all
+ */
 class FileSymbolTable {
-    init {
-        println("Singleton class invoked")
-    }
-
     var structs: HashMap<String, Struct> = HashMap()
     var functions: MutableList<Function> = ArrayList()
     var variables: Node = Scope(ArrayList())
@@ -39,6 +42,9 @@ class FileSymbolTable {
         return accessibleVariables
     }
 
+    /**
+     * Returns the summed offset of all variables defined in the given scope.
+     */
     fun getVariablesOffsetDefinedAtScope(scope: Stack<Int>): Int {
         val node = getNodeAtScope(scope)
         return getOffsetAtNode(node)

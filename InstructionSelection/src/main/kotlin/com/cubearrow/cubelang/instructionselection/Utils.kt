@@ -20,6 +20,9 @@ class Utils {
         }
 
 
+        /**
+         * Sets the nnh child of an expression to a new expression.
+         */
         fun setNthChild(index: Int, newExpression: Expression, parent: Expression) {
             when (parent) {
                 is Expression.Operation -> {
@@ -46,12 +49,6 @@ class Utils {
                     if (index == 0)
                         parent.expression = newExpression
                 }
-                is Expression.ValueToPointer -> {
-                    if (index == 0)
-                        parent.pointer = newExpression
-                    else if (index == 1)
-                        parent.value = newExpression
-                }
                 is Expression.Assignment -> {
                     if (index == 0)
                         parent.leftSide = newExpression
@@ -72,6 +69,9 @@ class Utils {
             // TODO("Children missing?")
         }
 
+        /**
+         * Returns a list of children of a given expression.
+         */
         fun getChildren(expression: Expression): List<Expression> {
             when (expression) {
                 is Expression.Operation -> {
@@ -88,10 +88,6 @@ class Utils {
                 }
                 is Expression.Unary -> {
                     return listOf(expression.expression)
-                }
-                is Expression.ValueToPointer -> {
-                    // TODO: Left side
-                    return listOf(expression.pointer, expression.value)
                 }
                 is Expression.Assignment -> {
                     return listOf(expression.leftSide, expression.valueExpression)

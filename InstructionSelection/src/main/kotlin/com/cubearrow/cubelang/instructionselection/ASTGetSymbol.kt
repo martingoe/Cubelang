@@ -57,10 +57,6 @@ class ASTGetSymbol: Expression.ExpressionVisitor<Char> {
         return 'L'
     }
 
-    override fun visitValueToPointer(valueToPointer: Expression.ValueToPointer): Char {
-        return '='
-    }
-
     override fun visitRegister(register: Expression.Register): Char {
         return 'r'
     }

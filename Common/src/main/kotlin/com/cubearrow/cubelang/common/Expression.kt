@@ -81,11 +81,7 @@ abstract class Expression(
         }
     }
 
-    class ValueToPointer(var pointer: Expression, var value: Expression) : Expression() {
-        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
-            return visitor.visitValueToPointer(this)
-        }
-    }
+
 
     class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
@@ -106,7 +102,6 @@ abstract class Expression(
         fun visitCall(call: Call): T
         fun visitOperation(operation: Operation): T
         fun visitComparison(comparison: Comparison): T
-        fun visitValueToPointer(valueToPointer: ValueToPointer): T
         fun visitRegister(register: Register): T
         fun visitAssignment(assignment: Assignment): T
         fun acceptFramePointer(framePointer: FramePointer): T

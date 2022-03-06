@@ -2,7 +2,7 @@ package com.cubearrow.cubelang.main
 
 import com.cubearrow.cubelang.instructionselection.StatementCompiler
 import com.cubearrow.cubelang.instructionselection.TreeRewriter
-import com.cubearrow.cubelang.instructionselection.Trie
+import com.cubearrow.cubelang.instructionselection.ExpressionMatchingTrie
 import com.cubearrow.cubelang.instructionselection.TypeChecker
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.DefinedFunctions
@@ -43,7 +43,7 @@ class Main(private val libraryPath: String) {
         errorManagers.forEach { it.value.exitIfError() }
 
         var i = 0
-        val trie = Trie(getRules(), ASMEmitter())
+        val trie = ExpressionMatchingTrie(getRules(), ASMEmitter())
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
@@ -56,8 +56,6 @@ class Main(private val libraryPath: String) {
             trie.emitter = ASMEmitter()
             StatementCompiler(trie.emitter, trie, libraryPath).evaluateList(expressions.value)
             resultFile.writeText(trie.emitter.finishedString)
-
-            println(trie.trieEntries)
             i++
         }
     }

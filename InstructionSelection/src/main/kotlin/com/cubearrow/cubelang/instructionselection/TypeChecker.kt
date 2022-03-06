@@ -8,13 +8,19 @@ import com.cubearrow.cubelang.common.SymbolTableSingleton
 import com.cubearrow.cubelang.common.tokens.Token
 import java.util.*
 
+/**
+ * Check if the given types match and assign the resulting types to expressions.
+ *
+ * This class also fills the [[SymbolTableSingleton]] with the needed information
+ *
+ */
 class TypeChecker(
     private val expressions: List<Statement>,
     private val errorManager: ErrorManager,
     private val definedFunctions: Map<String, List<Function>>
 ) : Expression.ExpressionVisitor<Type>, Statement.StatementVisitor<Type> {
-    var currentVarIndex = 0
-    var scope = Stack<Int>()
+    private var currentVarIndex = 0
+    private var scope = Stack<Int>()
     private var variables: Stack<MutableMap<String, Type>> = Stack()
 
     init {
@@ -30,7 +36,7 @@ class TypeChecker(
         val type = evaluate(assignment.leftSide)
         val valueType = evaluate(assignment.valueExpression)
         assertEqualTypes(type, valueType, "The two types do not match.", assignment.equals)
-        if(valueType is NormalType && valueType.type == NormalTypes.ANY_INT){
+        if (valueType is NormalType && valueType.type == NormalTypes.ANY_INT) {
             assignment.valueExpression.resultType = type
         }
         assignment.resultType = type
@@ -153,13 +159,13 @@ class TypeChecker(
         var posOffset = 16
         functionDefinition.args.forEach {
             val ARGUMENT_REG_COUNT = 6
-            if(i < ARGUMENT_REG_COUNT) {
+            if (i < ARGUMENT_REG_COUNT) {
                 val argumentDefinition = it as Statement.ArgumentDefinition
 
                 currentVarIndex += argumentDefinition.type.getLength()
                 SymbolTableSingleton.getCurrentSymbolTable()
                     .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
-            } else{
+            } else {
                 val argumentDefinition = it as Statement.ArgumentDefinition
 
                 currentVarIndex += argumentDefinition.type.getLength()
@@ -183,7 +189,7 @@ class TypeChecker(
             "Cannot compute comparisons on mismatching types ($leftType and $rightType)",
             comparison.comparator
         )
-        if(rightType is NormalType && rightType.type == NormalTypes.ANY_INT){
+        if (rightType is NormalType && rightType.type == NormalTypes.ANY_INT) {
             comparison.rightExpression.resultType = comparison.leftExpression.resultType
         }
         comparison.resultType = leftType
@@ -225,8 +231,7 @@ class TypeChecker(
         if (type !is StructType || (type is PointerType && type.subtype !is StructType)) {
             errorManager.error(instanceGet.identifier, "The requested value is not a struct.")
             return NoneType()
-        }
-        else if (type is PointerType) type = type.subtype
+        } else if (type is PointerType) type = type.subtype
         val structType = SymbolTableSingleton.getCurrentSymbolTable()
             .getStruct((type as StructType).typeName)!!.variables.firstOrNull { it.first == instanceGet.identifier.substring }
         if (structType == null) {
@@ -236,7 +241,6 @@ class TypeChecker(
         instanceGet.resultType = structType.second
         return structType.second
     }
-
 
 
     override fun visitArgumentDefinition(argumentDefinition: Statement.ArgumentDefinition): Type {
@@ -307,7 +311,7 @@ class TypeChecker(
             }
         }
         if (resultType is ArrayType)
-            resultType =  PointerType(resultType.subType)
+            resultType = PointerType(resultType.subType)
         arrayGet.resultType = resultType
         return resultType
     }
@@ -347,10 +351,6 @@ class TypeChecker(
 
     override fun visitEmpty(empty: Statement.Empty): Type {
         return NoneType()
-    }
-
-    override fun visitValueToPointer(valueToPointer: Expression.ValueToPointer): Type {
-        TODO("Not yet implemented")
     }
 
     override fun visitRegister(register: Expression.Register): Type {
