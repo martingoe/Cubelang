@@ -22,7 +22,7 @@ object SymbolTableSingleton {
 }
 
 /**
- * Saves all
+ * Saves all defined structs, functions, and variables
  */
 class FileSymbolTable {
     var structs: HashMap<String, Struct> = HashMap()
@@ -53,13 +53,20 @@ class FileSymbolTable {
     private fun getOffsetAtNode(node: Node): Int {
         return when (node) {
             is VarNode -> node.type.getLength()
-            is Scope -> node.symbols.fold(0) { acc, node -> acc + getOffsetAtNode(node) }
+            is Scope -> node.symbols.fold(0) { acc, scopeNode -> acc + getOffsetAtNode(scopeNode) }
             else -> error("Unreachable")
         }
     }
 
 
+    /**
+     * Returns the struct with the provided name
+     */
     fun getStruct(name: String): Struct? = structs[name]
+
+    /**
+     * Defines a new variable in the given scope
+     */
     fun defineVariable(scope: Stack<Int>, name: String, type: Type, offset: Int) {
         val currentNode = getNodeAtScope(scope)
         (currentNode as Scope).symbols.add(VarNode(name, type, offset))
@@ -74,6 +81,9 @@ class FileSymbolTable {
         return currentNode
     }
 
+    /**
+     * Adds a new scope with no values at the given scope
+     */
     fun addScopeAt(scope: Stack<Int>) {
         val currentNode = getNodeAtScope(scope)
         (currentNode as Scope).symbols.add(Scope(ArrayList()))

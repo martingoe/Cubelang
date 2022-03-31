@@ -1,17 +1,19 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend.instructionselection
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.ir.*
-import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.common.tokens.Token
 import com.cubearrow.cubelang.common.tokens.TokenType
 
+/**
+ * The abstract class to be implemented by all instruction selection rules.
+ */
 abstract class Rule {
     abstract val expression: Expression
     abstract val resultSymbol: Char
 
-    abstract fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int
-    abstract fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression
+    abstract fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int
+    abstract fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression
 
     companion object {
         const val RULE_COUNT = 25
@@ -19,37 +21,44 @@ abstract class Rule {
 }
 
 private fun emitMulRegLiteral(
-    right: Literal,
+    right: IRLiteral,
     left: TemporaryRegister,
     emitter: ASMEmitter,
     resultType: Type
 ) {
     when (right.value) {
+        "1" -> return
+
         "2" -> {
             emitter.emit(IRValue(IRType.PLUS_OP, left, left, resultType))
         }
         "4" -> {
-            emitter.emit(IRValue(IRType.SAL, left, Literal("2"), resultType))
+            emitter.emit(IRValue(IRType.SAL, left, IRLiteral("2"), resultType))
         }
         "8" -> {
-            emitter.emit(IRValue(IRType.SAL, left, Literal("3"), resultType))
+            emitter.emit(IRValue(IRType.SAL, left, IRLiteral("3"), resultType))
         }
         else -> emitter.emit(IRValue(IRType.MUL_OP, left, right, resultType))
     }
 }
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): + r r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class PlusOperationRegReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("+", TokenType.PLUSMINUS), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         emitter.emit(
             IRValue(
@@ -61,43 +70,57 @@ class PlusOperationRegReg : Rule() {
     }
 }
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): + r l
+ *
+ * The cost for this expression is 2 + subcosts
+ *
+ * If the literal == 1, an INC operation is emitted
+ */
+
 class PlusOperationRegLit : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("+", TokenType.PLUSMINUS), Expression.Literal(null))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
         val value = getLiteralValue((castExpression.rightExpression as Expression.Literal).value)
         if (value == 1)
-//            emitter.emit("inc $reg")
             emitter.emit(IRValue(IRType.INC, temporaryRegister, null, expression.resultType))
         else {
-//            emitter.emit("add $reg, $value")
-            emitter.emit(IRValue(IRType.PLUS_OP, temporaryRegister, Literal(value.toString()), expression.resultType))
+            emitter.emit(IRValue(IRType.PLUS_OP, temporaryRegister, IRLiteral(value.toString()), expression.resultType))
         }
         return castExpression.leftExpression
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): + l r
+ *
+ * The cost for this expression is 2 + subcosts
+ *
+ * If the literal == 1, an INC operation is emitted
+ */
 class PlusOperationLitReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Literal(null), Token("+", TokenType.PLUSMINUS), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.rightExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -106,23 +129,29 @@ class PlusOperationLitReg : Rule() {
         if (value == 1)
             emitter.emit(IRValue(IRType.INC, temporaryRegister, null, expression.resultType))
         else {
-            emitter.emit(IRValue(IRType.PLUS_OP, temporaryRegister, Literal(value.toString()), expression.resultType))
+            emitter.emit(IRValue(IRType.PLUS_OP, temporaryRegister, IRLiteral(value.toString()), expression.resultType))
         }
         return castExpression.rightExpression
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): - r l
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class SubOperationRegLit : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("-", TokenType.PLUSMINUS), Expression.Literal(null))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -131,42 +160,29 @@ class SubOperationRegLit : Rule() {
         if (value == 1) {
             emitter.emit(IRValue(IRType.DEC, temporaryRegister, null, expression.resultType))
         } else {
-            emitter.emit(IRValue(IRType.MINUS_OP, temporaryRegister, Literal(value.toString()), expression.resultType))
+            emitter.emit(IRValue(IRType.MINUS_OP, temporaryRegister, IRLiteral(value.toString()), expression.resultType))
         }
         return castExpression.leftExpression
     }
 }
 
-class ExtendTo64BitsRule : Rule() {
-    override val expression: Expression
-        get() = Expression.ExtendTo64Bit(Expression.Register())
-    override val resultSymbol: Char
-        get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 1
-    }
-
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
-        val reg = (expression as Expression.ExtendTo64Bit).expression as Expression.Register
-        emitter.emit(IRValue(IRType.EXTEND_TO_64BITS, TemporaryRegister(reg.index), null, expression.resultType))
-
-        reg.resultType = NormalType(NormalTypes.I64)
-        return reg
-    }
-}
-
+/**
+ * Emits the IR-Values for the following rule (prefix notation): - r r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class SubOperationRegReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("-", TokenType.PLUSMINUS), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -176,17 +192,47 @@ class SubOperationRegReg : Rule() {
     }
 }
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): e r (extend register to 64 bits)
+ *
+ * The cost for this expression is 1
+ */
+class ExtendTo64BitsRule : Rule() {
+    override val expression: Expression
+        get() = Expression.ExtendTo64Bit(Expression.Register())
+    override val resultSymbol: Char
+        get() = 'r'
+
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 1
+    }
+
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
+        val reg = (expression as Expression.ExtendTo64Bit).expression as Expression.Register
+        emitter.emit(IRValue(IRType.EXTEND_TO_64BITS, TemporaryRegister(reg.index), null, expression.resultType))
+
+        reg.resultType = NormalType(NormalTypes.I64)
+        return reg
+    }
+}
+
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): / r r
+ *
+ * The cost for this expression is 3 + subcosts
+ */
 class DivOperationRegReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("/", TokenType.SLASH), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -196,17 +242,23 @@ class DivOperationRegReg : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): * r r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class MulOperationRegReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("*", TokenType.STAR), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val reg = castExpression.leftExpression as Expression.Register
         val temporaryRegister = TemporaryRegister(reg.index)
@@ -217,20 +269,28 @@ class MulOperationRegReg : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): * r l
+ *
+ * The cost for this expression is 2 + subcosts
+ *
+ * Some special cases may occur, e.g. if l == 1 (no IR value will be emitted)
+ */
 class MulOperationRegLit : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Register(), Token("*", TokenType.STAR), Expression.Literal(null))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val left = TemporaryRegister((castExpression.leftExpression as Expression.Register).index)
-        val right = Literal(getLiteralValue((castExpression.rightExpression as Expression.Literal).value).toString())
+        val right = IRLiteral(getLiteralValue((castExpression.rightExpression as Expression.Literal).value).toString())
         emitMulRegLiteral(right, left, emitter, expression.resultType)
         return expression.leftExpression
     }
@@ -246,24 +306,38 @@ fun getLiteralValue(value: Any?): Int {
     }
 }
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): * l r
+ *
+ * The cost for this expression is 2 + subcosts
+ *
+ *
+ * Some special cases may occur, e.g. if l == 1 (no IR value will be emitted)
+ */
 class MulOperationLitReg : Rule() {
     override val expression: Expression
         get() = Expression.Operation(Expression.Literal(null), Token("*", TokenType.STAR), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Operation
         val left = TemporaryRegister((castExpression.rightExpression as Expression.Register).index)
-        val right = Literal(getLiteralValue((castExpression.leftExpression as Expression.Literal).value).toString())
+        val right = IRLiteral(getLiteralValue((castExpression.leftExpression as Expression.Literal).value).toString())
         emitMulRegLiteral(right, left, emitter, expression.resultType)
         return expression.rightExpression
     }
 }
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): l
+ *
+ * The cost for this expression is 1
+ */
 
 class LiteralToReg : Rule() {
     override val expression: Expression
@@ -271,13 +345,13 @@ class LiteralToReg : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val reg = getReg(expression.resultType)
-        val literal = Literal(
+        val literal = IRLiteral(
             getLiteralValue(
                 (expression as Expression.Literal).value
             ).toString()
@@ -287,38 +361,48 @@ class LiteralToReg : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): = r r
+ *
+ * The cost for this expression is 1 + subcosts
+ */
 class MovRegToReg : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(Expression.Register(), Expression.Register(), Token("=", TokenType.EQUALS))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 1 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val leftReg = (castExpression.leftSide) as Expression.Register
         emitter.emit(IRValue(IRType.COPY, TemporaryRegister(leftReg.index), TemporaryRegister(valueRegister.index), expression.resultType))
         return castExpression.leftSide
     }
-
-
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): - r
+ *
+ * The cost for this expression is 1 + subcosts
+ */
 class NegateRule : Rule() {
     override val expression: Expression
         get() = Expression.Unary(Token("-", TokenType.PLUSMINUS), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 1
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 1 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
 
         val reg = (expression as Expression.Unary).expression as Expression.Register
         emitter.emit(IRValue(IRType.NEG_UNARY, TemporaryRegister(reg.index), null, expression.resultType))
@@ -326,6 +410,12 @@ class NegateRule : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): = L r r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class MovPointerRegToReg : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(
@@ -336,11 +426,11 @@ class MovPointerRegToReg : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val valueFromPointer = castExpression.leftSide as Expression.ValueFromPointer
@@ -357,6 +447,12 @@ class MovPointerRegToReg : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): = L - f r r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class MovOffsetToReg : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(
@@ -371,11 +467,11 @@ class MovOffsetToReg : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.Assignment
         val valueRegister = (castExpression.valueExpression) as Expression.Register
         val valueFromPointer = castExpression.leftSide as Expression.ValueFromPointer
@@ -383,7 +479,7 @@ class MovOffsetToReg : Rule() {
         emitter.emit(
             IRValue(
                 IRType.COPY_TO_FP_OFFSET,
-                Literal(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 TemporaryRegister(valueRegister.index),
                 expression.resultType
             )
@@ -392,6 +488,12 @@ class MovOffsetToReg : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): L - f l
+ *
+ * The cost for this expression is 2
+ */
 class MovFromFPOffset : Rule() {
     override val expression: Expression
         get() = Expression.ValueFromPointer(
@@ -404,11 +506,11 @@ class MovFromFPOffset : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 3
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -417,7 +519,7 @@ class MovFromFPOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                Literal(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 expression.resultType
             )
         )
@@ -425,6 +527,11 @@ class MovFromFPOffset : Rule() {
     }
 }
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): L - r l
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class MovFromRegOffset : Rule() {
     override val expression: Expression
         get() = Expression.ValueFromPointer(
@@ -437,11 +544,11 @@ class MovFromRegOffset : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 3
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -463,6 +570,11 @@ class MovFromRegOffset : Rule() {
 }
 
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): L + - f l e r
+ *
+ * The cost for this expression is 3 + subcosts
+ */
 class MovFromRegOffsetWithAdder : Rule() {
     override val expression: Expression
         get() = Expression.ValueFromPointer(
@@ -471,7 +583,8 @@ class MovFromRegOffsetWithAdder : Rule() {
                     Expression.FramePointer(),
                     Token("-", TokenType.PLUSMINUS),
                     Expression.Literal(null)
-                ), Token("+", TokenType.PLUSMINUS),
+                ),
+                Token("+", TokenType.PLUSMINUS),
 
                 Expression.ExtendTo64Bit(Expression.Operation(Expression.Register(), Token("*", TokenType.STAR), Expression.Literal(null)))
             ), Token("*", TokenType.STAR)
@@ -479,11 +592,11 @@ class MovFromRegOffsetWithAdder : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 3
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 3 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val reg = getReg(expression.resultType)
         val castExpression = expression as Expression.ValueFromPointer
         val operation = castExpression.expression as Expression.Operation
@@ -517,6 +630,12 @@ class MovFromRegOffsetWithAdder : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): = L - f l L - f l
+ *
+ * The cost for this expression is 2
+ */
 class MovOffsetToOffset : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(
@@ -532,11 +651,11 @@ class MovOffsetToOffset : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Assignment
         var rightOffset =
             getLiteralValue((((expression.valueExpression as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
@@ -553,11 +672,11 @@ class MovOffsetToOffset : Rule() {
                     IRValue(
                         IRType.COPY_FROM_FP_OFFSET,
                         TemporaryRegister(reg.index),
-                        Literal(rightOffset.toString()),
+                        IRLiteral(rightOffset.toString()),
                         intTypeForLength
                     )
                 )
-                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, Literal(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
+                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
 
                 rightOffset -= it
                 leftOffset -= it
@@ -569,8 +688,8 @@ class MovOffsetToOffset : Rule() {
         }
 
         val reg = getReg(expression.valueExpression.resultType)
-        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), Literal(rightOffset.toString()), expression.resultType))
-        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, Literal(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), IRLiteral(rightOffset.toString()), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
 
         return reg
 
@@ -589,6 +708,13 @@ private fun getIntTypeForLength(length: Int): Type {
 }
 
 
+/**
+ * Emits the IR-Values for the following rule (prefix notation): = L - f l L L - f l
+ *
+ * This expresses copying from a pointer in a given variable
+ *
+ * The cost for this expression is 2
+ */
 class MovOffsetToValueFromPointerOffset : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(
@@ -609,11 +735,11 @@ class MovOffsetToValueFromPointerOffset : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Assignment
         val varCallOffset =
             getLiteralValue(((((expression.valueExpression as Expression.ValueFromPointer).expression as Expression.ValueFromPointer).expression as Expression.Operation).rightExpression as Expression.Literal).value)
@@ -624,7 +750,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                Literal(varCallOffset.toString()),
+                IRLiteral(varCallOffset.toString()),
                 NormalType(NormalTypes.I64)
             )
         )
@@ -645,7 +771,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
                     intTypeForLength
                 )
             )
-            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, Literal(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
+            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
 
             rightOffset -= it
             leftOffset -= it
@@ -660,17 +786,23 @@ fun getReg(type: Type): Expression.Register {
     return Expression.Register(currentRegister++, type)
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): L r
+ *
+ * The cost for this expression is 2 + subcosts
+ */
 class ValueFromPointer : Rule() {
     override val expression: Expression
         get() = Expression.ValueFromPointer(Expression.Register(), Token("*", TokenType.STAR))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = expression as Expression.ValueFromPointer
         val valueRegister = castExpression.expression as Expression.Register
         val reg = getReg(valueRegister.type)
@@ -680,6 +812,12 @@ class ValueFromPointer : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): P L - f l
+ *
+ * The cost for this expression is 2
+ */
 class PointerGet : Rule() {
     override val expression: Expression
         get() = Expression.PointerGet(
@@ -691,52 +829,64 @@ class PointerGet : Rule() {
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 2 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 2
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val castExpression = (expression as Expression.PointerGet).expression as Expression.ValueFromPointer
         val reg = getReg(expression.resultType)
         val operation = castExpression.expression as Expression.Operation
         val literal = (operation.rightExpression as Expression.Literal).value
-        emitter.emit(IRValue(IRType.COPY_FROM_REF, Literal(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_FROM_REF, IRLiteral(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
 
         return reg
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): f
+ *
+ * The cost for this expression is 1
+ */
 class FramePointerRule : Rule() {
     override val expression: Expression
         get() = Expression.FramePointer()
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         val reg = getReg(NormalType(NormalTypes.I64))
         emitter.emit(IRValue(IRType.COPY, TemporaryRegister(reg.index), FramePointer(), NormalType(NormalTypes.I64)))
         return reg
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): c
+ *
+ * The cost for this expression is 1
+ */
 class CallRule : Rule() {
     override val expression: Expression
         get() = Expression.Call(Expression.VarCall(Token("", TokenType.IDENTIFIER)), listOf(), Token("", TokenType.BRCKTL))
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
         return 1
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Call
         for (arg in expression.arguments) {
-            val result = trie.emitCodeForExpression(arg)
+            val result = astToIRService.emitCodeForExpression(arg)
             val tempReg = TemporaryRegister((result as Expression.Register).index)
             emitter.emit(IRValue(IRType.PUSH_ARG, tempReg, null, arg.resultType))
         }
@@ -754,17 +904,23 @@ class CallRule : Rule() {
     }
 }
 
+
+/**
+ * Emits the IR-Values for the following rule (prefix notation): x r r
+ *
+ * The cost for this expression is 1 + subcosts
+ */
 class ComparisonRegReg : Rule() {
     override val expression: Expression
         get() = Expression.Comparison(Expression.Register(), Token("", TokenType.COMPARATOR), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
-    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
-        return 1
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 1 + calculateSubCosts(this.expression, expression, astGetSymbol, rules)
     }
 
-    override fun constructString(expression: Expression, emitter: ASMEmitter, trie: ExpressionMatchingTrie): Expression {
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Comparison
         val tempReg1 = TemporaryRegister((expression.leftExpression as Expression.Register).index)
         val tempReg2 = TemporaryRegister((expression.rightExpression as Expression.Register).index)
@@ -774,7 +930,7 @@ class ComparisonRegReg : Rule() {
     }
 }
 
-private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expression, astGetSymbol: ASTGetSymbol, rules: List<Rule>): Int {
+private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
     // Expects rule and actual to have the same arity
     val ruleChildren = Utils.getChildren(ruleExpression)
     val actualChildren = Utils.getChildren(actualExpression)
@@ -795,42 +951,35 @@ private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expr
 var currentRegister = 0
 
 
-fun getRules(): List<Rule> {
-    val result = mutableListOf<Rule>()
-
-    result.add(PlusOperationRegReg())
-    result.add(PlusOperationRegLit())
-    result.add(PlusOperationLitReg())
-
-    result.add(MulOperationLitReg())
-    result.add(MulOperationRegLit())
-    result.add(MulOperationRegReg())
-
-    result.add(SubOperationRegLit())
-    result.add(SubOperationRegReg())
-
-    result.add(DivOperationRegReg())
-
-    result.add(MovOffsetToOffset())
-
-    result.add(ValueFromPointer())
-    result.add(MovRegToReg())
-    result.add(MovPointerRegToReg())
-    result.add(ExtendTo64BitsRule())
-    result.add(FramePointerRule())
-    result.add(MovOffsetToReg())
-    result.add(MovFromFPOffset())
-    result.add(ComparisonRegReg())
-    result.add(MovFromRegOffset())
-    result.add(MovFromRegOffsetWithAdder())
-
-    result.add(NegateRule())
-    result.add(MovOffsetToValueFromPointerOffset())
-
-    result.add(PointerGet())
-
-    result.add(CallRule())
-
-    result.add(LiteralToReg())
-    return result
+/**
+ * Returns all the currently available rules in an array.
+ */
+fun getRules(): Array<Rule> {
+    return arrayOf(
+        PlusOperationRegReg(),
+        PlusOperationRegLit(),
+        PlusOperationLitReg(),
+        MulOperationLitReg(),
+        MulOperationRegLit(),
+        MulOperationRegReg(),
+        SubOperationRegLit(),
+        SubOperationRegReg(),
+        DivOperationRegReg(),
+        MovOffsetToOffset(),
+        ValueFromPointer(),
+        MovRegToReg(),
+        MovPointerRegToReg(),
+        ExtendTo64BitsRule(),
+        FramePointerRule(),
+        MovOffsetToReg(),
+        MovFromFPOffset(),
+        ComparisonRegReg(),
+        MovFromRegOffset(),
+        MovFromRegOffsetWithAdder(),
+        NegateRule(),
+        MovOffsetToValueFromPointerOffset(),
+        PointerGet(),
+        CallRule(),
+        LiteralToReg()
+    )
 }

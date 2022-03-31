@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.middleend.validation
 
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.definitions.Function

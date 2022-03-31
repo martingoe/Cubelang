@@ -35,10 +35,17 @@ class ErrorManager(private val lines: List<String>, private var exitAfterError: 
         if (exitAfterError)
             exitProcess(65)
     }
+
+    /**
+     * Output an error with a given token for the indices
+     */
     fun error(token: Token, message: String){
         error(token.line, token.index, message)
     }
 
+    /**
+     * Exits the program if an error has occurred
+     */
     fun exitIfError(){
         if(containsError)
             exitProcess(65)

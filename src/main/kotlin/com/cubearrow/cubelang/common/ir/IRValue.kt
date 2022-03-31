@@ -2,6 +2,9 @@ package com.cubearrow.cubelang.common.ir
 
 import com.cubearrow.cubelang.common.Type
 
+/**
+ * A single Intermediate Representation value.
+ */
 class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val resultType: Type) {
     override fun toString(): String {
         return """$type, $arg0, $arg1 : $resultType
@@ -120,7 +123,7 @@ class FunctionLabel(val name: String) : ValueType {
     }
 }
 
-class Literal(val value: String) : ValueType {
+class IRLiteral(val value: String) : ValueType {
     override fun toString(): String {
         return value
     }

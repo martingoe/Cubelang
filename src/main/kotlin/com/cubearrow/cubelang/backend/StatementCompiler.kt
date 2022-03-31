@@ -1,20 +1,26 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend
 
-import com.cubearrow.cubelang.instructionselection.IRToASM.Companion.emitASMForIR
+import com.cubearrow.cubelang.backend.IRToASM.Companion.emitASMForIR
+import com.cubearrow.cubelang.backend.instructionselection.ASTToIRService
+import com.cubearrow.cubelang.backend.instructionselection.RegisterAllocation
+import com.cubearrow.cubelang.backend.instructionselection.currentRegister
 import com.cubearrow.cubelang.common.Expression
 import com.cubearrow.cubelang.common.Statement
 import com.cubearrow.cubelang.common.SymbolTableSingleton
-import com.cubearrow.cubelang.common.definitions.DefinedFunctions
+import com.cubearrow.cubelang.common.definitions.StandardLibraryFunctions
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.common.tokens.TokenType
+import com.cubearrow.cubelang.middleend.treemodification.TreeRewriter
 import java.io.File
 import java.util.*
 
-private const val REGISTER_COUNT: Int = 6
-class StatementCompiler(private val emitter: ASMEmitter, private val trie: ExpressionMatchingTrie, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
+internal const val REGISTER_COUNT: Int = 6
+class StatementCompiler(private val emitter: ASMEmitter, private var astToIRService: ASTToIRService, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
-    var lIndex = 2
+    private val registerAllocation = RegisterAllocation(emitter)
+
+    private var lIndex = 2
 
     init {
         scope.push(-1)
@@ -24,103 +30,6 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Expre
     private fun evaluate(statement: Statement) {
         currentRegister = 0
         statement.accept(this)
-    }
-
-    data class ActiveInterval(
-        val regIndex: Int,
-        val start: Int,
-        val end: Int
-    )
-
-    data class LiveInterval(
-        val virtualRegIndex: Int,
-        val start: Int,
-        var end: Int
-    )
-
-
-    private fun linearScanRegisterAllocation() {
-        val intervals = getLiveIntervals(emitter.resultIRValues)
-        val freeRegisters = (0 until REGISTER_COUNT).reversed().toMutableList()
-        val active = mutableListOf<ActiveInterval>()
-        for (i in intervals) {
-            expireOldIntervals(i, active, freeRegisters)
-            if (active.size == REGISTER_COUNT)
-                spillAtInterval(i)
-            else {
-                val regIndex = freeRegisters.removeLast()
-                setAllocatedRegister(regIndex, i)
-                active.add(ActiveInterval(regIndex, i.start, i.end))
-            }
-        }
-    }
-
-    private fun setAllocatedRegister(regIndex: Int, interval: LiveInterval) {
-        for (i in interval.start..interval.end) {
-            emitter.resultIRValues[i].arg0?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
-            emitter.resultIRValues[i].arg1?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
-        }
-    }
-    private fun setAllocatedRegister(irValue: ValueType, regIndex: Int, virtualRegIndex: Int){
-        when(irValue){
-            is TemporaryRegister -> if(irValue.index == virtualRegIndex) irValue.allocatedIndex = regIndex
-            is RegOffset -> if(irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
-            is FramePointerOffset -> if(irValue.temporaryRegister != null && irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
-        }
-    }
-
-    private fun spillAtInterval(i: LiveInterval) {
-        TODO("Not yet implemented")
-    }
-
-    private fun expireOldIntervals(i: LiveInterval, active: MutableList<ActiveInterval>, freeRegisters: MutableList<Int>) {
-        for (j in active.sortedBy { it.end }) {
-            if (j.end >= i.start)
-                return
-            active.remove(j)
-            freeRegisters.add(j.regIndex)
-        }
-    }
-
-    private fun getLiveIntervals(resultIRValues: ArrayList<IRValue>): List<LiveInterval> {
-        val resultList = mutableListOf<LiveInterval>()
-        for (i in resultIRValues.indices) {
-            addLiveInterval(resultIRValues[i].arg0, resultList, i)
-            addLiveInterval(resultIRValues[i].arg1, resultList, i)
-        }
-        resultList.sortBy { it.start }
-        return resultList
-    }
-
-    private fun addLiveInterval(value: ValueType?, resultList: MutableList<LiveInterval>, index: Int) {
-        value?.let {
-            if (value is TemporaryRegister) {
-                // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == value.index }) {
-                    resultList.add(LiveInterval(value.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
-                    resultList[indexOfFirst].end = index
-                }
-            }
-            if (value is RegOffset) {
-                // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == value.temporaryRegister.index }) {
-                    resultList.add(LiveInterval(value.temporaryRegister.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister.index }
-                    resultList[indexOfFirst].end = index
-                }
-            }
-            if(value is FramePointerOffset && value.temporaryRegister != null){
-                if (resultList.none { it.virtualRegIndex == value.temporaryRegister.index }) {
-                    resultList.add(LiveInterval(value.temporaryRegister.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister.index }
-                    resultList[indexOfFirst].end = index
-                }
-            }
-        }
     }
 
     override fun visitVarInitialization(varInitialization: Statement.VarInitialization) {
@@ -140,7 +49,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Expre
             val res = Expression.VarCall(it.name).accept(TreeRewriter(scope))
             res as Expression.ValueFromPointer
             val lit = (res.expression as Expression.Operation).rightExpression as Expression.Literal
-            emitter.emit(IRValue(IRType.POP_ARG, Literal(lit.value.toString()), null, it.type))
+            emitter.emit(IRValue(IRType.POP_ARG, IRLiteral(lit.value.toString()), null, it.type))
         }
         emitASMForIR(emitter)
 
@@ -195,38 +104,14 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Expre
         emitter.emit("$operation .l${tempLabelIndex}")
     }
 
-    private fun getInvJumpOperationFromComparator(comparisonString: String): String {
-        return when (comparisonString) {
-            "==" -> "jne"
-            "!=" -> "je"
-            "<" -> "jge"
-            "<=" -> "jg"
-            ">" -> "jle"
-            ">=" -> "jl"
-            else -> error("Could not find the requested operation")
-        }
-    }
-
-    private fun getJmpOperationFromComparator(comparisonString: String): String {
-        return when (comparisonString) {
-            "==" -> "leq"
-            "!=" -> "jne"
-            "<" -> "jl"
-            "<=" -> "jle"
-            ">" -> "jg"
-            ">=" -> "jge"
-            else -> error("Could not find the requested operation")
-        }
-    }
-
     override fun visitReturnStmnt(returnStmnt: Statement.ReturnStmnt) {
         returnStmnt.returnValue?.let { evaluateExpression(it) }
         emitter.emit("jmp .l1")
     }
 
     private fun evaluateExpression(returnValue: Expression) {
-        trie.emitCodeForExpression(returnValue)
-        linearScanRegisterAllocation()
+        astToIRService.emitCodeForExpression(returnValue)
+        registerAllocation.linearScanRegisterAllocation()
         emitASMForIR(emitter)
     }
 
@@ -277,7 +162,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private val trie: Expre
     }
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt) {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(DefinedFunctions.definedFunctions[importStmnt.identifier.substring]!!)
+        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(StandardLibraryFunctions.definedFunctions[importStmnt.identifier.substring]!!)
         val name =
             (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
                 importStmnt.identifier.substring.substringBeforeLast(".")

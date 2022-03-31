@@ -1,5 +1,6 @@
 package com.cubearrow.cubelang.common
 
+import com.cubearrow.cubelang.backend.instructionselection.Rule
 import com.cubearrow.cubelang.common.tokens.Token
 
 
@@ -7,7 +8,7 @@ abstract class Expression(
     var state: Int = 0,
     var match: MutableMap<Char, Int> = HashMap(),
     var cost: MutableMap<Char, Int> = HashMap(),
-    var b: Array<Int> = Array(25) { 0 },
+    var b: Array<Int> = Array(Rule.RULE_COUNT) { 0 },
     var resultType: Type = NoneType()
 ) {
     class Operation(var leftExpression: Expression, val operator: Token, var rightExpression: Expression) : Expression() {
@@ -80,7 +81,6 @@ abstract class Expression(
             return visitor.visitComparison(this)
         }
     }
-
 
 
     class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {

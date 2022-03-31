@@ -1,5 +1,6 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.middleend.treemodification
 
+import com.cubearrow.cubelang.backend.instructionselection.getLiteralValue
 import com.cubearrow.cubelang.common.*
 import com.cubearrow.cubelang.common.Expression.*
 import com.cubearrow.cubelang.common.definitions.Struct
@@ -139,7 +140,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
             SymbolTableSingleton.getCurrentSymbolTable().getStruct((instanceGet.expression.resultType as StructType).typeName)!!,
             instanceGet.identifier.substring
         )
-        if (expression is Expression.ValueFromPointer &&
+        if (expression is ValueFromPointer &&
             expression.expression is Operation &&
             (expression.expression as Operation).leftExpression is FramePointer &&
             ((expression.expression as Operation).rightExpression is Literal)
@@ -318,12 +319,12 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
         return importStmnt
     }
 
-    override fun visitPointerGet(pointerGet: Expression.PointerGet): Expression {
+    override fun visitPointerGet(pointerGet: PointerGet): Expression {
         pointerGet.expression = evaluateExpression(pointerGet.expression)
         return pointerGet
     }
 
-    override fun visitValueFromPointer(valueFromPointer: Expression.ValueFromPointer): Expression {
+    override fun visitValueFromPointer(valueFromPointer: ValueFromPointer): Expression {
         valueFromPointer.expression = evaluateExpression(valueFromPointer.expression)
         return valueFromPointer
     }

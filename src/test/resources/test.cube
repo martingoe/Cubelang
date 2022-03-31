@@ -1,54 +1,19 @@
 import io;
-import random;
-import time;
 
-fun fib(n: i32): i32{
-    if(n < 2) {
-        return n;
+fun euclidean(a: i32, b: i32): i32{
+    while(b != 0){
+        if (a > b)
+            a = a - b;
+        else
+            b = b - a;
     }
-    return fib(n - 1) + fib(n - 2);
+    return a;
 }
-#struct x {
-#    var i: i32;
-#    var j: i32;
-#    var k: i32;
-#}
+
 fun main() {
-    var test: [i32: 5];
-    for(var i = 0; i < 20; i = i + 1)
-        printInt(test[i]);
-
-        printInt(fib(40));
+    var average = 0;
+    var n = 10000000;
+    for(var i = 2; i < n; i = i + 1)
+        average = average + euclidean(i, n);
+    printInt(average / n);
 }
-#    var structArray: [x: 5];
-#    var structcopy = structArray[0];
-#    structArray[0].j = 20;
-#    printInt(structArray[0].j);
-#
-#    printInt(-structArray[0].j);
-#
-#    var x: [[i32: 500]: 500];
-#    var y: [[i32: 500]: 500];
-#
-#    var res: [[i32: 500]: 500];
-#    x[0][1];
-#
-#    for(var i = 0; i < 5; i = i + 1){
-#        for(var j = 0; j < 5; j = j + 1){
-#            x[i][j] = i;
-#            y[i][j] = j;
-#            printInt(x[i][j]);
-#        }
-#    }
-
-    #for(var xie = 0; xie < 50; xie = xie + 1){
-    #for(var i = 0; i < 500; i = i + 1){
-    #    for(var j = 0; j < 500; j = j + 1){
-    #        res[i][j] = 0;
-    #        for (var k = 0; k < 500; k = k + 1){
-    #            res[i][j] = res[i][j] + x[i][k] * y[k][j];
-    #        }
-    #    }
-    #}
-    #}
-#}

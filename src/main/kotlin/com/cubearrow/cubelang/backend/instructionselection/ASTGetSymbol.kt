@@ -1,9 +1,11 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend.instructionselection
 
 import com.cubearrow.cubelang.common.Expression
 
+/**
+ * A mapping from the different expressions to a specific symbol (char). Used in the [[ExpressionMatchingTrie]].
+ */
 class ASTGetSymbol: Expression.ExpressionVisitor<Char> {
-
     override fun visitOperation(operation: Expression.Operation): Char {
         return operation.operator.substring[0]
     }

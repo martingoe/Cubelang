@@ -1,4 +1,4 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend.instructionselection
 
 import com.cubearrow.cubelang.common.Expression
 

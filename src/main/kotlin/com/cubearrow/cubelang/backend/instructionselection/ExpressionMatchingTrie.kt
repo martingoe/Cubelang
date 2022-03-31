@@ -1,24 +1,24 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend.instructionselection
 
 import com.cubearrow.cubelang.common.Expression
-import com.cubearrow.cubelang.common.ASMEmitter
 import java.util.*
 
 
 /**
  * The trie used to match expressions to immediate representation values.
  */
-class ExpressionMatchingTrie(private val rules: List<Rule>, var emitter: ASMEmitter) {
+class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetSymbol: ASTGetSymbol) {
     private var trieEntries: MutableList<TrieEntry> = ArrayList()
 
-    private val astGetSymbol = ASTGetSymbol()
-
+    /**
+     * Initialize the new trie by building it from the rules
+      */
     init {
         trieEntries.add(TrieEntry(' ', 0))
         buildTrieFromRules(rules)
     }
 
-    private fun buildTrieFromRules(rules: List<Rule>) {
+    private fun buildTrieFromRules(rules: Array<Rule>) {
         for (i in rules.indices) {
             buildTrieFromExpression(rules[i].expression, i)
         }
@@ -46,11 +46,11 @@ class ExpressionMatchingTrie(private val rules: List<Rule>, var emitter: ASMEmit
     }
 
     private fun combineAcceptingStates(accepting: Array<Pair<Boolean, Int>>, accepting1: Array<Pair<Boolean, Int>>): Array<Pair<Boolean, Int>> {
-        val newArray: Array<Pair<Boolean, Int>> = Array(accepting.size) {Pair(false, 0)}
-        for(i in accepting.indices){
-            if(accepting[i].first)
+        val newArray: Array<Pair<Boolean, Int>> = Array(accepting.size) { Pair(false, 0) }
+        for (i in accepting.indices) {
+            if (accepting[i].first)
                 newArray[i] = accepting[i]
-            if(accepting1[i].first)
+            if (accepting1[i].first)
                 newArray[i] = accepting1[i]
         }
         return newArray
@@ -83,40 +83,9 @@ class ExpressionMatchingTrie(private val rules: List<Rule>, var emitter: ASMEmit
     }
 
     /**
-     * Uses the given [[ASMEmitter]] to emit the rules needed for the expression. This method both finds and executes the necessary rules.
-     *
-     * @return Returns the [[Expression]] returned from the [[Rule.constructString]] method.
+     * Visit a given expression and annotate it with which rule to apply etc.
      */
-    fun emitCodeForExpression(expression: Expression): Expression {
-        visit(expression)
-        val rule = expression.match['r'] ?:
-        TODO("NO RULE for ${expression::class}")
-
-        emitSubRuleReductions(rules[rule].expression, expression)
-        return rules[rule].constructString(expression, emitter, this)
-    }
-
-    private fun emitSubRuleReductions(rule: Expression, actual: Expression) {
-        // Expects rule and actual to have the same arity
-        val ruleChildren = Utils.getChildren(rule)
-        val actualChildren = Utils.getChildren(actual)
-
-        for (i in ruleChildren.indices) {
-            if (ruleChildren[i]::class != actualChildren[i]::class) {
-                // Update new child
-                val ruleToApply = actualChildren[i].match[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO("Can this be reached?")
-
-                emitSubRuleReductions(rules[ruleToApply].expression, actualChildren[i])
-                val newExpression = rules[ruleToApply].constructString(actualChildren[i], emitter, this)
-                Utils.setNthChild(i, newExpression, actual)
-            } else {
-                emitSubRuleReductions(ruleChildren[i], actualChildren[i])
-            }
-        }
-    }
-
-
-    private fun visit(expression: Expression, previous: Int = 0, index: Int = -1) {
+    internal fun visit(expression: Expression, previous: Int = 0, index: Int = -1) {
         if (index != -1) {
             val indexState = succ(previous, index.toChar())
             val finalState = succ(indexState, astGetSymbol.evaluate(expression))
@@ -128,7 +97,7 @@ class ExpressionMatchingTrie(private val rules: List<Rule>, var emitter: ASMEmit
         }
 
         val children = Utils.getChildren(expression)
-        children.forEachIndexed { index, it -> visit(it, expression.state, index) }
+        children.forEachIndexed { childIndex, it -> visit(it, expression.state, childIndex) }
         postProcess(expression, children, previous, index)
     }
 

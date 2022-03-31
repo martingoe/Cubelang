@@ -1,17 +1,15 @@
 package com.cubearrow.cubelang.main
 
-import com.cubearrow.cubelang.instructionselection.StatementCompiler
-import com.cubearrow.cubelang.instructionselection.TreeRewriter
-import com.cubearrow.cubelang.instructionselection.ExpressionMatchingTrie
-import com.cubearrow.cubelang.instructionselection.TypeChecker
+import com.cubearrow.cubelang.backend.StatementCompiler
+import com.cubearrow.cubelang.middleend.treemodification.TreeRewriter
+import com.cubearrow.cubelang.backend.instructionselection.ASTToIRService
+import com.cubearrow.cubelang.middleend.validation.TypeChecker
 import com.cubearrow.cubelang.common.*
-import com.cubearrow.cubelang.common.definitions.DefinedFunctions
+import com.cubearrow.cubelang.common.definitions.StandardLibraryFunctions
 import com.cubearrow.cubelang.common.definitions.Function
 import com.cubearrow.cubelang.common.errors.ErrorManager
-import com.cubearrow.cubelang.common.ASMEmitter
 import com.cubearrow.cubelang.frontend.lexing.Lexer
 import com.cubearrow.cubelang.frontend.parser.Parser
-import com.cubearrow.cubelang.instructionselection.getRules
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -43,28 +41,28 @@ class Main(private val libraryPath: String) {
         errorManagers.forEach { it.value.exitIfError() }
 
         var i = 0
-        val trie = ExpressionMatchingTrie(getRules(), ASMEmitter())
+        val asmASTToIRService = ASTToIRService(ASMEmitter())
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
             SymbolTableSingleton.currentIndex = i
             SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
 
-            TypeChecker(expressions.value, errorManagers[expressions.key]!!, DefinedFunctions.definedFunctions).checkTypes()
+            TypeChecker(expressions.value, errorManagers[expressions.key]!!, StandardLibraryFunctions.definedFunctions).checkTypes()
 
             TreeRewriter().rewriteMultiple(expressions.value)
-            trie.emitter = ASMEmitter()
-            StatementCompiler(trie.emitter, trie, libraryPath).evaluateList(expressions.value)
-            resultFile.writeText(trie.emitter.finishedString)
+            asmASTToIRService.asmEmitter = ASMEmitter()
+            StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath).evaluateList(expressions.value)
+            resultFile.writeText(asmASTToIRService.asmEmitter.finishedString)
             i++
         }
     }
 
     private fun addFunctionsToMap(fileName: String, expressions: List<Statement>) {
-        DefinedFunctions.definedFunctions[fileName] = ArrayList()
+        StandardLibraryFunctions.definedFunctions[fileName] = ArrayList()
         expressions.filterIsInstance<Statement.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
-            DefinedFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
+            StandardLibraryFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
         }
     }
 

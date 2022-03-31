@@ -4,6 +4,11 @@ enum class NormalTypes{
     I8, I16, I32, I64, CHAR, ANY, ANY_INT
 }
 val NORMALTYPE_INTS = listOf(NormalTypes.I32, NormalTypes.I8, NormalTypes.I64, NormalTypes.I16)
+
+interface Type{
+    fun getLength(): Int
+}
+
 /**
  * The Type used to define arrays.
  *
@@ -134,7 +139,4 @@ class NoneType : Type {
     override fun toString(): String {
         return "null"
     }
-}
-interface Type{
-    fun getLength(): Int
 }

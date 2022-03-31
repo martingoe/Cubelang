@@ -1,52 +1,58 @@
-package com.cubearrow.cubelang.instructionselection
+package com.cubearrow.cubelang.backend
 
 import com.cubearrow.cubelang.common.ir.*
 import com.cubearrow.cubelang.common.ASMEmitter
 
+/**
+ * Emits ASM values for given intermediate representation values
+ */
 class IRToASM {
     companion object{
-        private val NORMAL_REGISTER = listOf("ax", "dx", "bx", "di", "si", "cx")
+        private val NORMAL_REGISTER = listOf("ax", "bx", "dx", "di", "si", "cx")
         private val ARG_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
         fun emitASMForIR(emitter: ASMEmitter) {
             var pushArgIndex = 0
             var popArgIndex = 0
             for (irValue in emitter.resultIRValues) {
+                val arg0PointerValue = getPointerValue(irValue.arg0, irValue.resultType.getLength())
+                val arg1PointerValue = getPointerValue(irValue.arg1, irValue.resultType.getLength())
+                val asmPointerSize = getASMPointerSize(irValue.resultType.getLength())
                 val res = when (irValue.type) {
-                    IRType.COPY -> "mov ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
-                    IRType.COPY_FROM_REF -> "lea ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}, ${getASMPointerSize(irValue.resultType.getLength())} [rbp - ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}]"
-                    IRType.INC -> "inc ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
-                    IRType.DEC -> "dec ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
-                    IRType.SAL -> "sal ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${irValue.arg1}"
-                    IRType.NEG_UNARY -> "neg ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
-                    IRType.COPY_FROM_DEREF -> "mov ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}, ${getASMPointerSize(irValue.resultType.getLength())} [${getPointerValue(irValue.arg0!!, 8)}]"
-                    IRType.COPY_TO_DEREF -> "mov ${getASMPointerSize(irValue.resultType.getLength())} [${getPointerValue(irValue.arg0!!, 8)}], ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                    IRType.COPY -> "mov ${arg0PointerValue}, $arg1PointerValue"
+                    IRType.COPY_FROM_REF -> "lea ${arg1PointerValue}, $asmPointerSize [rbp - ${arg0PointerValue}]"
+                    IRType.INC -> "inc $arg0PointerValue"
+                    IRType.DEC -> "dec $arg0PointerValue"
+                    IRType.SAL -> "sal ${arg0PointerValue}, ${irValue.arg1}"
+                    IRType.NEG_UNARY -> "neg $arg0PointerValue"
+                    IRType.COPY_FROM_DEREF -> "mov ${arg1PointerValue}, $asmPointerSize [${getPointerValue(irValue.arg0!!, 8)}]"
+                    IRType.COPY_TO_DEREF -> "mov $asmPointerSize [${getPointerValue(irValue.arg0!!, 8)}], $arg1PointerValue"
                     IRType.CALL -> {
                         pushArgIndex = 0
 
                         if(irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0){
                             "push rax\n" +
                                     "call ${irValue.arg0}\n" +
-                                    "mov ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}, ${getRegister("ax", irValue.resultType.getLength())}\n" +
+                                    "mov ${arg1PointerValue}, ${getRegister("ax", irValue.resultType.getLength())}\n" +
                                     "pop rax"
                         } else{
                             "call ${irValue.arg0}\n"
                         }
                     }
                     IRType.PLUS_OP -> {
-                        "add ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                        "add ${arg0PointerValue}, $arg1PointerValue"
                     }
                     IRType.MINUS_OP -> {
-                        "sub ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                        "sub ${arg0PointerValue}, $arg1PointerValue"
                     }
                     IRType.MUL_OP -> {
-                        "imul ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                        "imul ${arg0PointerValue}, $arg1PointerValue"
                     }
                     IRType.DIV_OP -> {
-                        if((irValue.arg0 as TemporaryRegister).allocatedIndex != 0){
+                        val x = if((irValue.arg0 as TemporaryRegister).allocatedIndex != 0){
                             "push rax\n" +
-                                    "mov ${getRegister("ax", irValue.resultType.getLength())}, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}" +
+                                    "mov ${getRegister("ax", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
                                     "idiv ${irValue.arg1}\n" +
-                                    "mov ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getRegister("ax", irValue.resultType.getLength())}\n" +
+                                    "mov ${arg0PointerValue}, ${getRegister("ax", irValue.resultType.getLength())}\n" +
                                     "pop rax"
                         } else {
                             "idiv ${
@@ -56,16 +62,24 @@ class IRToASM {
                                 )
                             }"
                         }
+                        "push rdx\nxor rdx, rdx\n" + if((irValue.arg1 as TemporaryRegister).allocatedIndex == 2){
+                            "push rbx\n" +
+                                    "mov ${getRegister("bx", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
+                                    x +
+                                    "\npop rbx"
+                        } else {
+                            x
+                        } + "\npop rdx"
                     }
                     IRType.COPY_TO_FP_OFFSET -> {
-                        "mov ${getASMPointerSize(irValue.resultType.getLength())} [rbp - ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}], ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                        "mov $asmPointerSize [rbp - ${arg0PointerValue}], $arg1PointerValue"
                     }
                     IRType.COPY_FROM_FP_OFFSET -> {
-                        "mov ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getASMPointerSize(irValue.resultType.getLength())} [rbp - ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}]"
+                        "mov ${arg0PointerValue}, $asmPointerSize [rbp - ${arg1PointerValue}]"
                     }
                     IRType.POP_ARG -> {
                         if(popArgIndex < ARG_REGISTERS.size)
-                            "mov ${getASMPointerSize(irValue.resultType.getLength())} [rbp - ${irValue.arg0}], ${getRegister(ARG_REGISTERS[popArgIndex++], irValue.resultType.getLength())}"
+                            "mov $asmPointerSize [rbp - ${irValue.arg0}], ${getRegister(ARG_REGISTERS[popArgIndex++], irValue.resultType.getLength())}"
                         else
                             ""
                     }
@@ -76,13 +90,13 @@ class IRToASM {
                             "push ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
                     }
                     IRType.CMP -> {
-                        "cmp ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}, ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}"
+                        "cmp ${arg0PointerValue}, $arg1PointerValue"
                     }
 
                     IRType.EXTEND_TO_64BITS -> {
                         if((irValue.arg0 as TemporaryRegister).allocatedIndex != 0){
                             "push rax\n" +
-                                    "mov ${getRegister("ax", irValue.resultType.getLength())}, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}\n" +
+                                    "mov ${getRegister("ax", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
                                     "${extendTo64Bits(irValue.resultType.getLength())}\n" +
                                     "mov ${getPointerValue(irValue.arg0!!, 8)}, ${getRegister("ax", 8)}\n" +
                                     "pop rax"
@@ -92,10 +106,8 @@ class IRToASM {
                     }
 
                     IRType.COPY_FROM_REG_OFFSET -> {
-                        "mov ${getPointerValue(irValue.arg1!!, irValue.resultType.getLength())}, ${getASMPointerSize(irValue.resultType.getLength())} ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                        "mov ${arg1PointerValue}, $asmPointerSize $arg0PointerValue"
                     }
-
-
 
                     else -> ""
                 }
@@ -116,24 +128,24 @@ class IRToASM {
             return result
         }
 
-        private fun getASMPointerSize(length: Int): String {
+        private fun getASMPointerSize(length: Int): String? {
             return when(length){
                 1 -> "BYTE"
                 2 -> "WORD"
                 4 -> "DWORD"
                 8 -> "QWORD"
-                else -> error("")
+                else -> null
             }
         }
 
-        private fun getPointerValue(value: ValueType, resultType: Int): String{
+        private fun getPointerValue(value: ValueType?, resultType: Int): String?{
             return when(value) {
                 is TemporaryRegister -> getRegister(NORMAL_REGISTER[value.allocatedIndex], resultType)
-                is Literal -> value.value
+                is IRLiteral -> value.value
                 is FramePointer -> value.toString()
                 is RegOffset -> "[${getPointerValue(value.temporaryRegister, 8)} - ${value.offset}]"
                 is FramePointerOffset -> "${value.literal} " + if(value.temporaryRegister != null) " + ${getPointerValue(value.temporaryRegister, 8)} * ${value.offset!!}" else ""
-                else -> error("")
+                else -> null
             }
         }
         /**

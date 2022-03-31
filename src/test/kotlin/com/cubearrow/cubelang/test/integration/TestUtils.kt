@@ -6,6 +6,9 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+/**
+ * Compiles the test suite with the given name, runs it and returns the output
+ */
 fun getResultOfTest(name: String): Pair<String?, String?> {
     val pathString = "src/test/resources/testsources/$name"
     val pathFile = File(pathString)
@@ -18,6 +21,9 @@ fun getResultOfTest(name: String): Pair<String?, String?> {
     return Pair("./a.out".runCommand(pathFile), File("$pathString/expectedResult.txt").readText())
 }
 
+/**
+ * Runs a process using [[Process]].
+ */
 fun String.runCommand(workingDir: File): String? {
     return try {
         val parts = this.split("\\s".toRegex())

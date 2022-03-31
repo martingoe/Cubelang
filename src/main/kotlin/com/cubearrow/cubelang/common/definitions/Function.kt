@@ -2,9 +2,15 @@ package com.cubearrow.cubelang.common.definitions
 
 import com.cubearrow.cubelang.common.*
 
+/**
+ * The class used to save function definitions.
+ */
 data class Function(var name: String, var args: Map<String, Type>, var returnType: Type?)
 
-class DefinedFunctions {
+/**
+ * The functions defined in the standard library
+ */
+class StandardLibraryFunctions {
     companion object {
         val definedFunctions = mutableMapOf(
             "io" to mutableListOf(
