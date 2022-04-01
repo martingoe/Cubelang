@@ -1,6 +1,5 @@
 # Cubelang
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Maintainability](https://api.codeclimate.com/v1/badges/b56516951e9c3a93a8b0/maintainability)](https://codeclimate.com/github/CubeArrow/Cubelang/maintainability)
 
 This is a very simple statically typed (WIP) compiled (x86_64 NASM) programming language.
 
@@ -37,12 +36,27 @@ cd Cubelang
 Package the program in an executable JAR
 
 ```bash
-./gradlew fatJar
+./gradlew jar
 ```
 
+Set the standard library path
+
+```bash
+export CUBELANG_LIB="src/test/resources/library"
+```
 Run the program
 ```bash
-java -jar build/libs/Cubelang-fat-1.0-SNAPSHOT.jar sourcefile
+java -jar build/libs/Cubelang-1.0-SNAPSHOT.jar sourcefile
+```
+
+Assemble the program with
+```bash
+nasm -f elf64 output.asm
+```
+
+Include the c standard library
+```bash
+gcc -no-pie output.o
 ```
 
 
