@@ -15,8 +15,20 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 }
 group = "com.cubearrow"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 application {
     mainClass.set("com.cubearrow.cubelang.main.MainKt")
+}
+
+tasks.jar {
+    manifest{
+        attributes["Main-Class"] = "com.cubearrow.cubelang.main.MainKt"
+    }
+    from(sourceSets.main.get().output)
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+
 }
