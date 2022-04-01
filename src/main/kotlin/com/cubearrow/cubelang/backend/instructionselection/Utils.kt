@@ -73,34 +73,34 @@ class Utils {
          * Returns a list of children of a given expression.
          */
         fun getChildren(expression: Expression): List<Expression> {
-            when (expression) {
+            // TODO: Are children missing?
+            return when (expression) {
                 is Expression.Operation -> {
-                    return listOf(expression.leftExpression, expression.rightExpression)
+                    listOf(expression.leftExpression, expression.rightExpression)
                 }
                 is Expression.Logical -> {
-                    return listOf(expression.leftExpression, expression.rightExpression)
+                    listOf(expression.leftExpression, expression.rightExpression)
                 }
                 is Expression.Grouping -> {
-                    return listOf(expression.expression)
+                    listOf(expression.expression)
                 }
                 is Expression.ValueFromPointer -> {
-                    return listOf(expression.expression)
+                    listOf(expression.expression)
                 }
                 is Expression.Unary -> {
-                    return listOf(expression.expression)
+                    listOf(expression.expression)
                 }
                 is Expression.Assignment -> {
-                    return listOf(expression.leftSide, expression.valueExpression)
+                    listOf(expression.leftSide, expression.valueExpression)
                 }
                 is Expression.Comparison -> {
-                    return listOf(expression.leftExpression, expression.rightExpression)
+                    listOf(expression.leftExpression, expression.rightExpression)
                 }
                 is Expression.ExtendTo64Bit -> {
-                    return listOf(expression.expression)
+                    listOf(expression.expression)
                 }
+                else -> listOf()
             }
-            // TODO: Are children missing?
-            return listOf()
         }
     }
 }
