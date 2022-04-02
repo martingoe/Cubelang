@@ -91,30 +91,28 @@ class RegisterAllocation(private val emitter: ASMEmitter) {
         value?.let {
             if (value is TemporaryRegister) {
                 // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == value.index }) {
-                    resultList.add(VirtualRegisterLiveInterval(value.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
-                    resultList[indexOfFirst].end = index
-                }
+                addSingularIndex(resultList, value, index)
             }
             if (value is RegOffset) {
                 // Register not yet accounted for
-                if (resultList.none { it.virtualRegIndex == value.temporaryRegister.index }) {
-                    resultList.add(VirtualRegisterLiveInterval(value.temporaryRegister.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister.index }
-                    resultList[indexOfFirst].end = index
-                }
+                addSingularIndex(resultList, value.temporaryRegister, index)
             }
             if(value is FramePointerOffset && value.temporaryRegister != null){
-                if (resultList.none { it.virtualRegIndex == value.temporaryRegister.index }) {
-                    resultList.add(VirtualRegisterLiveInterval(value.temporaryRegister.index, index, index))
-                } else {
-                    val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.temporaryRegister.index }
-                    resultList[indexOfFirst].end = index
-                }
+                addSingularIndex(resultList, value.temporaryRegister, index)
             }
+        }
+    }
+
+    private fun addSingularIndex(
+        resultList: MutableList<VirtualRegisterLiveInterval>,
+        value: TemporaryRegister,
+        index: Int
+    ) {
+        if (resultList.none { it.virtualRegIndex == value.index }) {
+            resultList.add(VirtualRegisterLiveInterval(value.index, index, index))
+        } else {
+            val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
+            resultList[indexOfFirst].end = index
         }
     }
 }
