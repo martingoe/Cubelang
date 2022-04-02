@@ -14,16 +14,16 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 }
-group = "com.cubearrow"
+group = "com.martingoe"
 version = "1.0.0"
 
 application {
-    mainClass.set("com.cubearrow.cubelang.main.MainKt")
+    mainClass.set("com.martingoe.cubelang.main.MainKt")
 }
 
 tasks.jar {
     manifest{
-        attributes["Main-Class"] = "com.cubearrow.cubelang.main.MainKt"
+        attributes["Main-Class"] = "com.martingoe.cubelang.main.MainKt"
     }
     from(sourceSets.main.get().output)
     dependsOn(configurations.runtimeClasspath)
