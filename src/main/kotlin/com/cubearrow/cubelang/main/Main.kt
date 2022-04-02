@@ -54,6 +54,7 @@ class Main(private val libraryPath: String) {
             asmASTToIRService.asmEmitter = ASMEmitter()
             StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath).evaluateList(expressions.value)
             resultFile.writeText(asmASTToIRService.asmEmitter.finishedString)
+            println("Wrote the resulting asm file to ${resultFile.path}")
             i++
         }
     }
