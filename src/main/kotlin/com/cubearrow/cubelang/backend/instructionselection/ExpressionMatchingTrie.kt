@@ -8,7 +8,7 @@ import java.util.*
  * The trie used to match expressions to immediate representation values.
  */
 class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetSymbol: ASTGetSymbol) {
-    private var trieEntries: MutableList<TrieEntry> = ArrayList()
+    var trieEntries: MutableList<TrieEntry> = ArrayList()
 
     /**
      * Initialize the new trie by building it from the rules
@@ -171,9 +171,34 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
         }
     }
 
-    private class TrieEntry(val value: Char, val length: Int) {
+    class TrieEntry(val value: Char, val length: Int) {
         var next: MutableList<Int> = ArrayList()
         var isAccepting: Array<Pair<Boolean, Int>> = Array(Rule.RULE_COUNT) { Pair(false, 0) }
         var failureState: Int = 0
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as TrieEntry
+
+            if (value != other.value) return false
+            if (length != other.length) return false
+            if (next != other.next) return false
+            if (!isAccepting.contentEquals(other.isAccepting)) return false
+            if (failureState != other.failureState) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = value.hashCode()
+            result = 31 * result + length
+            result = 31 * result + next.hashCode()
+            result = 31 * result + isAccepting.contentHashCode()
+            result = 31 * result + failureState
+            return result
+        }
+
+
     }
 }
