@@ -18,6 +18,13 @@ abstract class Statement {
         }
     }
 
+    class ExternFunctionDefinition(val name: Token, val args: List<ArgumentDefinition>, val type: Type) : Statement(){
+        override fun <R> accept(visitor: StatementVisitor<R>): R {
+            return visitor.visitExternFunctionDefinition(this)
+        }
+
+    }
+
 
     class IfStmnt (var condition: Expression, var ifBody: Statement, var elseBody: Statement?) : Statement() {
         override fun <R> accept(visitor: StatementVisitor<R>): R {
@@ -96,6 +103,7 @@ abstract class Statement {
         fun visitImportStmnt(importStmnt: ImportStmnt): R
         fun visitEmpty(empty: Empty): R
         fun visitExpressionStatement(expressionStatement: ExpressionStatement): R
+        fun visitExternFunctionDefinition(externFunctionDefinition: ExternFunctionDefinition): R
     }
     abstract fun <R> accept(visitor: StatementVisitor<R>): R
 }
