@@ -98,7 +98,13 @@ class Lexer(private val fileContent: String) {
         index++
         while (peek() != '\'' && index < fileContent.length) {
             if (peek() == '\n') line++
-            buffer += advance()
+
+            val nextChar = advance()
+            buffer += if(nextChar == '\\')
+                escapeChar(advance())
+            else{
+                nextChar
+            }
         }
         if (index >= fileContent.length) {
             errorOnCurrent("Unterminated char.")
@@ -152,7 +158,12 @@ class Lexer(private val fileContent: String) {
         index++
         while (peek() != '"' && index < fileContent.length) {
             if (peek() == '\n') line++
-            buffer += advance()
+            val nextChar = advance()
+            buffer += if(nextChar == '\\')
+                escapeChar(advance())
+            else{
+                nextChar
+            }
         }
         if (index >= fileContent.length) {
             errorOnCurrent("Unterminated string.")
@@ -160,6 +171,17 @@ class Lexer(private val fileContent: String) {
         }
 
         addToken(TokenType.STRING, buffer)
+    }
+
+    private fun escapeChar(advance: Char): Char {
+        return when(advance){
+            'n' -> '\n'
+            '0' -> '\u0000'
+            't' -> '\t'
+            'r' -> '\r'
+            '\'' -> '\''
+            else -> advance
+        }
     }
 
     private fun number(start: String) {
