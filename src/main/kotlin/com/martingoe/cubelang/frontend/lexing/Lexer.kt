@@ -136,6 +136,7 @@ class Lexer(private val fileContent: String) {
             "while" -> addToken(TokenType.WHILE, buffer)
             "null" -> addToken(TokenType.NULLVALUE, buffer)
             "for" -> addToken(TokenType.FOR, buffer)
+            "extern" -> addToken(TokenType.EXTERN, buffer)
             else -> addToken(TokenType.IDENTIFIER, buffer)
         }
     }
