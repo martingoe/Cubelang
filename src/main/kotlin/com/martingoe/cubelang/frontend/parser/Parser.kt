@@ -55,7 +55,9 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     }
 
     private fun externFunctionStatement(): Statement {
+        consume(TokenType.FUN, "Expected a 'fun' keyword after 'extern'")
         val (name, args: List<Statement.ArgumentDefinition>, type) = getFunctionStatementStart()
+        consume(TokenType.SEMICOLON, "Expected a ';' after defining an extern function.")
         return Statement.ExternFunctionDefinition(name, args, type)
     }
 
