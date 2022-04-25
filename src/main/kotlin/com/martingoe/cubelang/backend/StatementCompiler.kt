@@ -16,6 +16,10 @@ import java.io.File
 import java.util.*
 
 internal const val REGISTER_COUNT: Int = 6
+
+/**
+ * Compiles statements to NASM. This class also uses the [[ASTToIRService]] to compile the given expressions.
+ */
 class StatementCompiler(private val emitter: ASMEmitter, private var astToIRService: ASTToIRService, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
     private val registerAllocation = RegisterAllocation(emitter)

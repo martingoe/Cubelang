@@ -14,6 +14,5 @@ enum class IRType {
     CALL,
     INC,
 
-    // Expects the offset from the FP as the target variable definition
     POP_ARG, NEG_UNARY, PUSH_REG, POP_REG, CMP, DEC, SAL, COPY_TO_FP_OFFSET, COPY_FROM_FP_OFFSET, EXTEND_TO_64BITS
 }

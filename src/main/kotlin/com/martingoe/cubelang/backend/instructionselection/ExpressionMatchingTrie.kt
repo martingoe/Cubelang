@@ -26,6 +26,7 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
     }
 
     private fun buildFailureFunctions() {
+        // BFS
         val queue: PriorityQueue<Int> = PriorityQueue()
         queue.addAll(trieEntries[0].next)
         while (queue.isNotEmpty()) {
@@ -33,12 +34,15 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
 
             for (s in trieEntries[r].next) {
                 queue.add(s)
-                // state = f(r)?
                 var state = trieEntries[r].failureState
+                // Walk down the tree until you find a node with the same value or the failure state is 0
                 while (trieEntries[state].next.none { trieEntries[it].value == trieEntries[s].value } && state != 0)
                     state = trieEntries[state].failureState
+                // Assign the new failure state to the next node with the same value or 0
                 val newFailureState = trieEntries[state].next.firstOrNull { trieEntries[it].value == trieEntries[s].value } ?: 0
                 trieEntries[s].failureState = newFailureState
+                // Combine the two accepting states ensuring that the accepting states from the failure state are also included in the original node
+                // If the failure state matches any rule, so does the original one (with the same length as well)
                 trieEntries[s].isAccepting = combineAcceptingStates(trieEntries[s].isAccepting, trieEntries[newFailureState].isAccepting)
             }
 
@@ -164,7 +168,8 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
         return try {
             trieEntries[from].next.first { trieEntries[it].value == to_value }
         } catch (e: NoSuchElementException) {
-            if (trieEntries[from].failureState == from)
+            // Return 0 if no trie entry matches at all
+            if(from == 0)
                 return 0
             val newState = succ(trieEntries[from].failureState, to_value)
             newState

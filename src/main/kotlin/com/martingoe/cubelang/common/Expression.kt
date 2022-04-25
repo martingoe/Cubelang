@@ -4,6 +4,15 @@ import com.martingoe.cubelang.backend.instructionselection.Rule
 import com.martingoe.cubelang.common.tokens.Token
 
 
+/**
+ * The expressions of a given program.
+ *
+ * @param state The trie state reached from the expression. This parameter is used in the instruction selection stage.
+ * @param matchedResults The results of rules that have been matched. This parameter is used in the instruction selection stage.
+ * @param cost The lowest rule cost that has been matched yet. This parameter is used in the instruction selection stage.
+ * @param ruleMatchingBytes An array of integers used to match the given rules. Used in the instruction selection stage.
+ * @param resultType The type resulting from the expression.
+ */
 abstract class Expression(
     var state: Int = 0,
     var match: MutableMap<Char, Int> = HashMap(),

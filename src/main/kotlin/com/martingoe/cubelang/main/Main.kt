@@ -24,6 +24,9 @@ fun main(args: Array<String>) {
 
 
 class Main(private val libraryPath: String) {
+    /**
+    * Compiles an array of files represented with their path strings
+    */
     fun compileFile(sourceFile: Array<String>) {
         SymbolTableSingleton.resetAll()
         val expressionsList = HashMap<String, List<Statement>>()
