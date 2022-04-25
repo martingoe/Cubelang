@@ -143,7 +143,7 @@ class TypeChecker(
 
     override fun visitFunctionDefinition(functionDefinition: Statement.FunctionDefinition): Type {
         currentVarIndex = 0
-        val args = functionDefinition.args.map { it as Statement.ArgumentDefinition }.associate { it.name.substring to it.type }
+        val args = mapArgumentDefinitionToMap(functionDefinition.args)
         SymbolTableSingleton.getCurrentSymbolTable().functions.add(
             Function(
                 functionDefinition.name.substring,
@@ -370,5 +370,16 @@ class TypeChecker(
 
     override fun acceptExtendTo64Bits(extendTo64Bit: Expression.ExtendTo64Bit): Type {
         return NormalType(NormalTypes.I64)
+    }
+
+    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition): Type {
+        SymbolTableSingleton.getCurrentSymbolTable().functions.add(
+            Function(
+                externFunctionDefinition.name.substring,
+                mapArgumentDefinitionToMap(externFunctionDefinition.args),
+                externFunctionDefinition.type
+            )
+        )
+        return NoneType()
     }
 }

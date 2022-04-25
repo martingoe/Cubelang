@@ -188,4 +188,8 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
 
     }
 
+    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition){
+        emitter.emit("extern ${externFunctionDefinition.name.substring}")
+    }
+
 }

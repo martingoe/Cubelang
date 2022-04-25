@@ -356,4 +356,8 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
         return extendTo64Bit
     }
+
+    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition): Statement {
+        return externFunctionDefinition
+    }
 }
