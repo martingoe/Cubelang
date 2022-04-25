@@ -48,7 +48,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
         emitter.emit("push rbp")
         emitter.emit("mov rbp, rsp")
         emitter.emit("sub rsp, ${getFunctionOffset()}")
-        functionDefinition.args.map { it as Statement.ArgumentDefinition }.forEach {
+        functionDefinition.args.forEach {
             // TODO: Structs
             val res = Expression.VarCall(it.name).accept(TreeRewriter(scope))
             res as Expression.ValueFromPointer

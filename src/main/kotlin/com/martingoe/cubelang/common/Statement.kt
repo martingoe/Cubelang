@@ -12,7 +12,7 @@ abstract class Statement {
         }
     }
 
-    class FunctionDefinition (val name: Token, val args: List<Statement>, val type: Type, var body: Statement) : Statement() {
+    class FunctionDefinition (val name: Token, val args: List<ArgumentDefinition>, val type: Type, var body: Statement) : Statement() {
         override fun <R> accept(visitor: StatementVisitor<R>): R {
             return visitor.visitFunctionDefinition(this)
         }

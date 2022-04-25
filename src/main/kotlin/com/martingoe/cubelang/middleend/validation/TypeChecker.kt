@@ -160,17 +160,14 @@ class TypeChecker(
         functionDefinition.args.forEach {
             val ARGUMENT_REG_COUNT = 6
             if (i < ARGUMENT_REG_COUNT) {
-                val argumentDefinition = it as Statement.ArgumentDefinition
 
-                currentVarIndex += argumentDefinition.type.getLength()
+                currentVarIndex += it.type.getLength()
                 SymbolTableSingleton.getCurrentSymbolTable()
-                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, currentVarIndex)
+                    .defineVariable(scope, it.name.substring, it.type, currentVarIndex)
             } else {
-                val argumentDefinition = it as Statement.ArgumentDefinition
-
-                currentVarIndex += argumentDefinition.type.getLength()
+                currentVarIndex += it.type.getLength()
                 SymbolTableSingleton.getCurrentSymbolTable()
-                    .defineVariable(scope, argumentDefinition.name.substring, argumentDefinition.type, -posOffset)
+                    .defineVariable(scope, it.name.substring, it.type, -posOffset)
                 posOffset += 8
             }
             i++
@@ -178,6 +175,10 @@ class TypeChecker(
         evaluateStmnt(functionDefinition.body)
         scope.pop()
         return NoneType()
+    }
+
+    private fun mapArgumentDefinitionToMap(args: List<Statement.ArgumentDefinition>): Map<String, Type> {
+        return args.associate { it.name.substring to it.type }
     }
 
     override fun visitComparison(comparison: Expression.Comparison): Type {
