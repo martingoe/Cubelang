@@ -19,6 +19,8 @@ abstract class Rule {
         const val RULE_COUNT = 25
     }
 }
+internal var currentRegister = 0
+
 
 private fun emitMulRegLiteral(
     right: IRLiteral,
@@ -939,7 +941,7 @@ private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expr
     for (i in ruleChildren.indices) {
         cost += if (ruleChildren[i]::class != actualChildren[i]::class) {
             // Update new child
-            rules[actualChildren[i].match[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO()].getCost(actualChildren[i], astGetSymbol, rules)
+            rules[actualChildren[i].matchedResults[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO()].getCost(actualChildren[i], astGetSymbol, rules)
         } else {
             calculateSubCosts(ruleChildren[i], actualChildren[i], astGetSymbol, rules)
         }
@@ -948,7 +950,6 @@ private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expr
 }
 
 
-var currentRegister = 0
 
 
 /**

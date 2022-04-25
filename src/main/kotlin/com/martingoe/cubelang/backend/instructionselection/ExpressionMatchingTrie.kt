@@ -109,25 +109,25 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
         setPartial(expression, expression.state)
         if (children.isNotEmpty()) {
             for (i in rules.indices) {
-                var product = children[0].b[i] / 2
+                var product = children[0].ruleMatchingBytes[i] / 2
                 for (child in children.subList(1, children.size)) {
-                    product = product and child.b[i] / 2
+                    product = product and child.ruleMatchingBytes[i] / 2
                 }
 
-                expression.b[i] = expression.b[i] or product
+                expression.ruleMatchingBytes[i] = expression.ruleMatchingBytes[i] or product
             }
         }
         doReduce(expression, previousState, index)
     }
 
-    private fun doReduce(expression: Expression, previousState: Int = 0, index: Int = -1) {
+    private fun doReduce(expression: Expression, previousState: Int, index: Int) {
         for (i in rules.indices) {
             // If there is a rule matching exactly
-            if (expression.b[i] % 2 == 1) {
+            if (expression.ruleMatchingBytes[i] % 2 == 1) {
                 val possibleNewCost = rules[i].getCost(expression, astGetSymbol, rules)
                 if (possibleNewCost < (expression.cost[rules[i].resultSymbol] ?: Int.MAX_VALUE)) {
                     expression.cost[rules[i].resultSymbol] = possibleNewCost
-                    expression.match[rules[i].resultSymbol] = i
+                    expression.matchedResults[rules[i].resultSymbol] = i
 
                     // Expression is root
                     val x: Int = if (index == -1) {
@@ -144,7 +144,7 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
     private fun setPartial(expression: Expression, state: Int) {
         for (rule in rules.indices) {
             if (trieEntries[state].isAccepting[rule].first) {
-                expression.b[rule] = expression.b[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].isAccepting[rule].second))
+                expression.ruleMatchingBytes[rule] = expression.ruleMatchingBytes[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].isAccepting[rule].second))
             }
         }
     }
