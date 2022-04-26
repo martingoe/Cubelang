@@ -151,15 +151,7 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
 
 
     private fun twoToThePowerOf(n: Int): Int {
-        val base = 2
-        var result = 1
-        var temp = n
-
-        while (temp != 0) {
-            result *= base
-            --temp
-        }
-        return result
+        return 1 shl n
     }
 
     private fun getTreeLength(pathStringLength: Int): Int = (pathStringLength - 1) / 2
