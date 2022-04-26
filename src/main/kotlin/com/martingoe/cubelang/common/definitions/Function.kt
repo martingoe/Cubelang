@@ -31,6 +31,28 @@ class StandardLibraryFunctions {
             ),
             "random" to mutableListOf(
                 Function("randomI32", mapOf("previous" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I32))
+            ),
+            "convert" to mutableListOf(
+                Function("i8toi16", mapOf("value" to NormalType(NormalTypes.I8)), NormalType(NormalTypes.I16)),
+                Function("i8tochar", mapOf("value" to NormalType(NormalTypes.I8)), NormalType(NormalTypes.CHAR)),
+                Function("i8toi32", mapOf("value" to NormalType(NormalTypes.I8)), NormalType(NormalTypes.I32)),
+                Function("i8toi64", mapOf("value" to NormalType(NormalTypes.I8)), NormalType(NormalTypes.I64)),
+
+
+                Function("i16toi8", mapOf("value" to NormalType(NormalTypes.I16)), NormalType(NormalTypes.I8)),
+                Function("i16tochar", mapOf("value" to NormalType(NormalTypes.I16)), NormalType(NormalTypes.CHAR)),
+                Function("i16toi32", mapOf("value" to NormalType(NormalTypes.I16)), NormalType(NormalTypes.I32)),
+                Function("i16toi64", mapOf("value" to NormalType(NormalTypes.I16)), NormalType(NormalTypes.I64)),
+
+                Function("i64toi16", mapOf("value" to NormalType(NormalTypes.I64)), NormalType(NormalTypes.I16)),
+                Function("i64tochar", mapOf("value" to NormalType(NormalTypes.I64)), NormalType(NormalTypes.CHAR)),
+                Function("i64toi8", mapOf("value" to NormalType(NormalTypes.I64)), NormalType(NormalTypes.I8)),
+                Function("i64toi32", mapOf("value" to NormalType(NormalTypes.I64)), NormalType(NormalTypes.I32)),
+
+                Function("i32toi16", mapOf("value" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I16)),
+                Function("i32tochar", mapOf("value" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.CHAR)),
+                Function("i32toi8", mapOf("value" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I8)),
+                Function("i32toi64", mapOf("value" to NormalType(NormalTypes.I32)), NormalType(NormalTypes.I64)),
             )
         )
     }
