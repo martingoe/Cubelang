@@ -90,6 +90,11 @@ abstract class Expression(
             return visitor.visitComparison(this)
         }
     }
+    class StringLiteral(val value: Token): Expression(){
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitStringLiteral(this)
+        }
+    }
 
 
     class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {
@@ -115,6 +120,7 @@ abstract class Expression(
         fun visitAssignment(assignment: Assignment): T
         fun acceptFramePointer(framePointer: FramePointer): T
         fun acceptExtendTo64Bits(extendTo64Bit: ExtendTo64Bit): T
+        fun visitStringLiteral(stringLiteral: StringLiteral): T
     }
 
     class Logical(var leftExpression: Expression, val logical: Token, var rightExpression: Expression) : Expression() {

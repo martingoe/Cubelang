@@ -360,4 +360,8 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
     override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition): Statement {
         return externFunctionDefinition
     }
+
+    override fun visitStringLiteral(stringLiteral: StringLiteral): Expression {
+        return stringLiteral
+    }
 }

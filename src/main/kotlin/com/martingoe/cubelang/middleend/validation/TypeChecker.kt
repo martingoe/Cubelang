@@ -382,4 +382,8 @@ class TypeChecker(
         )
         return NoneType()
     }
+
+    override fun visitStringLiteral(stringLiteral: Expression.StringLiteral): Type {
+        return PointerType(NormalType(NormalTypes.CHAR))
+    }
 }
