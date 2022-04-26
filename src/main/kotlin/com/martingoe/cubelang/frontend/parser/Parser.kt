@@ -275,7 +275,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
             TokenType.STAR -> Expression.ValueFromPointer(call(), current())
             TokenType.NULLVALUE -> Expression.Literal(null, current())
-            TokenType.STRING -> Expression.Literal(current(), current())
+            TokenType.STRING -> Expression.StringLiteral(current())
             TokenType.IDENTIFIER -> {
                 lexIdentifier()
             }
