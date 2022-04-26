@@ -7,7 +7,7 @@ import com.martingoe.cubelang.common.ASMEmitter
  * Emits ASM values for given intermediate representation values
  */
 class IRToASM {
-    companion object{
+    companion object {
         private val NORMAL_REGISTER = listOf("ax", "bx", "dx", "di", "si", "cx")
         private val ARG_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
         fun emitASMForIR(emitter: ASMEmitter) {
@@ -39,7 +39,7 @@ class IRToASM {
                     IRType.CALL -> {
                         pushArgIndex = 0
 
-                        if(irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0){
+                        if (irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0) {
                             "push rax\n" +
                                     "call ${irValue.arg0}\n" +
                                     "mov ${arg1PointerValue}, ${
@@ -49,7 +49,7 @@ class IRToASM {
                                         )
                                     }\n" +
                                     "pop rax"
-                        } else{
+                        } else {
                             "call ${irValue.arg0}\n"
                         }
                     }
@@ -63,7 +63,7 @@ class IRToASM {
                         "imul ${arg0PointerValue}, $arg1PointerValue"
                     }
                     IRType.DIV_OP -> {
-                        val x = if((irValue.arg0 as TemporaryRegister).allocatedIndex != 0){
+                        val x = if ((irValue.arg0 as TemporaryRegister).allocatedIndex != 0) {
                             "push rax\n" +
                                     "mov ${getRegister("ax", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
                                     "idiv ${irValue.arg1}\n" +
@@ -82,7 +82,7 @@ class IRToASM {
                                 )
                             }"
                         }
-                        "push rdx\nxor rdx, rdx\n" + if((irValue.arg1 as TemporaryRegister).allocatedIndex == 2){
+                        "push rdx\nxor rdx, rdx\n" + if ((irValue.arg1 as TemporaryRegister).allocatedIndex == 2) {
                             "push rbx\n" +
                                     "mov ${getRegister("bx", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
                                     x +
@@ -98,25 +98,44 @@ class IRToASM {
                         "mov ${arg0PointerValue}, $asmPointerSize [rbp - ${arg1PointerValue}]"
                     }
                     IRType.POP_ARG -> {
-                        if(popArgIndex < ARG_REGISTERS.size)
-                            "mov $asmPointerSize [rbp - ${irValue.arg0}], ${
-                                getRegister(
-                                    ARG_REGISTERS[popArgIndex++],
-                                    irValue.resultType.getLength()
-                                )
-                            }"
-                        else
+                        if (popArgIndex < ARG_REGISTERS.size) {
+                            if (irValue.resultType.getLength() <= 2) {
+                                "mov ${getRegister("ax", irValue.resultType.getLength())}, ${getRegister(ARG_REGISTERS[popArgIndex], 4)}" +
+                                        "mov $asmPointerSize [rbp - ${irValue.arg0}], ${
+                                    getRegister(
+                                        "ax",
+                                        irValue.resultType.getLength()
+                                    )
+                                }"
+                            } else {
+                                "mov $asmPointerSize [rbp - ${irValue.arg0}], ${
+                                    getRegister(
+                                        ARG_REGISTERS[popArgIndex++],
+                                        irValue.resultType.getLength()
+                                    )
+                                }"
+                            }
+                        } else
                             ""
                     }
                     IRType.PUSH_ARG -> {
-                        if(pushArgIndex < ARG_REGISTERS.size)
-                            "mov ${
-                                getRegister(
-                                    ARG_REGISTERS[pushArgIndex++],
-                                    irValue.resultType.getLength()
-                                )
-                            }, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
-                        else
+                        if (pushArgIndex < ARG_REGISTERS.size) {
+                            if (irValue.resultType.getLength() <= 2) {
+                                "movzx ${
+                                    getRegister(
+                                        ARG_REGISTERS[pushArgIndex++],
+                                        4
+                                    )
+                                }, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                            } else {
+                                "mov ${
+                                    getRegister(
+                                        ARG_REGISTERS[pushArgIndex++],
+                                        irValue.resultType.getLength()
+                                    )
+                                }, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                            }
+                        } else
                             "push ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
                     }
                     IRType.CMP -> {
@@ -124,7 +143,7 @@ class IRToASM {
                     }
 
                     IRType.EXTEND_TO_64BITS -> {
-                        if((irValue.arg0 as TemporaryRegister).allocatedIndex != 0){
+                        if ((irValue.arg0 as TemporaryRegister).allocatedIndex != 0) {
                             "push rax\n" +
                                     "mov ${getRegister("ax", irValue.resultType.getLength())}, ${arg0PointerValue}\n" +
                                     "${extendTo64Bits(irValue.resultType.getLength())}\n" +
@@ -168,7 +187,7 @@ class IRToASM {
         }
 
         private fun getASMPointerSize(length: Int): String? {
-            return when(length){
+            return when (length) {
                 1 -> "BYTE"
                 2 -> "WORD"
                 4 -> "DWORD"
@@ -177,8 +196,8 @@ class IRToASM {
             }
         }
 
-        private fun getPointerValue(value: ValueType?, resultType: Int): String?{
-            return when(value) {
+        private fun getPointerValue(value: ValueType?, resultType: Int): String? {
+            return when (value) {
                 is TemporaryRegister -> getRegister(
                     NORMAL_REGISTER[value.allocatedIndex],
                     resultType
@@ -186,7 +205,7 @@ class IRToASM {
                 is IRLiteral -> value.value
                 is FramePointer -> value.toString()
                 is RegOffset -> "[${getPointerValue(value.temporaryRegister, 8)} - ${value.offset}]"
-                is FramePointerOffset -> "${value.literal} " + if(value.temporaryRegister != null) " + ${
+                is FramePointerOffset -> "${value.literal} " + if (value.temporaryRegister != null) " + ${
                     getPointerValue(
                         value.temporaryRegister,
                         8
@@ -195,6 +214,7 @@ class IRToASM {
                 else -> null
             }
         }
+
         /**
          * Returns the register for the appropriate name and length.
          */
