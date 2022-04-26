@@ -293,7 +293,6 @@ class TypeChecker(
         while (arrayGetList.last().expression is Expression.ArrayGet) {
             depth++
             arrayGetList.add(arrayGetList.last().expression as Expression.ArrayGet)
-//            evaluate(arrayGetList.last().expression)
             evaluate(arrayGetList.last().inBrackets)
         }
 
@@ -384,6 +383,7 @@ class TypeChecker(
     }
 
     override fun visitStringLiteral(stringLiteral: Expression.StringLiteral): Type {
+        SymbolTableSingleton.getCurrentSymbolTable().addStringLiteral(stringLiteral.value.substring)
         return PointerType(NormalType(NormalTypes.CHAR))
     }
 }
