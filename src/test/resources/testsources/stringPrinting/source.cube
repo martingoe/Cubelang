@@ -1,0 +1,11 @@
+extern fun puts(in: char*);
+import io;
+
+
+fun main() {
+    var test = "test";
+    for(var i = 0; i < 4; i = i + 1){
+        printChar(test[i]);
+    }
+    puts(test);
+}

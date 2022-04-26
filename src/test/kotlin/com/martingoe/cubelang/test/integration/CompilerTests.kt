@@ -35,6 +35,11 @@ class CompilerTests {
         val (s, s1) = getResultOfTest("euclidean")
         assert(s!! == s1!!)
     }
+    @Test
+    fun stringPrintingTest() {
+        val (s, s1) = getResultOfTest("stringPrinting")
+        assert(s!! == s1!!)
+    }
 
     @Test
     fun stackArgumentsTest() {
