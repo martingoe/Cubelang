@@ -4,8 +4,21 @@ intPrintFormat db "%d", 10, 0
 charPrintFormat db "%c", 10, 0
 pointerPrintFormat db "%p", 10, 0
 
-printShort:
+printI8:
     mov esi, edi
+    mov edi, intPrintFormat
+    xor al, al
+    call printf
+    ret
+
+printI16:
+    mov esi, edi
+    mov edi, intPrintFormat
+    xor al, al
+    call printf
+    ret
+printI64:
+    mov rsi, rdi
     mov edi, intPrintFormat
     xor al, al
     call printf
@@ -16,7 +29,7 @@ printChar:
     mov rdi, 10
     call putchar
     ret
-printInt:
+printI32:
     mov esi, edi
     mov edi, intPrintFormat
     xor al, al

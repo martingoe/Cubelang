@@ -15,8 +15,11 @@ class StandardLibraryFunctions {
         val definedFunctions = mutableMapOf(
             "io" to mutableListOf(
                 Function("printChar", mapOf("value" to NormalType(NormalTypes.CHAR)), NoneType()),
-                Function("printInt", mapOf("value" to NormalType(NormalTypes.I32)), NoneType()),
-                Function("printShort", mapOf("value" to NormalType(NormalTypes.I8)), NoneType()),
+                Function("printI32", mapOf("value" to NormalType(NormalTypes.I32)), NoneType()),
+                Function("printI8", mapOf("value" to NormalType(NormalTypes.I8)), NoneType()),
+                Function("printI16", mapOf("value" to NormalType(NormalTypes.I16)), NoneType()),
+                Function("printI64", mapOf("value" to NormalType(NormalTypes.I16)), NoneType()),
+
                 Function("printPointer", mapOf("value" to PointerType(NormalType(NormalTypes.ANY))), NoneType())
             ),
             "time" to mutableListOf(

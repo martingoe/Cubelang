@@ -13,5 +13,5 @@ fun getResult(struct1: test*): i32{
 fun main() {
     var testStruct: test;
     testStruct.num1 = 10;
-    printInt(getResult(&testStruct));
+    printI32(getResult(&testStruct));
 }

@@ -2,5 +2,5 @@ import io;
 import "src/test/resources/testsources/multfiles/source2.cube";
 
 fun main() {
-    printInt(test());
+    printI32(test());
 }
