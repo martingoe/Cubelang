@@ -4,6 +4,7 @@ import com.martingoe.cubelang.backend.instructionselection.getLiteralValue
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.Expression.*
 import com.martingoe.cubelang.common.definitions.Struct
+import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.tokens.Token
 import com.martingoe.cubelang.common.tokens.TokenType
 import java.util.*
@@ -13,9 +14,12 @@ import kotlin.collections.ArrayList
  * Converts memory access like [[Expression.VarCall]]s to offsets from the frame pointer as defined in the [[SymbolTableSingleton]].
  */
 class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Expression> {
+    private val errorManager: ErrorManager
     private var currentVarIndex = 0
     private var scope: Stack<Int> = Stack()
-    constructor(scope: Stack<Int>) {
+
+    constructor(scope: Stack<Int>, errorManager: ErrorManager) {
+        this.errorManager = errorManager
         this.scope = scope
     }
 
@@ -23,7 +27,8 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
         return evaluate(expression)
     }
 
-    constructor() {
+    constructor(errorManager: ErrorManager) {
+        this.errorManager = errorManager
         scope.push(-1)
     }
 
@@ -40,7 +45,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitVarInitialization(varInitialization: Statement.VarInitialization): Statement {
         varInitialization.valueExpression?.let {
-            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it),Token("=", TokenType.EQUALS))
+            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it), Token("=", TokenType.EQUALS))
             assignment.resultType = varInitialization.type
             return Statement.ExpressionStatement(assignment)
         }
@@ -198,67 +203,77 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitArrayGet(arrayGet: ArrayGet): Expression {
         val arrayGets = getArrayGets(arrayGet)
-        if (arrayGets.last().expression is VarCall) {
-            val index = getVariable((arrayGets.last().expression as VarCall).varName).offset
-            var expression = getArrayGetOfVariable(arrayGet, arrayGets, index)
-            if (arrayGet.resultType is PointerType) {
-                expression = PointerGet(expression)
-                expression.resultType = arrayGet.resultType
-            }
-            return expression
+        var expression = getArrayGetOfVariable(arrayGet, arrayGets)
+        if (arrayGet.resultType is PointerType) {
+            expression = PointerGet(expression)
+            expression.resultType = arrayGet.resultType
         }
-
-        TODO()
+        return expression
     }
 
     private fun getArrayGetOfVariable(
         arrayGet: ArrayGet,
         arrayGets: List<ArrayGet>,
-        index: Int
     ): Expression {
-        var index1 = index
+        var lastExpressionValue = evaluateExpression(arrayGets.last().expression)
+        if (lastExpressionValue.resultType !is PointerType) {
+            lastExpressionValue = (lastExpressionValue as ValueFromPointer).expression
+        }
+        lastExpressionValue.resultType = NormalType(NormalTypes.I64)
+
+
+        // Parent ArrayGet expression returns pointer
         if (arrayGet.expression.resultType is PointerType) {
             if (arrayGets.size != 1)
-                error("Cannot have nested array gets with pointer types")
+                errorManager.error(arrayGet.bracket, "Cannot have nested array gets with pointer types")
+
 
             if (arrayGet.inBrackets is Literal) {
-                val firstVal = ValueFromPointer(
+                val value = ValueFromPointer(
                     Operation(
-                        FramePointer(),
+                        lastExpressionValue,
                         Token("-", TokenType.PLUSMINUS),
-                        Literal(index1)
+                        Literal(-getLiteralValue(arrayGet.inBrackets.value) * getSubtype(arrayGet.expression.resultType)!!.getLength())
                     ), Token("*", TokenType.STAR)
                 )
-                firstVal.resultType = arrayGet.expression.resultType
-                val value =
-                    ValueFromPointer(
-                        Operation(
-                            firstVal,
-                            Token("-", TokenType.PLUSMINUS),
-                            Literal(-getLiteralValue(arrayGet.inBrackets.value) * getSubtype(arrayGet.expression.resultType)!!.getLength())
-                        ), Token("*", TokenType.STAR)
-
-                    )
                 value.resultType = arrayGet.resultType
                 return value
             }
         }
-        if (arrayGets.all { it.inBrackets is Literal }) {
 
+        // Optimize array gets starting with variable calls of type array with all literal values
+        if (arrayGets.last().expression is VarCall && arrayGets.all { it.inBrackets is Literal }) {
+            var index = getVariable((arrayGets.last().expression as VarCall).varName).offset
             arrayGets.forEach {
-                index1 -= it.resultType.getLength() * getLiteralValue((it.inBrackets as Literal).value)
+                index -= it.resultType.getLength() * getLiteralValue((it.inBrackets as Literal).value)
             }
             val result = ValueFromPointer(
                 Operation(
                     FramePointer(),
                     Token("-", TokenType.PLUSMINUS),
-                    Literal(index1)
+                    Literal(index)
                 ), Token("*", TokenType.STAR)
             )
             result.resultType = arrayGet.resultType
             return result
         }
 
+        val extendTo64Bit = getArrayGetInBrackets(arrayGets)
+
+        val result = ValueFromPointer(
+            Operation(
+                lastExpressionValue,
+                Token("+", TokenType.PLUSMINUS),
+                extendTo64Bit
+            ), Token("*", TokenType.STAR)
+        )
+        result.resultType = arrayGet.resultType
+        result.expression.resultType = NormalType(NormalTypes.I64)
+
+        return result
+    }
+
+    private fun getArrayGetInBrackets(arrayGets: List<ArrayGet>): ExtendTo64Bit {
         var resultAddition = Operation(
             evaluateExpression(arrayGets.last().inBrackets),
             Token("*", TokenType.STAR),
@@ -282,24 +297,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
         val extendTo64Bit = ExtendTo64Bit(resultAddition)
         extendTo64Bit.resultType = resultAddition.resultType
-
-        val value = Operation(
-            FramePointer(),
-            Token("-", TokenType.PLUSMINUS),
-            Literal(index1)
-        )
-        value.resultType = NormalType(NormalTypes.I64)
-        val result = ValueFromPointer(
-            Operation(
-                value,
-                Token("+", TokenType.PLUSMINUS),
-                extendTo64Bit
-            ), Token("*", TokenType.STAR)
-        )
-        result.resultType = arrayGet.resultType
-        result.expression.resultType = NormalType(NormalTypes.I64)
-
-        return result
+        return extendTo64Bit
     }
 
     private fun getArrayGets(arrayGet: ArrayGet): List<ArrayGet> {
