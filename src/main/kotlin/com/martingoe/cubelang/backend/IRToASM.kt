@@ -121,7 +121,7 @@ class IRToASM {
                     IRType.PUSH_ARG -> {
                         if (pushArgIndex < ARG_REGISTERS.size) {
                             if (irValue.resultType.getLength() <= 2) {
-                                "movzx ${
+                                "movsx ${
                                     getRegister(
                                         ARG_REGISTERS[pushArgIndex++],
                                         4
@@ -232,7 +232,7 @@ class IRToASM {
                 when (length) {
                     8 -> "r${baseName}"
                     4 -> "e${baseName}"
-                    2 -> "${baseName[0]}h"
+                    2 -> baseName
                     1 -> "${baseName[0]}l"
                     else -> error("")
                 }
