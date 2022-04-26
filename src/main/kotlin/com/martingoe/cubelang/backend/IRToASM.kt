@@ -144,6 +144,10 @@ class IRToASM {
                         "mov ${arg1PointerValue}, $asmPointerSize $arg0PointerValue"
                     }
 
+                    IRType.COPY_STRING_REF -> {
+                        "lea ${arg0PointerValue}, [rel .str_$arg1PointerValue]"
+                    }
+
                     else -> ""
                 }
                 emitter.emit(res)

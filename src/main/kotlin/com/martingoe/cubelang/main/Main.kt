@@ -50,12 +50,13 @@ class Main(private val libraryPath: String) {
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
             SymbolTableSingleton.currentIndex = i
             SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
+            val errorManager = errorManagers[expressions.key]!!
 
-            TypeChecker(expressions.value, errorManagers[expressions.key]!!, StandardLibraryFunctions.definedFunctions).checkTypes()
+            TypeChecker(expressions.value, errorManager, StandardLibraryFunctions.definedFunctions).checkTypes()
 
-            TreeRewriter().rewriteMultiple(expressions.value)
+            TreeRewriter(errorManager).rewriteMultiple(expressions.value)
             asmASTToIRService.asmEmitter = ASMEmitter()
-            StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath).evaluateList(expressions.value)
+            StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath, errorManager).evaluateList(expressions.value)
             resultFile.writeText(asmASTToIRService.asmEmitter.finishedString)
             println("Wrote the resulting asm file to ${resultFile.path}")
             i++

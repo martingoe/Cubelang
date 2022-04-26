@@ -16,7 +16,7 @@ abstract class Rule {
     abstract fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression
 
     companion object {
-        const val RULE_COUNT = 25
+        const val RULE_COUNT = 26
     }
 }
 internal var currentRegister = 0
@@ -904,6 +904,23 @@ class CallRule : Rule() {
         return reg ?: getReg(expression.resultType)
     }
 }
+class StringLiteral : Rule(){
+    override val expression = Expression.StringLiteral(Token("", TokenType.STRING))
+    override val resultSymbol = 'r'
+
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 1
+    }
+
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
+        val type = PointerType(NormalType(NormalTypes.CHAR))
+        val register = getReg(type)
+        val stringIndex = SymbolTableSingleton.getCurrentSymbolTable().stringLiterals[(expression as Expression.StringLiteral).value.substring]
+        emitter.emit(IRValue(IRType.COPY_STRING_REF, TemporaryRegister(register.index), IRLiteral(stringIndex.toString()), type))
+        return register
+    }
+
+}
 
 
 /**
@@ -980,6 +997,7 @@ fun getRules(): Array<Rule> {
         MovOffsetToValueFromPointerOffset(),
         PointerGet(),
         CallRule(),
-        LiteralToReg()
+        LiteralToReg(),
+        StringLiteral()
     )
 }

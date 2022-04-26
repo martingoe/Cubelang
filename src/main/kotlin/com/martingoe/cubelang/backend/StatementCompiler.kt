@@ -10,6 +10,7 @@ import com.martingoe.cubelang.common.SymbolTableSingleton
 import com.martingoe.cubelang.common.definitions.StandardLibraryFunctions
 import com.martingoe.cubelang.common.ir.*
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.tokens.TokenType
 import com.martingoe.cubelang.middleend.treemodification.TreeRewriter
 import java.io.File
@@ -20,7 +21,12 @@ internal const val REGISTER_COUNT: Int = 6
 /**
  * Compiles statements to NASM. This class also uses the [[ASTToIRService]] to compile the given expressions.
  */
-class StatementCompiler(private val emitter: ASMEmitter, private var astToIRService: ASTToIRService, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
+class StatementCompiler(
+    private val emitter: ASMEmitter,
+    private var astToIRService: ASTToIRService,
+    private val stdlibPath: String,
+    private val errorManager: ErrorManager
+) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
     private val registerAllocation = RegisterAllocation(emitter)
 
@@ -50,7 +56,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
         emitter.emit("sub rsp, ${getFunctionOffset()}")
         functionDefinition.args.forEach {
             // TODO: Structs
-            val res = Expression.VarCall(it.name).accept(TreeRewriter(scope))
+            val res = Expression.VarCall(it.name).accept(TreeRewriter(scope, errorManager))
             res as Expression.ValueFromPointer
             val lit = (res.expression as Expression.Operation).rightExpression as Expression.Literal
             emitter.emit(IRValue(IRType.POP_ARG, IRLiteral(lit.value.toString()), null, it.type))
@@ -185,10 +191,11 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
 
     fun evaluateList(expressions: List<Statement>) {
         expressions.forEach { evaluate(it) }
+        SymbolTableSingleton.getCurrentSymbolTable().stringLiterals.forEach { (string, index) -> emitter.emit(".str_$index: db \"$string\"") }
 
     }
 
-    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition){
+    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition) {
         emitter.emit("extern ${externFunctionDefinition.name.substring}")
     }
 
