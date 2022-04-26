@@ -28,6 +28,8 @@ class FileSymbolTable {
     var structs: HashMap<String, Struct> = HashMap()
     var functions: MutableList<Function> = ArrayList()
     var variables: Node = Scope(ArrayList())
+    var stringLiterals: MutableMap<String, Int> = HashMap()
+    var currentStringLiteralIndex = 0
 
     fun getVariablesInCurrentScope(scope: Stack<Int>): List<VarNode> {
         val scopeClone: Stack<Int> = scope.clone() as Stack<Int>
@@ -87,6 +89,10 @@ class FileSymbolTable {
     fun addScopeAt(scope: Stack<Int>) {
         val currentNode = getNodeAtScope(scope)
         (currentNode as Scope).symbols.add(Scope(ArrayList()))
+    }
+
+    fun addStringLiteral(value: String) {
+        this.stringLiterals[value] = currentStringLiteralIndex++
     }
 
 
