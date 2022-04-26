@@ -123,7 +123,7 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
     private fun doReduce(expression: Expression, previousState: Int, index: Int) {
         for (i in rules.indices) {
             // If there is a rule matching exactly
-            if (expression.ruleMatchingBytes[i] % 2 == 1) {
+            if (expression.ruleMatchingBytes[i] == 1) {
                 val possibleNewCost = rules[i].getCost(expression, astGetSymbol, rules)
                 if (possibleNewCost < (expression.cost[rules[i].resultSymbol] ?: Int.MAX_VALUE)) {
                     expression.cost[rules[i].resultSymbol] = possibleNewCost
