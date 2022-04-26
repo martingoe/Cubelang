@@ -3,7 +3,7 @@ package com.martingoe.cubelang.main
 import com.martingoe.cubelang.backend.StatementCompiler
 import com.martingoe.cubelang.middleend.treemodification.TreeRewriter
 import com.martingoe.cubelang.backend.instructionselection.ASTToIRService
-import com.martingoe.cubelang.middleend.validation.TypeChecker
+import com.martingoe.cubelang.frontend.semantic.TypeChecker
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.definitions.StandardLibraryFunctions
 import com.martingoe.cubelang.common.definitions.Function

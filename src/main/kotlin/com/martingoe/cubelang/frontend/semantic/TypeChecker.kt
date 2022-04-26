@@ -1,4 +1,4 @@
-package com.martingoe.cubelang.middleend.validation
+package com.martingoe.cubelang.frontend.semantic
 
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.definitions.Function
