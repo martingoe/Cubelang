@@ -2,6 +2,7 @@ package com.martingoe.cubelang.common
 
 import com.martingoe.cubelang.backend.instructionselection.Rule
 import com.martingoe.cubelang.common.tokens.Token
+import com.martingoe.cubelang.common.tokens.TokenType
 
 
 /**
@@ -79,7 +80,7 @@ abstract class Expression(
         }
     }
 
-    class ValueFromPointer(var expression: Expression, val star: Token) : Expression() {
+    class ValueFromPointer(var expression: Expression, val star: Token = Token("*", TokenType.STAR)) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitValueFromPointer(this)
         }
@@ -97,7 +98,7 @@ abstract class Expression(
     }
 
 
-    class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {
+    class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token = Token("=", TokenType.EQUALS)) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }

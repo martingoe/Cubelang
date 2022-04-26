@@ -45,7 +45,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitVarInitialization(varInitialization: Statement.VarInitialization): Statement {
         varInitialization.valueExpression?.let {
-            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it), Token("=", TokenType.EQUALS))
+            val assignment = Assignment(evaluateExpression(VarCall(varInitialization.name)), evaluateExpression(it))
             assignment.resultType = varInitialization.type
             return Statement.ExpressionStatement(assignment)
         }
@@ -75,7 +75,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                 FramePointer(),
                 Token("-", TokenType.PLUSMINUS),
                 Literal(index)
-            ), Token("*", TokenType.STAR)
+            )
         )
         result.resultType = varCall.resultType
         return result
@@ -252,7 +252,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                     FramePointer(),
                     Token("-", TokenType.PLUSMINUS),
                     Literal(index)
-                ), Token("*", TokenType.STAR)
+                )
             )
             result.resultType = arrayGet.resultType
             return result
@@ -265,7 +265,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
                 lastExpressionValue,
                 Token("+", TokenType.PLUSMINUS),
                 extendTo64Bit
-            ), Token("*", TokenType.STAR)
+            )
         )
         result.resultType = arrayGet.resultType
         result.expression.resultType = NormalType(NormalTypes.I64)
