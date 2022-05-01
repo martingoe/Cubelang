@@ -2,6 +2,7 @@ package com.martingoe.cubelang.backend.instructionselection
 
 import com.martingoe.cubelang.backend.REGISTER_COUNT
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.ir.*
 import java.util.LinkedList
 import java.util.PriorityQueue
@@ -31,7 +32,7 @@ data class VirtualRegisterLiveInterval(
  *
  * @param emitter The emitter whose IR values are to be assigned registers
  */
-class RegisterAllocation(private val emitter: ASMEmitter) {
+class RegisterAllocation(private val emitter: ASMEmitter, private val errorManager: ErrorManager) {
 
     /**
      * Runs the linear scan register allocation algorithm on the current results of the [[emitter]].
@@ -40,7 +41,7 @@ class RegisterAllocation(private val emitter: ASMEmitter) {
         val intervals = getLiveIntervals(emitter.resultIRValues)
         val freeRegisters = PriorityQueue<Int>()
         freeRegisters.addAll(0 until REGISTER_COUNT)
-        val active = LinkedList<CurrentActiveRegisterLiveInterval> ()
+        val active = LinkedList<CurrentActiveRegisterLiveInterval>()
         for (i in intervals) {
             expireOldIntervals(i, active, freeRegisters)
             if (active.size == REGISTER_COUNT)
@@ -70,7 +71,11 @@ class RegisterAllocation(private val emitter: ASMEmitter) {
     }
 
     private fun spillAtInterval(i: VirtualRegisterLiveInterval) {
-        TODO("Not yet implemented")
+        errorManager.error(
+            -1,
+            -1,
+            "Unfortunately, the currently available registers do not suffice. Please simplify any expressions requiring many registers."
+        )
     }
 
     private fun expireOldIntervals(
@@ -124,10 +129,10 @@ class RegisterAllocation(private val emitter: ASMEmitter) {
 }
 
 private fun LinkedList<CurrentActiveRegisterLiveInterval>.addSortedIncreasingEndPoint(currentActiveRegisterLiveInterval: CurrentActiveRegisterLiveInterval) {
-    this.add(this.indexOfLast { it.end <= currentActiveRegisterLiveInterval.end} + 1, currentActiveRegisterLiveInterval)
+    this.add(this.indexOfLast { it.end <= currentActiveRegisterLiveInterval.end } + 1, currentActiveRegisterLiveInterval)
 
 }
 
 private fun LinkedList<VirtualRegisterLiveInterval>.insertSortedStartpoint(virtualRegisterLiveInterval: VirtualRegisterLiveInterval) {
-    this.add(this.indexOfLast { it.start <= virtualRegisterLiveInterval.start} + 1, virtualRegisterLiveInterval)
+    this.add(this.indexOfLast { it.start <= virtualRegisterLiveInterval.start } + 1, virtualRegisterLiveInterval)
 }

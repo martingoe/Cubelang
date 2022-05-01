@@ -30,7 +30,7 @@ class StatementCompiler(
     private val errorManager: ErrorManager
 ) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
-    private val registerAllocation = RegisterAllocation(emitter)
+    private val registerAllocation = RegisterAllocation(emitter, errorManager)
 
     private var lIndex = 2
 
