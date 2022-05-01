@@ -53,7 +53,7 @@ class Utils {
             }
         }
         /**
-         * Splits the length of a struct in a set of lenghts of 2^n where 1 <= n <= 3.
+         * Splits the length of a struct in a set of lengths of 2^n where 1 <= n <= 3.
          */
         fun splitStruct(structLength: Int): List<Int> {
             var remainder = structLength
