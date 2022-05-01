@@ -4,7 +4,6 @@ import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.definitions.Function
 import com.martingoe.cubelang.common.definitions.Struct
 import com.martingoe.cubelang.common.errors.ErrorManager
-import com.martingoe.cubelang.common.SymbolTableSingleton
 import com.martingoe.cubelang.common.tokens.Token
 import java.util.*
 
@@ -384,6 +383,7 @@ class TypeChecker(
 
     override fun visitStringLiteral(stringLiteral: Expression.StringLiteral): Type {
         SymbolTableSingleton.getCurrentSymbolTable().addStringLiteral(stringLiteral.value.substring)
+        stringLiteral.resultType = PointerType(NormalType(NormalTypes.CHAR))
         return PointerType(NormalType(NormalTypes.CHAR))
     }
 }

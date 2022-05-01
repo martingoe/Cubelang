@@ -1,13 +1,14 @@
 package com.martingoe.cubelang.backend
 
-import com.martingoe.cubelang.common.ir.*
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.ir.*
 
 /**
  * Emits ASM values for given intermediate representation values
  */
 class IRToASM {
     companion object {
+        private var currentPushedCount: Int = 0
         private val NORMAL_REGISTER = listOf("ax", "bx", "dx", "di", "si", "cx")
         private val ARG_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
         fun emitASMForIR(emitter: ASMEmitter) {
@@ -19,7 +20,7 @@ class IRToASM {
                 val asmPointerSize = getASMPointerSize(irValue.resultType.getLength())
                 val res = when (irValue.type) {
                     IRType.COPY -> "mov ${arg0PointerValue}, $arg1PointerValue"
-                    IRType.COPY_FROM_REF -> "lea ${arg1PointerValue}, $asmPointerSize [rbp - ${arg0PointerValue}]"
+                    IRType.COPY_FROM_REF -> "lea ${arg1PointerValue}, $asmPointerSize $arg0PointerValue"
                     IRType.INC -> "inc $arg0PointerValue"
                     IRType.DEC -> "dec $arg0PointerValue"
                     IRType.SAL -> "sal ${arg0PointerValue}, ${irValue.arg1}"
@@ -39,7 +40,7 @@ class IRToASM {
                     IRType.CALL -> {
                         pushArgIndex = 0
 
-                        if (irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0) {
+                        var res = if (irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0) {
                             "push rax\n" +
                                     "call ${irValue.arg0}\n" +
                                     "mov ${arg1PointerValue}, ${
@@ -52,6 +53,10 @@ class IRToASM {
                         } else {
                             "call ${irValue.arg0}\n"
                         }
+                        // Align stack
+                        res += if (currentPushedCount != 0) "add rsp, $currentPushedCount" else ""
+                        currentPushedCount = 0
+                        res
                     }
                     IRType.PLUS_OP -> {
                         "add ${arg0PointerValue}, $arg1PointerValue"
@@ -92,23 +97,23 @@ class IRToASM {
                         } + "\npop rdx"
                     }
                     IRType.COPY_TO_FP_OFFSET -> {
-                        "mov $asmPointerSize [rbp - ${arg0PointerValue}], $arg1PointerValue"
+                        "mov $asmPointerSize ${arg0PointerValue}, $arg1PointerValue"
                     }
                     IRType.COPY_FROM_FP_OFFSET -> {
-                        "mov ${arg0PointerValue}, $asmPointerSize [rbp - ${arg1PointerValue}]"
+                        "mov ${arg0PointerValue}, $asmPointerSize $arg1PointerValue"
                     }
                     IRType.POP_ARG -> {
                         if (popArgIndex < ARG_REGISTERS.size) {
                             if (irValue.resultType.getLength() <= 2) {
-                                "mov ${getRegister("ax", irValue.resultType.getLength())}, ${getRegister(ARG_REGISTERS[popArgIndex], 4)}" +
-                                        "mov $asmPointerSize [rbp - ${irValue.arg0}], ${
+                                "mov ${getRegister("ax", 4)}, ${getRegister(ARG_REGISTERS[popArgIndex], 4)}\n" +
+                                        "mov $asmPointerSize ${arg0PointerValue}, ${
                                     getRegister(
                                         "ax",
                                         irValue.resultType.getLength()
                                     )
                                 }"
                             } else {
-                                "mov $asmPointerSize [rbp - ${irValue.arg0}], ${
+                                "mov $asmPointerSize ${arg0PointerValue}, ${
                                     getRegister(
                                         ARG_REGISTERS[popArgIndex++],
                                         irValue.resultType.getLength()
@@ -126,17 +131,20 @@ class IRToASM {
                                         ARG_REGISTERS[pushArgIndex++],
                                         4
                                     )
-                                }, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                                }, $arg0PointerValue"
                             } else {
                                 "mov ${
                                     getRegister(
                                         ARG_REGISTERS[pushArgIndex++],
                                         irValue.resultType.getLength()
                                     )
-                                }, ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                                }, $arg0PointerValue"
                             }
-                        } else
-                            "push ${getPointerValue(irValue.arg0!!, irValue.resultType.getLength())}"
+                        } else{
+                            this.currentPushedCount += irValue.resultType.getLength()
+                            "push $arg0PointerValue"
+
+                        }
                     }
                     IRType.CMP -> {
                         "cmp ${arg0PointerValue}, $arg1PointerValue"
@@ -205,12 +213,12 @@ class IRToASM {
                 is IRLiteral -> value.value
                 is FramePointer -> value.toString()
                 is RegOffset -> "[${getPointerValue(value.temporaryRegister, 8)} - ${value.offset}]"
-                is FramePointerOffset -> "${value.literal} " + if (value.temporaryRegister != null) " + ${
+                is FramePointerOffset -> "[rbp - ${value.literal}" + if (value.temporaryRegister != null) " + ${
                     getPointerValue(
                         value.temporaryRegister,
                         8
                     )
-                } * ${value.offset!!}" else ""
+                } * ${value.offset!!}]" else "]"
                 else -> null
             }
         }

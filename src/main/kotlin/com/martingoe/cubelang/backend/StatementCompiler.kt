@@ -1,6 +1,8 @@
 package com.martingoe.cubelang.backend
 
 import com.martingoe.cubelang.backend.IRToASM.Companion.emitASMForIR
+import com.martingoe.cubelang.backend.Utils.Companion.getIntTypeForLength
+import com.martingoe.cubelang.backend.Utils.Companion.splitStruct
 import com.martingoe.cubelang.backend.instructionselection.ASTToIRService
 import com.martingoe.cubelang.backend.instructionselection.RegisterAllocation
 import com.martingoe.cubelang.backend.instructionselection.currentRegister
@@ -59,7 +61,18 @@ class StatementCompiler(
             val res = Expression.VarCall(it.name).accept(TreeRewriter(scope, errorManager))
             res as Expression.ValueFromPointer
             val lit = (res.expression as Expression.Operation).rightExpression as Expression.Literal
-            emitter.emit(IRValue(IRType.POP_ARG, IRLiteral(lit.value.toString()), null, it.type))
+            if(it.type.getLength() <= 8)
+                emitter.emit(IRValue(IRType.POP_ARG, FramePointerOffset(lit.value.toString()), null, it.type))
+            else{
+                val splitLengths = splitStruct(it.type.getLength())
+                var addedOffset = 0
+                for(split in splitLengths){
+                    emitter.emit(IRValue(IRType.POP_ARG, FramePointerOffset((lit.value as Int - addedOffset).toString()), null, getIntTypeForLength(split)))
+                    addedOffset += split
+
+                }
+
+            }
         }
         emitASMForIR(emitter)
 
@@ -70,7 +83,14 @@ class StatementCompiler(
     }
 
     private fun getFunctionOffset(): Int {
-        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
+        // Align the offset to be 16n + 8
+        var offset = 8
+
+        val x = SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
+        while(offset <= x) {
+            offset += 16
+        }
+        return offset
     }
 
 
@@ -191,7 +211,7 @@ class StatementCompiler(
 
     fun evaluateList(expressions: List<Statement>) {
         expressions.forEach { evaluate(it) }
-        SymbolTableSingleton.getCurrentSymbolTable().stringLiterals.forEach { (string, index) -> emitter.emit(".str_$index: db \"$string\"") }
+        SymbolTableSingleton.getCurrentSymbolTable().stringLiterals.forEach { (string, index) -> emitter.emit(".str_$index: db \"$string\", 0") }
 
     }
 

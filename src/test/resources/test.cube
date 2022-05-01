@@ -1,19 +1,19 @@
+extern fun puts(in: char*);
 import io;
-
-fun euclidean(a: i32, b: i32): i32{
-    while(b != 0){
-        if (a > b)
-            a = a - b;
-        else
-            b = b - a;
-    }
-    return a;
+struct test{
+var x: i32;
+var y: i32;
+var z: i32;
 }
-
+fun f(testing: test): i32{
+    return testing.x;
+}
+fun f2(i: char): i32{
+    return 1;
+}
 fun main() {
-    var average = 0;
-    var n = 10000000;
-    for(var i = 2; i < n; i = i + 1)
-        average = average + euclidean(i, n);
-    printInt(average / n);
+    var structTest: test;
+    structTest.x = 10;
+    printI32(f(structTest));
+    f2('2');
 }

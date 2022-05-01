@@ -1,5 +1,7 @@
 package com.martingoe.cubelang.backend.instructionselection
 
+import com.martingoe.cubelang.backend.Utils
+import com.martingoe.cubelang.backend.Utils.Companion.getIntTypeForLength
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.ir.*
 import com.martingoe.cubelang.common.tokens.Token
@@ -19,6 +21,7 @@ abstract class Rule {
         const val RULE_COUNT = 26
     }
 }
+
 internal var currentRegister = 0
 
 
@@ -480,7 +483,7 @@ class MovOffsetToReg : Rule() {
         emitter.emit(
             IRValue(
                 IRType.COPY_TO_FP_OFFSET,
-                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                FramePointerOffset(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 TemporaryRegister(valueRegister.index),
                 expression.resultType
             )
@@ -520,7 +523,7 @@ class MovFromFPOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                FramePointerOffset(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 expression.resultType
             )
         )
@@ -673,11 +676,11 @@ class MovOffsetToOffset : Rule() {
                     IRValue(
                         IRType.COPY_FROM_FP_OFFSET,
                         TemporaryRegister(reg.index),
-                        IRLiteral(rightOffset.toString()),
+                        FramePointerOffset(rightOffset.toString()),
                         intTypeForLength
                     )
                 )
-                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
+                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
 
                 rightOffset -= it
                 leftOffset -= it
@@ -689,22 +692,11 @@ class MovOffsetToOffset : Rule() {
         }
 
         val reg = getReg(expression.valueExpression.resultType)
-        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), IRLiteral(rightOffset.toString()), expression.resultType))
-        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), FramePointerOffset(rightOffset.toString()), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
 
         return reg
 
-    }
-}
-
-private fun getIntTypeForLength(length: Int): Type {
-    return when (length) {
-        1 -> NormalType(NormalTypes.I8)
-        2 -> NormalType(NormalTypes.I16)
-        4 -> NormalType(NormalTypes.I32)
-        8 -> NormalType(NormalTypes.I64)
-
-        else -> error("Unknown size")
     }
 }
 
@@ -751,7 +743,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                IRLiteral(varCallOffset.toString()),
+                FramePointerOffset(varCallOffset.toString()),
                 NormalType(NormalTypes.I64)
             )
         )
@@ -772,7 +764,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
                     intTypeForLength
                 )
             )
-            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
+            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
 
             rightOffset -= it
             leftOffset -= it
@@ -839,7 +831,7 @@ class PointerGet : Rule() {
         val reg = getReg(expression.resultType)
         val operation = castExpression.expression as Expression.Operation
         val literal = (operation.rightExpression as Expression.Literal).value
-        emitter.emit(IRValue(IRType.COPY_FROM_REF, IRLiteral(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_FROM_REF, FramePointerOffset(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
 
         return reg
     }
@@ -887,9 +879,27 @@ class CallRule : Rule() {
     override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Call
         for (arg in expression.arguments) {
-            val result = astToIRService.emitCodeForExpression(arg)
-            val tempReg = TemporaryRegister((result as Expression.Register).index)
-            emitter.emit(IRValue(IRType.PUSH_ARG, tempReg, null, arg.resultType))
+            if (arg.resultType.getLength() <= 8) {
+                val result = astToIRService.emitCodeForExpression(arg)
+                val tempReg = TemporaryRegister((result as Expression.Register).index)
+
+                emitter.emit(IRValue(IRType.PUSH_ARG, tempReg, null, arg.resultType))
+            } else {
+                if (arg is Expression.ValueFromPointer &&
+                    arg.expression is Expression.Operation &&
+                    (arg.expression as Expression.Operation).rightExpression is Expression.Literal){
+                    val litValue = ((arg.expression as Expression.Operation).rightExpression as Expression.Literal).value as Int
+                    val splitLengths = Utils.splitStruct(arg.resultType.getLength())
+                    var addedOffset = 0
+
+                    for (split in splitLengths) {
+                    emitter.emit(IRValue(IRType.PUSH_ARG, FramePointerOffset((litValue - addedOffset).toString()), null, getIntTypeForLength(split)))
+                        addedOffset += split
+
+                    }
+                }
+
+            }
         }
 
         val reg = if (expression.resultType !is NoneType) getReg(expression.resultType) else null
@@ -904,7 +914,8 @@ class CallRule : Rule() {
         return reg ?: getReg(expression.resultType)
     }
 }
-class StringLiteral : Rule(){
+
+class StringLiteral : Rule() {
     override val expression = Expression.StringLiteral(Token("", TokenType.STRING))
     override val resultSymbol = 'r'
 
@@ -964,8 +975,6 @@ private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expr
     }
     return cost
 }
-
-
 
 
 /**
