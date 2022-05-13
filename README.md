@@ -1,15 +1,15 @@
 # Cubelang
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
-This is a very simple statically typed (WIP) compiled (x86_64 NASM) programming language.
+This is a very simple statically typed and compiled (x86_64 NASM) programming language.
 
 
 ## Reasoning behind this project
-I started this project with the intent of learning about how both compiled and interpreted programming languages are laid out and how they work, 
-how a CPU executes programs and how one uses low level programming languages to write those programs. 
+I started this project as a "Besondere Lernleistung" for school with the intent of learning about how both compiled and interpreted programming languages are laid out and how they work, 
+how a CPU executes programs and how one uses low level programming languages to write said programs. 
 
 Up until now, this project has helped immensely in learning about all of those things and has also introduced me to parsing properly.
-So while I wouldn't use this language for any projects myself, it has been great at helping me learn and I hope that this will continue to be the case as it is still a WIP. 
+So while I wouldn't use this language for any projects myself, it has been great at helping me learn. 
 
 ## Getting Started
 
@@ -20,6 +20,8 @@ These instructions will get you a copy of the project up and running on your loc
 You will need to have the following programs installed on your system:
 
 1. Java 15
+2. NASM
+3. GCC
 
 ### Installing
 
@@ -67,9 +69,9 @@ gcc -no-pie output.o
 
 ## Examples
 ### Output
-The following program writes the integer 10 in the console.
+The following snippet writes the integer 10 in the console.
 ```
-printInt(10);
+printI32(10);
 ```
 ### Fibonacci
 The following function recursively calculates the n-th fibonacci number.
@@ -99,11 +101,11 @@ fun euclidean(a: i32, b: i32): i32{
 
 These are very useful resources that I have used to get started with this project
 
-* [Crafting interpreters](https://craftinginterpreters.com/) - A book about creating programming languages
-* [Compiler Explorer](https://godbolt.org) - A website that simulates compilers like gcc and displays the x86 output
-* Alfred V. Aho, Mahadevan Ganapathi, and Steven W. K. Tjiang. Code generation
-  using tree matching and dynamic programming.
-* Massimiliano Poletto and Vivek Sarkar. Linear scan register allocation.
+
+* Chris Hathhorn. 2012. Engineering a compiler, second edition by Keith D. Cooper and Linda Torczon. SIGSOFT Softw. Eng. Notes 37, 1 (January 2012), 36–37. 
+* Robert Nystrom. 2021. Crafting Interpreters.
+* Alfred V. Aho, Mahadevan Ganapathi, and Steven W. K. Tjiang. 1989. Code generation using tree matching and dynamic programming. ACM Trans. Program. Lang. Syst. 11, 4 (Oct. 1989), 491–516.
+* Massimiliano Poletto and Vivek Sarkar. 1999. Linear scan register allocation. ACM Trans. Program. Lang. Syst. 21, 5 (Sept. 1999), 895–913.
 
 
 ## License
