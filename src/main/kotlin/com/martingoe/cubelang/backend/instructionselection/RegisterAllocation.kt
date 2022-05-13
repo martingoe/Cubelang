@@ -40,11 +40,11 @@ class RegisterAllocation(private val emitter: ASMEmitter, private val errorManag
     fun linearScanRegisterAllocation() {
         val intervals = getLiveIntervals(emitter.resultIRValues)
         val freeRegisters = PriorityQueue<Int>()
-        freeRegisters.addAll(0 until REGISTER_COUNT)
+        freeRegisters.addAll(0 until RegisterConfig.REGISTER_TEMP_COUNT)
         val active = LinkedList<CurrentActiveRegisterLiveInterval>()
         for (i in intervals) {
             expireOldIntervals(i, active, freeRegisters)
-            if (active.size == REGISTER_COUNT)
+            if (active.size == RegisterConfig.REGISTER_TEMP_COUNT - 1)
                 spillAtInterval(i)
             else {
                 val regIndex = freeRegisters.poll()

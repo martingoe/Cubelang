@@ -1,6 +1,9 @@
 package com.martingoe.cubelang.backend
 
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.RegisterConfig
+import com.martingoe.cubelang.common.RegisterConfig.Companion.ARG_REGISTERS
+import com.martingoe.cubelang.common.RegisterConfig.Companion.NORMAL_REGISTER
 import com.martingoe.cubelang.common.ir.*
 
 /**
@@ -124,7 +127,7 @@ class IRToASM {
                             ""
                     }
                     IRType.PUSH_ARG -> {
-                        if (pushArgIndex < ARG_REGISTERS.size) {
+                        if (pushArgIndex < RegisterConfig.REGISTER_ARG_COUNT) {
                             if (irValue.resultType.getLength() <= 2) {
                                 "movsx ${
                                     getRegister(

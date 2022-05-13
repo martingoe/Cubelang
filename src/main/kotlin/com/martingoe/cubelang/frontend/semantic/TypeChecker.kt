@@ -157,9 +157,7 @@ class TypeChecker(
         var i = 0
         var posOffset = 16
         functionDefinition.args.forEach {
-            val ARGUMENT_REG_COUNT = 6
-            if (i < ARGUMENT_REG_COUNT) {
-
+            if (i < RegisterConfig.REGISTER_ARG_COUNT) {
                 currentVarIndex += it.type.getLength()
                 SymbolTableSingleton.getCurrentSymbolTable()
                     .defineVariable(scope, it.name.substring, it.type, currentVarIndex)
