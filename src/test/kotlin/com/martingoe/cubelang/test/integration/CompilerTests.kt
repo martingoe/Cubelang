@@ -31,6 +31,13 @@ class CompilerTests {
 
 
     @Test
+    fun multfileStructTest() {
+        val (s, s1) = getResultOfTest("multfilesStruct")
+        assert(s!! == s1!!)
+    }
+
+
+    @Test
     fun euclideanTest() {
         val (s, s1) = getResultOfTest("euclidean")
         assert(s!! == s1!!)

@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 fun getResultOfTest(name: String): Pair<String?, String?> {
     val pathString = "src/test/resources/testsources/$name"
     val pathFile = File(pathString)
-    SymbolTableSingleton.fileSymbolTables = mutableListOf()
-    val files = pathFile.listFiles().filter { it.name.endsWith(".cube") }.map { it.path }.toTypedArray()
+    SymbolTableSingleton.resetAll()
+    val files = pathFile.walkTopDown().asIterable().filter { it.name.endsWith(".cube") }.map { it.path }.toTypedArray()
     Main("src/test/resources/library").compileFile(files)
 
     "nasm -f elf64 source.asm ".runCommand(pathFile)

@@ -1,0 +1,4 @@
+struct testStruct{
+    var x: i32;
+    var y: i32;
+}
