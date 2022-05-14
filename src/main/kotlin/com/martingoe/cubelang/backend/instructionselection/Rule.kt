@@ -680,7 +680,14 @@ class MovOffsetToOffset : Rule() {
                         intTypeForLength
                     )
                 )
-                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
+                emitter.emit(
+                    IRValue(
+                        IRType.COPY_TO_FP_OFFSET,
+                        FramePointerOffset(leftOffset.toString()),
+                        TemporaryRegister(reg.index),
+                        intTypeForLength
+                    )
+                )
 
                 rightOffset -= it
                 leftOffset -= it
@@ -692,8 +699,22 @@ class MovOffsetToOffset : Rule() {
         }
 
         val reg = getReg(expression.valueExpression.resultType)
-        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), FramePointerOffset(rightOffset.toString()), expression.resultType))
-        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(
+            IRValue(
+                IRType.COPY_FROM_FP_OFFSET,
+                TemporaryRegister(reg.index),
+                FramePointerOffset(rightOffset.toString()),
+                expression.resultType
+            )
+        )
+        emitter.emit(
+            IRValue(
+                IRType.COPY_TO_FP_OFFSET,
+                FramePointerOffset(leftOffset.toString()),
+                TemporaryRegister(reg.index),
+                expression.resultType
+            )
+        )
 
         return reg
 
@@ -764,7 +785,14 @@ class MovOffsetToValueFromPointerOffset : Rule() {
                     intTypeForLength
                 )
             )
-            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, FramePointerOffset(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
+            emitter.emit(
+                IRValue(
+                    IRType.COPY_TO_FP_OFFSET,
+                    FramePointerOffset(leftOffset.toString()),
+                    TemporaryRegister(innerReg.index),
+                    intTypeForLength
+                )
+            )
 
             rightOffset -= it
             leftOffset -= it
@@ -887,13 +915,21 @@ class CallRule : Rule() {
             } else {
                 if (arg is Expression.ValueFromPointer &&
                     arg.expression is Expression.Operation &&
-                    (arg.expression as Expression.Operation).rightExpression is Expression.Literal){
+                    (arg.expression as Expression.Operation).rightExpression is Expression.Literal
+                ) {
                     val litValue = ((arg.expression as Expression.Operation).rightExpression as Expression.Literal).value as Int
                     val splitLengths = Utils.splitStruct(arg.resultType.getLength())
                     var addedOffset = 0
 
                     for (split in splitLengths) {
-                    emitter.emit(IRValue(IRType.PUSH_ARG, FramePointerOffset((litValue - addedOffset).toString()), null, getIntTypeForLength(split)))
+                        emitter.emit(
+                            IRValue(
+                                IRType.PUSH_ARG,
+                                FramePointerOffset((litValue - addedOffset).toString()),
+                                null,
+                                getIntTypeForLength(split)
+                            )
+                        )
                         addedOffset += split
 
                     }
