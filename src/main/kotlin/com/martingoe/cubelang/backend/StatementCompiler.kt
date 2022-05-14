@@ -6,19 +6,19 @@ import com.martingoe.cubelang.backend.Utils.Companion.splitStruct
 import com.martingoe.cubelang.backend.instructionselection.ASTToIRService
 import com.martingoe.cubelang.backend.instructionselection.RegisterAllocation
 import com.martingoe.cubelang.backend.instructionselection.currentRegister
+import com.martingoe.cubelang.common.ASMEmitter
 import com.martingoe.cubelang.common.Expression
 import com.martingoe.cubelang.common.Statement
 import com.martingoe.cubelang.common.SymbolTableSingleton
-import com.martingoe.cubelang.common.definitions.StandardLibraryFunctions
-import com.martingoe.cubelang.common.ir.*
-import com.martingoe.cubelang.common.ASMEmitter
 import com.martingoe.cubelang.common.errors.ErrorManager
+import com.martingoe.cubelang.common.ir.FramePointerOffset
+import com.martingoe.cubelang.common.ir.IRType
+import com.martingoe.cubelang.common.ir.IRValue
 import com.martingoe.cubelang.common.tokens.TokenType
 import com.martingoe.cubelang.middleend.treemodification.TreeRewriter
 import java.io.File
 import java.util.*
 
-internal const val REGISTER_COUNT: Int = 6
 
 /**
  * Compiles statements to NASM. This class also uses the [[ASTToIRService]] to compile the given expressions.
@@ -57,21 +57,26 @@ class StatementCompiler(
         emitter.emit("mov rbp, rsp")
         emitter.emit("sub rsp, ${getFunctionOffset()}")
         functionDefinition.args.forEach {
-            // TODO: Structs
             val res = Expression.VarCall(it.name).accept(TreeRewriter(scope, errorManager))
             res as Expression.ValueFromPointer
             val lit = (res.expression as Expression.Operation).rightExpression as Expression.Literal
-            if(it.type.getLength() <= 8)
+            if (it.type.getLength() <= 8)
                 emitter.emit(IRValue(IRType.POP_ARG, FramePointerOffset(lit.value.toString()), null, it.type))
-            else{
+            else {
                 val splitLengths = splitStruct(it.type.getLength())
                 var addedOffset = 0
-                for(split in splitLengths){
-                    emitter.emit(IRValue(IRType.POP_ARG, FramePointerOffset((lit.value as Int - addedOffset).toString()), null, getIntTypeForLength(split)))
+                for (split in splitLengths) {
+                    emitter.emit(
+                        IRValue(
+                            IRType.POP_ARG,
+                            FramePointerOffset((lit.value as Int - addedOffset).toString()),
+                            null,
+                            getIntTypeForLength(split)
+                        )
+                    )
                     addedOffset += split
 
                 }
-
             }
         }
         emitASMForIR(emitter)
@@ -84,12 +89,12 @@ class StatementCompiler(
 
     private fun getFunctionOffset(): Int {
         // Align the offset to be 16n + 8
-        var offset = 8
+        var offset = 0
 
         val x = SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
-        while(offset <= x) {
+        do {
             offset += 16
-        }
+        } while (offset <= x)
         return offset
     }
 
@@ -113,8 +118,8 @@ class StatementCompiler(
     private fun getJmpLogicalOrComparison(condition: Expression, labelIndex: Int, useInverted: Boolean = false) {
         if (condition is Expression.Comparison) getJmpComparison(condition, labelIndex, useInverted)
         else if (condition is Expression.Logical && condition.logical.tokenType == TokenType.AND) {
-            getJmpLogicalOrComparison(condition.leftExpression, labelIndex)
-            getJmpLogicalOrComparison(condition.rightExpression, labelIndex)
+            getJmpLogicalOrComparison(condition.leftExpression, labelIndex, true)
+            getJmpLogicalOrComparison(condition.rightExpression, labelIndex, true)
         } else if (condition is Expression.Logical && condition.logical.tokenType == TokenType.OR) {
             val afterLabelIndex = lIndex++
             getJmpLogicalOrComparison(condition.leftExpression, afterLabelIndex, false)
@@ -159,6 +164,8 @@ class StatementCompiler(
     }
 
     override fun visitForStmnt(forStmnt: Statement.ForStmnt) {
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
         evaluate(forStmnt.inBrackets[0])
 
         val resetLIndex = lIndex++
@@ -172,6 +179,7 @@ class StatementCompiler(
         emitter.emit(".l$resetLIndex:")
 
         getJmpLogicalOrComparison((forStmnt.inBrackets[1] as Statement.ExpressionStatement).expression, exitIndex)
+        scope.pop()
     }
 
     override fun visitStructDefinition(structDefinition: Statement.StructDefinition) {
@@ -192,7 +200,6 @@ class StatementCompiler(
     }
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt) {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(StandardLibraryFunctions.definedFunctions[importStmnt.identifier.substring]!!)
         val name =
             (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
                 importStmnt.identifier.substring.substringBeforeLast(".")
