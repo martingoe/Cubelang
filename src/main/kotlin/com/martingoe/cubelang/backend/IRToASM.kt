@@ -251,6 +251,5 @@ class IRToASM {
                 }
             }
         }
-
     }
 }
