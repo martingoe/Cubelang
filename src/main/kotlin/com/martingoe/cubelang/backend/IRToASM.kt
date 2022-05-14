@@ -12,8 +12,7 @@ import com.martingoe.cubelang.common.ir.*
 class IRToASM {
     companion object {
         private var currentPushedCount: Int = 0
-        private val NORMAL_REGISTER = listOf("ax", "bx", "dx", "di", "si", "cx")
-        private val ARG_REGISTERS = listOf("di", "si", "dx", "cx", "8", "9")
+
         fun emitASMForIR(emitter: ASMEmitter) {
             var pushArgIndex = 0
             var popArgIndex = 0
