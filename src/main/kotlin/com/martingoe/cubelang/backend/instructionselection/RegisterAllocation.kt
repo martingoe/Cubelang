@@ -138,7 +138,6 @@ class RegisterAllocation(private val emitter: ASMEmitter, private val errorManag
     ) {
         if (resultList.none { it.virtualRegIndex == value.index }) {
             resultList.insertSortedStartpoint(VirtualRegisterLiveInterval(value.index, index, index))
-            //resultList.add(VirtualRegisterLiveInterval(value.index, index, index))
         } else {
             val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
             resultList[indexOfFirst].end = index
