@@ -1,7 +1,9 @@
 package com.martingoe.cubelang.backend.instructionselection
 
-import com.martingoe.cubelang.backend.REGISTER_COUNT
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.NormalType
+import com.martingoe.cubelang.common.NormalTypes
+import com.martingoe.cubelang.common.RegisterConfig
 import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.ir.*
 import java.util.LinkedList
@@ -33,11 +35,12 @@ data class VirtualRegisterLiveInterval(
  * @param emitter The emitter whose IR values are to be assigned registers
  */
 class RegisterAllocation(private val emitter: ASMEmitter, private val errorManager: ErrorManager) {
-
+    var registerSaveIndices: MutableMap<Int, List<Int>> = HashMap()
     /**
      * Runs the linear scan register allocation algorithm on the current results of the [[emitter]].
      */
     fun linearScanRegisterAllocation() {
+        registerSaveIndices.clear()
         val intervals = getLiveIntervals(emitter.resultIRValues)
         val freeRegisters = PriorityQueue<Int>()
         freeRegisters.addAll(0 until RegisterConfig.REGISTER_TEMP_COUNT)
@@ -48,16 +51,31 @@ class RegisterAllocation(private val emitter: ASMEmitter, private val errorManag
                 spillAtInterval(i)
             else {
                 val regIndex = freeRegisters.poll()
-                setAllocatedRegister(regIndex, i)
+                setAllocatedRegister(regIndex, i, active)
                 active.addSortedIncreasingEndPoint(CurrentActiveRegisterLiveInterval(regIndex, i.start, i.end))
+            }
+        }
+
+        saveRegisters()
+    }
+
+    private fun saveRegisters() {
+        registerSaveIndices.toSortedMap(Comparator.reverseOrder()).forEach { (key, value) ->
+            for ((i, reg) in value.withIndex()) {
+                emitter.resultIRValues.add(key + i, IRValue(IRType.PUSH_REG, TemporaryRegister(reg, reg), null, NormalType(NormalTypes.I64)))
+                emitter.resultIRValues.add(key + i + 2, IRValue(IRType.POP_REG, TemporaryRegister(reg, reg), null, NormalType(NormalTypes.I64)))
             }
         }
     }
 
-    private fun setAllocatedRegister(regIndex: Int, interval: VirtualRegisterLiveInterval) {
-        for (i in interval.start..interval.end) {
+    private fun setAllocatedRegister(regIndex: Int, interval: VirtualRegisterLiveInterval, currentActiveRegisterLiveIntervals: List<CurrentActiveRegisterLiveInterval>) {
+        for (i in interval.end downTo interval.start) {
             emitter.resultIRValues[i].arg0?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
             emitter.resultIRValues[i].arg1?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
+
+            if(emitter.resultIRValues[i].type == IRType.CALL){
+                registerSaveIndices[i] = currentActiveRegisterLiveIntervals.map { it.regIndex }.toList()
+            }
         }
     }
 

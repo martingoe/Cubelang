@@ -43,15 +43,13 @@ class IRToASM {
                         pushArgIndex = 0
 
                         var res = if (irValue.arg1 is TemporaryRegister && (irValue.arg1 as TemporaryRegister).allocatedIndex != 0) {
-                            "push rax\n" +
                                     "call ${irValue.arg0}\n" +
                                     "mov ${arg1PointerValue}, ${
                                         getRegister(
                                             "ax",
                                             irValue.resultType.getLength()
                                         )
-                                    }\n" +
-                                    "pop rax"
+                                    }\n"
                         } else {
                             "call ${irValue.arg0}\n"
                         }
