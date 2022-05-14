@@ -8,7 +8,6 @@ import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.tokens.Token
 import com.martingoe.cubelang.common.tokens.TokenType
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * Converts memory access like [[Expression.VarCall]]s to offsets from the frame pointer as defined in the [[SymbolTableSingleton]].
@@ -130,8 +129,11 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
     }
 
     override fun visitForStmnt(forStmnt: Statement.ForStmnt): Statement {
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
         forStmnt.body = evaluate(forStmnt.body)
         forStmnt.inBrackets = forStmnt.inBrackets.map { evaluate(it) }
+        scope.pop()
         return forStmnt
     }
 
@@ -141,21 +143,34 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
 
     override fun visitInstanceGet(instanceGet: InstanceGet): Expression {
         val expression = evaluateExpression(instanceGet.expression)
+        val type =
+            (if (instanceGet.expression.resultType is PointerType) (instanceGet.expression.resultType as PointerType).subtype else instanceGet.expression.resultType) as StructType
         val index = getInstanceGetIndex(
-            SymbolTableSingleton.getCurrentSymbolTable().getStruct((instanceGet.expression.resultType as StructType).typeName)!!,
+            SymbolTableSingleton.getCurrentSymbolTable().getStruct(type.typeName)!!,
             instanceGet.identifier.substring
         )
-        if (expression is ValueFromPointer &&
-            expression.expression is Operation &&
-            (expression.expression as Operation).leftExpression is FramePointer &&
-            ((expression.expression as Operation).rightExpression is Literal)
+        if ((expression is ValueFromPointer &&
+                    expression.expression is Operation &&
+                    (expression.expression as Operation).leftExpression is FramePointer &&
+                    ((expression.expression as Operation).rightExpression is Literal)) &&
+            instanceGet.expression.resultType is StructType
         ) {
             val temp = ((expression.expression as Operation).rightExpression as Literal).value as Int - index
             ((expression.expression as Operation).rightExpression as Literal).value = temp
             expression.resultType = instanceGet.resultType
             return expression
         }
-        TODO()
+        val result = if (instanceGet.expression.resultType is PointerType)
+            ValueFromPointer(Operation(expression, Token("+", TokenType.PLUSMINUS), Literal(index)))
+        else if (expression is ValueFromPointer)
+            ValueFromPointer(Operation(expression.expression, Token("+", TokenType.PLUSMINUS), Literal(index)))
+        else {
+            errorManager.error(instanceGet.identifier, "The current 'InstanceGet' configuration has not yet been implemented.")
+            expression
+        }
+        result.resultType = instanceGet.resultType
+        (result as ValueFromPointer).expression.resultType = NormalType(NormalTypes.I64)
+        return result
     }
 
     private fun getInstanceGetIndex(struct: Struct, structSubvalue: String): Int {
@@ -188,9 +203,7 @@ class TreeRewriter : Statement.StatementVisitor<Statement>, ExpressionVisitor<Ex
     }
 
     override fun visitGrouping(grouping: Grouping): Expression {
-        // TODO: Is a grouping still needed or can you return the evaluated subexpression?
-        grouping.expression = evaluateExpression(grouping.expression)
-        return grouping
+        return evaluateExpression(grouping.expression)
     }
 
     private fun getSubtype(type: Type): Type? {
