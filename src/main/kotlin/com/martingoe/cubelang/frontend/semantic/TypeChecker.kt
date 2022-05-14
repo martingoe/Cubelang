@@ -2,7 +2,6 @@ package com.martingoe.cubelang.frontend.semantic
 
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.definitions.Function
-import com.martingoe.cubelang.common.definitions.Struct
 import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.tokens.Token
 import java.util.*
@@ -16,7 +15,6 @@ import java.util.*
 class TypeChecker(
     private val expressions: List<Statement>,
     private val errorManager: ErrorManager,
-    private val definedFunctions: Map<String, List<Function>>
 ) : Expression.ExpressionVisitor<Type>, Statement.StatementVisitor<Type> {
     private var currentVarIndex = 0
     private var scope = Stack<Int>()
@@ -67,9 +65,27 @@ class TypeChecker(
                 "Variable initializations need either an explicit type or a value."
             )
         }
+        checkIfTypeExists(type, varInitialization.name)
         currentVarIndex += type.getLength()
+
+        if (SymbolTableSingleton.getCurrentSymbolTable().getVariablesInCurrentScope(scope).any { it.name == varInitialization.name.substring }) {
+            errorManager.error(
+                varInitialization.name,
+                "A variable has already been defined with this name"
+            )
+            return NoneType()
+        }
         SymbolTableSingleton.getCurrentSymbolTable().defineVariable(scope, varInitialization.name.substring, type, currentVarIndex)
         return NoneType()
+    }
+
+    private fun checkIfTypeExists(type: Type, token: Token) {
+        when (type) {
+            is StructType -> if (!SymbolTableSingleton.getCurrentSymbolTable().structs.containsKey(type.typeName))
+                errorManager.error(token, "The requested struct '${type.typeName}' does not exist.")
+            is PointerType -> checkIfTypeExists(type.subtype, token)
+            is ArrayType -> checkIfTypeExists(type.subType, token)
+        }
     }
 
     override fun visitOperation(operation: Expression.Operation): Type {
@@ -141,15 +157,11 @@ class TypeChecker(
     }
 
     override fun visitFunctionDefinition(functionDefinition: Statement.FunctionDefinition): Type {
+        checkIfTypeExists(functionDefinition.type, functionDefinition.name)
+        errorOnReturnStructOrArray(functionDefinition.type, functionDefinition.name)
+
         currentVarIndex = 0
-        val args = mapArgumentDefinitionToMap(functionDefinition.args)
-        SymbolTableSingleton.getCurrentSymbolTable().functions.add(
-            Function(
-                functionDefinition.name.substring,
-                args,
-                functionDefinition.type
-            )
-        )
+
         SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
         scope.push(scope.pop() + 1)
         scope.push(-1)
@@ -213,20 +225,22 @@ class TypeChecker(
     }
 
     override fun visitForStmnt(forStmnt: Statement.ForStmnt): Type {
+        SymbolTableSingleton.getCurrentSymbolTable().addScopeAt(scope)
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
         forStmnt.inBrackets.forEach { evaluateStmnt(it) }
         evaluateStmnt(forStmnt.body)
+        scope.pop()
         return NoneType()
     }
 
     override fun visitStructDefinition(structDefinition: Statement.StructDefinition): Type {
-        val variables = structDefinition.body.map { it.name.substring to it.type }
-        SymbolTableSingleton.getCurrentSymbolTable().structs[structDefinition.name.substring] = Struct(structDefinition.name.substring, variables)
         return NoneType()
     }
 
     override fun visitInstanceGet(instanceGet: Expression.InstanceGet): Type {
         var type = evaluate(instanceGet.expression)
-        if (type !is StructType || (type is PointerType && type.subtype !is StructType)) {
+        if (type !is StructType && (type is PointerType && type.subtype !is StructType)) {
             errorManager.error(instanceGet.identifier, "The requested value is not a struct.")
             return NoneType()
         } else if (type is PointerType) type = type.subtype
@@ -315,7 +329,23 @@ class TypeChecker(
 
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt): Type {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(definedFunctions[importStmnt.identifier.substring]!!)
+        val fileSymbolTable = SymbolTableSingleton.fileSymbolTables[importStmnt.identifier.substring]
+        if (fileSymbolTable == null) {
+            errorManager.error(importStmnt.identifier, "The requested file could not be found.")
+            return NoneType()
+        }
+        for(function in fileSymbolTable.functions){
+            if(SymbolTableSingleton.getCurrentSymbolTable().functions.any {function.name == it.name}){
+                errorManager.error(importStmnt.identifier, "The imported file contains a function with an already defined name.")
+            }
+        }
+        for(struct in fileSymbolTable.structs.keys){
+            if(SymbolTableSingleton.getCurrentSymbolTable().structs.containsKey(struct)){
+                errorManager.error(importStmnt.identifier, "The imported file contains a struct with an already defined name.")
+            }
+        }
+        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(fileSymbolTable.functions)
+        SymbolTableSingleton.getCurrentSymbolTable().structs.putAll(fileSymbolTable.structs)
         return NoneType()
     }
 
@@ -369,6 +399,11 @@ class TypeChecker(
     }
 
     override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition): Type {
+        errorOnReturnStructOrArray(externFunctionDefinition.type, externFunctionDefinition.name)
+        if (SymbolTableSingleton.getCurrentSymbolTable().functions.any { it.name == externFunctionDefinition.name.substring }) {
+            errorManager.error(externFunctionDefinition.name, "A function with this name has already been defined.")
+            return NoneType()
+        }
         SymbolTableSingleton.getCurrentSymbolTable().functions.add(
             Function(
                 externFunctionDefinition.name.substring,
@@ -377,6 +412,12 @@ class TypeChecker(
             )
         )
         return NoneType()
+    }
+
+    private fun errorOnReturnStructOrArray(type: Type, token: Token) {
+        if (type is StructType || type is ArrayType) {
+            errorManager.error(token, "Functions cannot return structs at this time because of their size.")
+        }
     }
 
     override fun visitStringLiteral(stringLiteral: Expression.StringLiteral): Type {
