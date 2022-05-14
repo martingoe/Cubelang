@@ -30,7 +30,7 @@ internal fun getInvJumpOperationFromComparator(comparisonString: String): String
  */
 internal fun getJmpOperationFromComparator(comparisonString: String): String {
     return when (comparisonString) {
-        "==" -> "jeq"
+        "==" -> "je"
         "!=" -> "jne"
         "<" -> "jl"
         "<=" -> "jle"
