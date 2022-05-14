@@ -174,8 +174,13 @@ class IRToASM {
                     IRType.COPY_STRING_REF -> {
                         "lea ${arg0PointerValue}, [rel .str_$arg1PointerValue]"
                     }
+                    IRType.PUSH_REG -> {
+                        "push $arg0PointerValue"
+                    }
+                    IRType.POP_REG -> {
+                        "pop $arg0PointerValue"
+                    }
 
-                    else -> ""
                 }
                 emitter.emit(res)
             }
