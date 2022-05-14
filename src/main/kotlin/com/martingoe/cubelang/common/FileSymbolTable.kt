@@ -11,13 +11,12 @@ import kotlin.collections.HashMap
  * This saves a [[FileSymbolTable]] for every file.
  */
 object SymbolTableSingleton {
-    var currentIndex = 0
-    var fileSymbolTables: MutableList<FileSymbolTable> = ArrayList()
-    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]
+    lateinit var currentIndex: String
+    var fileSymbolTables: MutableMap<String, FileSymbolTable> = HashMap()
+    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]!!
     fun resetAll() {
-        currentIndex = 0
-        fileSymbolTables = ArrayList()
-
+        currentIndex = ""
+        fileSymbolTables = HashMap()
     }
 }
 
