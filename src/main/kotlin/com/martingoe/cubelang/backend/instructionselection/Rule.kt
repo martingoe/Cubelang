@@ -1,5 +1,7 @@
 package com.martingoe.cubelang.backend.instructionselection
 
+import com.martingoe.cubelang.backend.Utils
+import com.martingoe.cubelang.backend.Utils.Companion.getIntTypeForLength
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.ir.*
 import com.martingoe.cubelang.common.tokens.Token
@@ -16,9 +18,12 @@ abstract class Rule {
     abstract fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression
 
     companion object {
-        const val RULE_COUNT = 25
+        const val RULE_COUNT = 26
     }
 }
+
+internal var currentRegister = 0
+
 
 private fun emitMulRegLiteral(
     right: IRLiteral,
@@ -369,7 +374,7 @@ class LiteralToReg : Rule() {
  */
 class MovRegToReg : Rule() {
     override val expression: Expression
-        get() = Expression.Assignment(Expression.Register(), Expression.Register(), Token("=", TokenType.EQUALS))
+        get() = Expression.Assignment(Expression.Register(), Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
@@ -419,9 +424,8 @@ class NegateRule : Rule() {
 class MovPointerRegToReg : Rule() {
     override val expression: Expression
         get() = Expression.Assignment(
-            Expression.ValueFromPointer(Expression.Register(), Token("*", TokenType.STAR)),
-            Expression.Register(),
-            Token("=", TokenType.EQUALS)
+            Expression.ValueFromPointer(Expression.Register()),
+            Expression.Register()
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -461,8 +465,8 @@ class MovOffsetToReg : Rule() {
                     Expression.FramePointer(),
                     Token("-", TokenType.PLUSMINUS),
                     Expression.Literal(null)
-                ), Token("*", TokenType.STAR)
-            ), Expression.Register(), Token("=", TokenType.EQUALS)
+                )
+            ), Expression.Register()
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -479,7 +483,7 @@ class MovOffsetToReg : Rule() {
         emitter.emit(
             IRValue(
                 IRType.COPY_TO_FP_OFFSET,
-                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                FramePointerOffset(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 TemporaryRegister(valueRegister.index),
                 expression.resultType
             )
@@ -501,7 +505,7 @@ class MovFromFPOffset : Rule() {
                 Expression.FramePointer(),
                 Token("-", TokenType.PLUSMINUS),
                 Expression.Literal(null)
-            ), Token("*", TokenType.STAR)
+            )
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -519,7 +523,7 @@ class MovFromFPOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                IRLiteral(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
+                FramePointerOffset(getLiteralValue((operation.rightExpression as Expression.Literal).value).toString()),
                 expression.resultType
             )
         )
@@ -539,7 +543,7 @@ class MovFromRegOffset : Rule() {
                 Expression.Register(),
                 Token("-", TokenType.PLUSMINUS),
                 Expression.Literal(null)
-            ), Token("*", TokenType.STAR)
+            )
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -587,7 +591,7 @@ class MovFromRegOffsetWithAdder : Rule() {
                 Token("+", TokenType.PLUSMINUS),
 
                 Expression.ExtendTo64Bit(Expression.Operation(Expression.Register(), Token("*", TokenType.STAR), Expression.Literal(null)))
-            ), Token("*", TokenType.STAR)
+            )
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -646,7 +650,7 @@ class MovOffsetToOffset : Rule() {
             Expression.ValueFromPointer(
                 Expression.Operation(Expression.FramePointer(), Token("-", TokenType.PLUSMINUS), Expression.Literal(null)),
                 Token("*", TokenType.STAR)
-            ), Token("=", TokenType.EQUALS)
+            )
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -672,11 +676,18 @@ class MovOffsetToOffset : Rule() {
                     IRValue(
                         IRType.COPY_FROM_FP_OFFSET,
                         TemporaryRegister(reg.index),
-                        IRLiteral(rightOffset.toString()),
+                        FramePointerOffset(rightOffset.toString()),
                         intTypeForLength
                     )
                 )
-                emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), intTypeForLength))
+                emitter.emit(
+                    IRValue(
+                        IRType.COPY_TO_FP_OFFSET,
+                        FramePointerOffset(leftOffset.toString()),
+                        TemporaryRegister(reg.index),
+                        intTypeForLength
+                    )
+                )
 
                 rightOffset -= it
                 leftOffset -= it
@@ -688,22 +699,25 @@ class MovOffsetToOffset : Rule() {
         }
 
         val reg = getReg(expression.valueExpression.resultType)
-        emitter.emit(IRValue(IRType.COPY_FROM_FP_OFFSET, TemporaryRegister(reg.index), IRLiteral(rightOffset.toString()), expression.resultType))
-        emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(
+            IRValue(
+                IRType.COPY_FROM_FP_OFFSET,
+                TemporaryRegister(reg.index),
+                FramePointerOffset(rightOffset.toString()),
+                expression.resultType
+            )
+        )
+        emitter.emit(
+            IRValue(
+                IRType.COPY_TO_FP_OFFSET,
+                FramePointerOffset(leftOffset.toString()),
+                TemporaryRegister(reg.index),
+                expression.resultType
+            )
+        )
 
         return reg
 
-    }
-}
-
-private fun getIntTypeForLength(length: Int): Type {
-    return when (length) {
-        1 -> NormalType(NormalTypes.I8)
-        2 -> NormalType(NormalTypes.I16)
-        4 -> NormalType(NormalTypes.I32)
-        8 -> NormalType(NormalTypes.I64)
-
-        else -> error("Unknown size")
     }
 }
 
@@ -728,9 +742,9 @@ class MovOffsetToValueFromPointerOffset : Rule() {
                         Expression.FramePointer(),
                         Token("-", TokenType.PLUSMINUS),
                         Expression.Literal(null)
-                    ), Token("*", TokenType.STAR)
-                ), Token("*", TokenType.STAR)
-            ), Token("=", TokenType.EQUALS)
+                    )
+                )
+            )
         )
     override val resultSymbol: Char
         get() = 'r'
@@ -750,7 +764,7 @@ class MovOffsetToValueFromPointerOffset : Rule() {
             IRValue(
                 IRType.COPY_FROM_FP_OFFSET,
                 TemporaryRegister(reg.index),
-                IRLiteral(varCallOffset.toString()),
+                FramePointerOffset(varCallOffset.toString()),
                 NormalType(NormalTypes.I64)
             )
         )
@@ -771,7 +785,14 @@ class MovOffsetToValueFromPointerOffset : Rule() {
                     intTypeForLength
                 )
             )
-            emitter.emit(IRValue(IRType.COPY_TO_FP_OFFSET, IRLiteral(leftOffset.toString()), TemporaryRegister(innerReg.index), intTypeForLength))
+            emitter.emit(
+                IRValue(
+                    IRType.COPY_TO_FP_OFFSET,
+                    FramePointerOffset(leftOffset.toString()),
+                    TemporaryRegister(innerReg.index),
+                    intTypeForLength
+                )
+            )
 
             rightOffset -= it
             leftOffset -= it
@@ -794,7 +815,7 @@ fun getReg(type: Type): Expression.Register {
  */
 class ValueFromPointer : Rule() {
     override val expression: Expression
-        get() = Expression.ValueFromPointer(Expression.Register(), Token("*", TokenType.STAR))
+        get() = Expression.ValueFromPointer(Expression.Register())
     override val resultSymbol: Char
         get() = 'r'
 
@@ -838,7 +859,7 @@ class PointerGet : Rule() {
         val reg = getReg(expression.resultType)
         val operation = castExpression.expression as Expression.Operation
         val literal = (operation.rightExpression as Expression.Literal).value
-        emitter.emit(IRValue(IRType.COPY_FROM_REF, IRLiteral(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
+        emitter.emit(IRValue(IRType.COPY_FROM_REF, FramePointerOffset(literal.toString()), TemporaryRegister(reg.index), expression.resultType))
 
         return reg
     }
@@ -886,9 +907,35 @@ class CallRule : Rule() {
     override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
         expression as Expression.Call
         for (arg in expression.arguments) {
-            val result = astToIRService.emitCodeForExpression(arg)
-            val tempReg = TemporaryRegister((result as Expression.Register).index)
-            emitter.emit(IRValue(IRType.PUSH_ARG, tempReg, null, arg.resultType))
+            if (arg.resultType.getLength() <= 8) {
+                val result = astToIRService.emitCodeForExpression(arg)
+                val tempReg = TemporaryRegister((result as Expression.Register).index)
+
+                emitter.emit(IRValue(IRType.PUSH_ARG, tempReg, null, arg.resultType))
+            } else {
+                if (arg is Expression.ValueFromPointer &&
+                    arg.expression is Expression.Operation &&
+                    (arg.expression as Expression.Operation).rightExpression is Expression.Literal
+                ) {
+                    val litValue = ((arg.expression as Expression.Operation).rightExpression as Expression.Literal).value as Int
+                    val splitLengths = Utils.splitStruct(arg.resultType.getLength())
+                    var addedOffset = 0
+
+                    for (split in splitLengths) {
+                        emitter.emit(
+                            IRValue(
+                                IRType.PUSH_ARG,
+                                FramePointerOffset((litValue - addedOffset).toString()),
+                                null,
+                                getIntTypeForLength(split)
+                            )
+                        )
+                        addedOffset += split
+
+                    }
+                }
+
+            }
         }
 
         val reg = if (expression.resultType !is NoneType) getReg(expression.resultType) else null
@@ -902,6 +949,24 @@ class CallRule : Rule() {
         )
         return reg ?: getReg(expression.resultType)
     }
+}
+
+class StringLiteral : Rule() {
+    override val expression = Expression.StringLiteral(Token("", TokenType.STRING))
+    override val resultSymbol = 'r'
+
+    override fun getCost(expression: Expression, astGetSymbol: ASTGetSymbol, rules: Array<Rule>): Int {
+        return 1
+    }
+
+    override fun constructString(expression: Expression, emitter: ASMEmitter, astToIRService: ASTToIRService): Expression {
+        val type = PointerType(NormalType(NormalTypes.CHAR))
+        val register = getReg(type)
+        val stringIndex = SymbolTableSingleton.getCurrentSymbolTable().stringLiterals[(expression as Expression.StringLiteral).value.substring]
+        emitter.emit(IRValue(IRType.COPY_STRING_REF, TemporaryRegister(register.index), IRLiteral(stringIndex.toString()), type))
+        return register
+    }
+
 }
 
 
@@ -939,16 +1004,13 @@ private fun calculateSubCosts(ruleExpression: Expression, actualExpression: Expr
     for (i in ruleChildren.indices) {
         cost += if (ruleChildren[i]::class != actualChildren[i]::class) {
             // Update new child
-            rules[actualChildren[i].match[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO()].getCost(actualChildren[i], astGetSymbol, rules)
+            rules[actualChildren[i].matchedResults[astGetSymbol.evaluate(ruleChildren[i])] ?: TODO()].getCost(actualChildren[i], astGetSymbol, rules)
         } else {
             calculateSubCosts(ruleChildren[i], actualChildren[i], astGetSymbol, rules)
         }
     }
     return cost
 }
-
-
-var currentRegister = 0
 
 
 /**
@@ -980,6 +1042,7 @@ fun getRules(): Array<Rule> {
         MovOffsetToValueFromPointerOffset(),
         PointerGet(),
         CallRule(),
-        LiteralToReg()
+        LiteralToReg(),
+        StringLiteral()
     )
 }

@@ -1,5 +1,6 @@
 package com.martingoe.cubelang.backend.instructionselection
 
+import com.martingoe.cubelang.backend.Utils
 import com.martingoe.cubelang.common.ASMEmitter
 import com.martingoe.cubelang.common.Expression
 
@@ -18,7 +19,7 @@ class ASTToIRService(var asmEmitter: ASMEmitter) {
      */
     fun emitCodeForExpression(expression: Expression): Expression {
         expressionMatchingTrie.visit(expression)
-        val rule = expression.match['r'] ?:
+        val rule = expression.matchedResults['r'] ?:
         TODO("NO RULE for ${expression::class}")
 
         emitSubRuleReductions(rules[rule].expression, expression)
@@ -33,7 +34,7 @@ class ASTToIRService(var asmEmitter: ASMEmitter) {
         for (i in ruleChildren.indices) {
             if (ruleChildren[i]::class != actualChildren[i]::class) {
                 // Update new child
-                val ruleToApply = actualChildren[i].match[astGetSymbol.evaluate(ruleChildren[i])]!!
+                val ruleToApply = actualChildren[i].matchedResults[astGetSymbol.evaluate(ruleChildren[i])]!!
 
                 emitSubRuleReductions(rules[ruleToApply].expression, actualChildren[i])
                 val newExpression = rules[ruleToApply].constructString(actualChildren[i], asmEmitter, this)

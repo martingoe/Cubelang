@@ -1,0 +1,8 @@
+import io;
+import "src/test/resources/testsources/multfilesStruct/test/source2.cube";
+
+fun main() {
+    var test: testStruct;
+    test.x = 10;
+    printI32(test.x);
+}

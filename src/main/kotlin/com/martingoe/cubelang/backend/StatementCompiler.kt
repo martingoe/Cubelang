@@ -1,24 +1,36 @@
 package com.martingoe.cubelang.backend
 
 import com.martingoe.cubelang.backend.IRToASM.Companion.emitASMForIR
+import com.martingoe.cubelang.backend.Utils.Companion.getIntTypeForLength
+import com.martingoe.cubelang.backend.Utils.Companion.splitStruct
 import com.martingoe.cubelang.backend.instructionselection.ASTToIRService
 import com.martingoe.cubelang.backend.instructionselection.RegisterAllocation
 import com.martingoe.cubelang.backend.instructionselection.currentRegister
+import com.martingoe.cubelang.common.ASMEmitter
 import com.martingoe.cubelang.common.Expression
 import com.martingoe.cubelang.common.Statement
 import com.martingoe.cubelang.common.SymbolTableSingleton
-import com.martingoe.cubelang.common.definitions.StandardLibraryFunctions
-import com.martingoe.cubelang.common.ir.*
-import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.errors.ErrorManager
+import com.martingoe.cubelang.common.ir.FramePointerOffset
+import com.martingoe.cubelang.common.ir.IRType
+import com.martingoe.cubelang.common.ir.IRValue
 import com.martingoe.cubelang.common.tokens.TokenType
 import com.martingoe.cubelang.middleend.treemodification.TreeRewriter
 import java.io.File
 import java.util.*
 
-internal const val REGISTER_COUNT: Int = 6
-class StatementCompiler(private val emitter: ASMEmitter, private var astToIRService: ASTToIRService, private val stdlibPath: String) : Statement.StatementVisitor<Any?> {
+
+/**
+ * Compiles statements to NASM. This class also uses the [[ASTToIRService]] to compile the given expressions.
+ */
+class StatementCompiler(
+    private val emitter: ASMEmitter,
+    private var astToIRService: ASTToIRService,
+    private val stdlibPath: String,
+    private val errorManager: ErrorManager
+) : Statement.StatementVisitor<Any?> {
     private var scope: Stack<Int> = Stack()
-    private val registerAllocation = RegisterAllocation(emitter)
+    private val registerAllocation = RegisterAllocation(emitter, errorManager)
 
     private var lIndex = 2
 
@@ -44,12 +56,28 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
         emitter.emit("push rbp")
         emitter.emit("mov rbp, rsp")
         emitter.emit("sub rsp, ${getFunctionOffset()}")
-        functionDefinition.args.map { it as Statement.ArgumentDefinition }.forEach {
-            // TODO: Structs
-            val res = Expression.VarCall(it.name).accept(TreeRewriter(scope))
+        functionDefinition.args.forEach {
+            val res = Expression.VarCall(it.name).accept(TreeRewriter(scope, errorManager))
             res as Expression.ValueFromPointer
             val lit = (res.expression as Expression.Operation).rightExpression as Expression.Literal
-            emitter.emit(IRValue(IRType.POP_ARG, IRLiteral(lit.value.toString()), null, it.type))
+            if (it.type.getLength() <= 8)
+                emitter.emit(IRValue(IRType.POP_ARG, FramePointerOffset(lit.value.toString()), null, it.type))
+            else {
+                val splitLengths = splitStruct(it.type.getLength())
+                var addedOffset = 0
+                for (split in splitLengths) {
+                    emitter.emit(
+                        IRValue(
+                            IRType.POP_ARG,
+                            FramePointerOffset((lit.value as Int - addedOffset).toString()),
+                            null,
+                            getIntTypeForLength(split)
+                        )
+                    )
+                    addedOffset += split
+
+                }
+            }
         }
         emitASMForIR(emitter)
 
@@ -60,7 +88,14 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
     }
 
     private fun getFunctionOffset(): Int {
-        return SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
+        // Align the offset to be 16n + 8
+        var offset = 0
+
+        val x = SymbolTableSingleton.getCurrentSymbolTable().getVariablesOffsetDefinedAtScope(scope)
+        do {
+            offset += 16
+        } while (offset <= x)
+        return offset
     }
 
 
@@ -83,8 +118,8 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
     private fun getJmpLogicalOrComparison(condition: Expression, labelIndex: Int, useInverted: Boolean = false) {
         if (condition is Expression.Comparison) getJmpComparison(condition, labelIndex, useInverted)
         else if (condition is Expression.Logical && condition.logical.tokenType == TokenType.AND) {
-            getJmpLogicalOrComparison(condition.leftExpression, labelIndex)
-            getJmpLogicalOrComparison(condition.rightExpression, labelIndex)
+            getJmpLogicalOrComparison(condition.leftExpression, labelIndex, true)
+            getJmpLogicalOrComparison(condition.rightExpression, labelIndex, true)
         } else if (condition is Expression.Logical && condition.logical.tokenType == TokenType.OR) {
             val afterLabelIndex = lIndex++
             getJmpLogicalOrComparison(condition.leftExpression, afterLabelIndex, false)
@@ -129,6 +164,8 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
     }
 
     override fun visitForStmnt(forStmnt: Statement.ForStmnt) {
+        scope.push(scope.pop() + 1)
+        scope.push(-1)
         evaluate(forStmnt.inBrackets[0])
 
         val resetLIndex = lIndex++
@@ -142,6 +179,7 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
         emitter.emit(".l$resetLIndex:")
 
         getJmpLogicalOrComparison((forStmnt.inBrackets[1] as Statement.ExpressionStatement).expression, exitIndex)
+        scope.pop()
     }
 
     override fun visitStructDefinition(structDefinition: Statement.StructDefinition) {
@@ -162,7 +200,6 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
     }
 
     override fun visitImportStmnt(importStmnt: Statement.ImportStmnt) {
-        SymbolTableSingleton.getCurrentSymbolTable().functions.addAll(StandardLibraryFunctions.definedFunctions[importStmnt.identifier.substring]!!)
         val name =
             (if (importStmnt.identifier.tokenType == TokenType.IDENTIFIER) File(stdlibPath).absolutePath + "/" + importStmnt.identifier.substring else File(
                 importStmnt.identifier.substring.substringBeforeLast(".")
@@ -181,7 +218,12 @@ class StatementCompiler(private val emitter: ASMEmitter, private var astToIRServ
 
     fun evaluateList(expressions: List<Statement>) {
         expressions.forEach { evaluate(it) }
+        SymbolTableSingleton.getCurrentSymbolTable().stringLiterals.forEach { (string, index) -> emitter.emit(".str_$index: db \"$string\", 0") }
 
+    }
+
+    override fun visitExternFunctionDefinition(externFunctionDefinition: Statement.ExternFunctionDefinition) {
+        emitter.emit("extern ${externFunctionDefinition.name.substring}")
     }
 
 }

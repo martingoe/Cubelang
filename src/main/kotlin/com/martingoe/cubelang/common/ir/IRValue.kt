@@ -14,8 +14,7 @@ class IRValue(val type: IRType, var arg0: ValueType?, var arg1: ValueType?, val 
 
 interface ValueType
 
-class TemporaryRegister(val index: Int) : ValueType {
-    var allocatedIndex: Int = -1
+class TemporaryRegister(val index: Int, var allocatedIndex: Int = -1) : ValueType {
     override fun toString(): String {
         return "r$index"
     }

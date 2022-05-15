@@ -75,4 +75,8 @@ class ASTGetSymbol: Expression.ExpressionVisitor<Char> {
         return 'e'
     }
 
+    override fun visitStringLiteral(stringLiteral: Expression.StringLiteral): Char {
+        return 's'
+    }
+
 }

@@ -1,8 +1,13 @@
 package com.martingoe.cubelang.backend.instructionselection
 
-import com.martingoe.cubelang.backend.REGISTER_COUNT
 import com.martingoe.cubelang.common.ASMEmitter
+import com.martingoe.cubelang.common.NormalType
+import com.martingoe.cubelang.common.NormalTypes
+import com.martingoe.cubelang.common.RegisterConfig
+import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.common.ir.*
+import java.util.LinkedList
+import java.util.PriorityQueue
 
 /**
  * A currently active lifetime interval of a specific register.
@@ -29,65 +34,88 @@ data class VirtualRegisterLiveInterval(
  *
  * @param emitter The emitter whose IR values are to be assigned registers
  */
-class RegisterAllocation(private val emitter: ASMEmitter) {
-
+class RegisterAllocation(private val emitter: ASMEmitter, private val errorManager: ErrorManager) {
+    var registerSaveIndices: MutableMap<Int, List<Int>> = HashMap()
     /**
      * Runs the linear scan register allocation algorithm on the current results of the [[emitter]].
      */
     fun linearScanRegisterAllocation() {
+        registerSaveIndices.clear()
         val intervals = getLiveIntervals(emitter.resultIRValues)
-        val freeRegisters = (0 until REGISTER_COUNT).reversed().toMutableList()
-        val active = mutableListOf<CurrentActiveRegisterLiveInterval>()
+        val freeRegisters = PriorityQueue<Int>()
+        freeRegisters.addAll(0 until RegisterConfig.REGISTER_TEMP_COUNT)
+        val active = LinkedList<CurrentActiveRegisterLiveInterval>()
         for (i in intervals) {
             expireOldIntervals(i, active, freeRegisters)
-            if (active.size == REGISTER_COUNT)
+            if (active.size == RegisterConfig.REGISTER_TEMP_COUNT - 1)
                 spillAtInterval(i)
             else {
-                val regIndex = freeRegisters.removeLast()
-                setAllocatedRegister(regIndex, i)
-                active.add(CurrentActiveRegisterLiveInterval(regIndex, i.start, i.end))
+                val regIndex = freeRegisters.poll()
+                setAllocatedRegister(regIndex, i, active)
+                active.addSortedIncreasingEndPoint(CurrentActiveRegisterLiveInterval(regIndex, i.start, i.end))
+            }
+        }
+
+        saveRegisters()
+    }
+
+    private fun saveRegisters() {
+        registerSaveIndices.toSortedMap(Comparator.reverseOrder()).forEach { (key, value) ->
+            for ((i, reg) in value.withIndex()) {
+                emitter.resultIRValues.add(key + i, IRValue(IRType.PUSH_REG, TemporaryRegister(reg, reg), null, NormalType(NormalTypes.I64)))
+                emitter.resultIRValues.add(key + i + 2, IRValue(IRType.POP_REG, TemporaryRegister(reg, reg), null, NormalType(NormalTypes.I64)))
             }
         }
     }
 
-    private fun setAllocatedRegister(regIndex: Int, interval: VirtualRegisterLiveInterval) {
-        for (i in interval.start..interval.end) {
+    private fun setAllocatedRegister(regIndex: Int, interval: VirtualRegisterLiveInterval, currentActiveRegisterLiveIntervals: List<CurrentActiveRegisterLiveInterval>) {
+        for (i in interval.end downTo interval.start) {
             emitter.resultIRValues[i].arg0?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
             emitter.resultIRValues[i].arg1?.let { setAllocatedRegister(it, regIndex, interval.virtualRegIndex) }
+
+            if(emitter.resultIRValues[i].type == IRType.CALL){
+                registerSaveIndices[i] = currentActiveRegisterLiveIntervals.map { it.regIndex }.toList()
+            }
         }
     }
-    private fun setAllocatedRegister(irValue: ValueType, regIndex: Int, virtualRegIndex: Int){
-        when(irValue){
-            is TemporaryRegister -> if(irValue.index == virtualRegIndex) irValue.allocatedIndex = regIndex
-            is RegOffset -> if(irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
-            is FramePointerOffset -> if(irValue.temporaryRegister != null && irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
+
+    private fun setAllocatedRegister(irValue: ValueType, regIndex: Int, virtualRegIndex: Int) {
+        when (irValue) {
+            is TemporaryRegister -> if (irValue.index == virtualRegIndex) irValue.allocatedIndex = regIndex
+            is RegOffset -> if (irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex = regIndex
+            is FramePointerOffset -> if (irValue.temporaryRegister != null && irValue.temporaryRegister.index == virtualRegIndex) irValue.temporaryRegister.allocatedIndex =
+                regIndex
         }
     }
 
     private fun spillAtInterval(i: VirtualRegisterLiveInterval) {
-        TODO("Not yet implemented")
+        errorManager.error(
+            -1,
+            -1,
+            "Unfortunately, the currently available registers do not suffice. Please simplify any expressions requiring many registers."
+        )
     }
 
-    private fun expireOldIntervals(i: VirtualRegisterLiveInterval, active: MutableList<CurrentActiveRegisterLiveInterval>, freeRegisters: MutableList<Int>) {
-        for (j in active.sortedBy { it.end }) {
-            if (j.end >= i.start)
-                return
-            active.remove(j)
-            freeRegisters.add(j.regIndex)
-        }
+    private fun expireOldIntervals(
+        i: VirtualRegisterLiveInterval,
+        active: LinkedList<CurrentActiveRegisterLiveInterval>,
+        freeRegisters: PriorityQueue<Int>
+    ) {
+        // Old end indices < current start index means that interval is unused and the allocated register can be used again
+        active.filter { it.end < i.start }.forEach { freeRegisters.add(it.regIndex) }
+        active.removeIf { it.end < i.start }
     }
 
-    private fun getLiveIntervals(resultIRValues: List<IRValue>): List<VirtualRegisterLiveInterval> {
-        val resultList = mutableListOf<VirtualRegisterLiveInterval>()
+    private fun getLiveIntervals(resultIRValues: List<IRValue>): LinkedList<VirtualRegisterLiveInterval> {
+        val resultList = LinkedList<VirtualRegisterLiveInterval>()
         for (i in resultIRValues.indices) {
             addLiveInterval(resultIRValues[i].arg0, resultList, i)
             addLiveInterval(resultIRValues[i].arg1, resultList, i)
         }
-        resultList.sortBy { it.start }
         return resultList
     }
 
-    private fun addLiveInterval(value: ValueType?, resultList: MutableList<VirtualRegisterLiveInterval>, index: Int) {
+    private fun addLiveInterval(value: ValueType?, resultList: LinkedList<VirtualRegisterLiveInterval>, index: Int) {
         value?.let {
             if (value is TemporaryRegister) {
                 // Register not yet accounted for
@@ -97,22 +125,31 @@ class RegisterAllocation(private val emitter: ASMEmitter) {
                 // Register not yet accounted for
                 addSingularIndex(resultList, value.temporaryRegister, index)
             }
-            if(value is FramePointerOffset && value.temporaryRegister != null){
+            if (value is FramePointerOffset && value.temporaryRegister != null) {
                 addSingularIndex(resultList, value.temporaryRegister, index)
             }
         }
     }
 
     private fun addSingularIndex(
-        resultList: MutableList<VirtualRegisterLiveInterval>,
+        resultList: LinkedList<VirtualRegisterLiveInterval>,
         value: TemporaryRegister,
         index: Int
     ) {
         if (resultList.none { it.virtualRegIndex == value.index }) {
-            resultList.add(VirtualRegisterLiveInterval(value.index, index, index))
+            resultList.insertSortedStartpoint(VirtualRegisterLiveInterval(value.index, index, index))
         } else {
             val indexOfFirst = resultList.indexOfFirst { it.virtualRegIndex == value.index }
             resultList[indexOfFirst].end = index
         }
     }
+}
+
+private fun LinkedList<CurrentActiveRegisterLiveInterval>.addSortedIncreasingEndPoint(currentActiveRegisterLiveInterval: CurrentActiveRegisterLiveInterval) {
+    this.add(this.indexOfLast { it.end <= currentActiveRegisterLiveInterval.end } + 1, currentActiveRegisterLiveInterval)
+
+}
+
+private fun LinkedList<VirtualRegisterLiveInterval>.insertSortedStartpoint(virtualRegisterLiveInterval: VirtualRegisterLiveInterval) {
+    this.add(this.indexOfLast { it.start <= virtualRegisterLiveInterval.start } + 1, virtualRegisterLiveInterval)
 }

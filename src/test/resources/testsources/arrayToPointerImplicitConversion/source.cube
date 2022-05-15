@@ -6,6 +6,6 @@ fun main() {
     x[0][2] = 20;
 
     var y = x[0];
-    printInt(y[0]);
-    printInt(y[2]);
+    printI32(y[0]);
+    printI32(y[2]);
 }

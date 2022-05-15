@@ -1,5 +1,6 @@
 package com.martingoe.cubelang.backend.instructionselection
 
+import com.martingoe.cubelang.backend.Utils
 import com.martingoe.cubelang.common.Expression
 import java.util.*
 
@@ -26,6 +27,7 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
     }
 
     private fun buildFailureFunctions() {
+        // BFS
         val queue: PriorityQueue<Int> = PriorityQueue()
         queue.addAll(trieEntries[0].next)
         while (queue.isNotEmpty()) {
@@ -33,12 +35,15 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
 
             for (s in trieEntries[r].next) {
                 queue.add(s)
-                // state = f(r)?
                 var state = trieEntries[r].failureState
+                // Walk down the tree until you find a node with the same value or the failure state is 0
                 while (trieEntries[state].next.none { trieEntries[it].value == trieEntries[s].value } && state != 0)
                     state = trieEntries[state].failureState
+                // Assign the new failure state to the next node with the same value or 0
                 val newFailureState = trieEntries[state].next.firstOrNull { trieEntries[it].value == trieEntries[s].value } ?: 0
                 trieEntries[s].failureState = newFailureState
+                // Combine the two accepting states ensuring that the accepting states from the failure state are also included in the original node
+                // If the failure state matches any rule, so does the original one (with the same length as well)
                 trieEntries[s].isAccepting = combineAcceptingStates(trieEntries[s].isAccepting, trieEntries[newFailureState].isAccepting)
             }
 
@@ -105,25 +110,25 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
         setPartial(expression, expression.state)
         if (children.isNotEmpty()) {
             for (i in rules.indices) {
-                var product = children[0].b[i] / 2
+                var product = children[0].ruleMatchingBytes[i] / 2
                 for (child in children.subList(1, children.size)) {
-                    product = product and child.b[i] / 2
+                    product = product and child.ruleMatchingBytes[i] / 2
                 }
 
-                expression.b[i] = expression.b[i] or product
+                expression.ruleMatchingBytes[i] = expression.ruleMatchingBytes[i] or product
             }
         }
         doReduce(expression, previousState, index)
     }
 
-    private fun doReduce(expression: Expression, previousState: Int = 0, index: Int = -1) {
+    private fun doReduce(expression: Expression, previousState: Int, index: Int) {
         for (i in rules.indices) {
             // If there is a rule matching exactly
-            if (expression.b[i] % 2 == 1) {
+            if (expression.ruleMatchingBytes[i] == 1) {
                 val possibleNewCost = rules[i].getCost(expression, astGetSymbol, rules)
                 if (possibleNewCost < (expression.cost[rules[i].resultSymbol] ?: Int.MAX_VALUE)) {
                     expression.cost[rules[i].resultSymbol] = possibleNewCost
-                    expression.match[rules[i].resultSymbol] = i
+                    expression.matchedResults[rules[i].resultSymbol] = i
 
                     // Expression is root
                     val x: Int = if (index == -1) {
@@ -140,22 +145,14 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
     private fun setPartial(expression: Expression, state: Int) {
         for (rule in rules.indices) {
             if (trieEntries[state].isAccepting[rule].first) {
-                expression.b[rule] = expression.b[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].isAccepting[rule].second))
+                expression.ruleMatchingBytes[rule] = expression.ruleMatchingBytes[rule] or twoToThePowerOf(getTreeLength(trieEntries[state].isAccepting[rule].second))
             }
         }
     }
 
 
     private fun twoToThePowerOf(n: Int): Int {
-        val base = 2
-        var result = 1
-        var temp = n
-
-        while (temp != 0) {
-            result *= base
-            --temp
-        }
-        return result
+        return 1 shl n
     }
 
     private fun getTreeLength(pathStringLength: Int): Int = (pathStringLength - 1) / 2
@@ -164,7 +161,8 @@ class ExpressionMatchingTrie(private val rules: Array<Rule>, private val astGetS
         return try {
             trieEntries[from].next.first { trieEntries[it].value == to_value }
         } catch (e: NoSuchElementException) {
-            if (trieEntries[from].failureState == from)
+            // Return 0 if no trie entry matches at all
+            if(from == 0)
                 return 0
             val newState = succ(trieEntries[from].failureState, to_value)
             newState

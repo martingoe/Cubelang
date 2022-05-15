@@ -11,13 +11,12 @@ import kotlin.collections.HashMap
  * This saves a [[FileSymbolTable]] for every file.
  */
 object SymbolTableSingleton {
-    var currentIndex = 0
-    var fileSymbolTables: MutableList<FileSymbolTable> = ArrayList()
-    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]
+    lateinit var currentIndex: String
+    var fileSymbolTables: MutableMap<String, FileSymbolTable> = HashMap()
+    fun getCurrentSymbolTable(): FileSymbolTable = fileSymbolTables[currentIndex]!!
     fun resetAll() {
-        currentIndex = 0
-        fileSymbolTables = ArrayList()
-
+        currentIndex = ""
+        fileSymbolTables = HashMap()
     }
 }
 
@@ -27,7 +26,9 @@ object SymbolTableSingleton {
 class FileSymbolTable {
     var structs: HashMap<String, Struct> = HashMap()
     var functions: MutableList<Function> = ArrayList()
-    var variables: Node = Scope(ArrayList())
+    private var variables: Node = Scope(ArrayList())
+    var stringLiterals: MutableMap<String, Int> = HashMap()
+    private var currentStringLiteralIndex = 0
 
     fun getVariablesInCurrentScope(scope: Stack<Int>): List<VarNode> {
         val scopeClone: Stack<Int> = scope.clone() as Stack<Int>
@@ -87,6 +88,10 @@ class FileSymbolTable {
     fun addScopeAt(scope: Stack<Int>) {
         val currentNode = getNodeAtScope(scope)
         (currentNode as Scope).symbols.add(Scope(ArrayList()))
+    }
+
+    fun addStringLiteral(value: String) {
+        this.stringLiterals[value] = currentStringLiteralIndex++
     }
 
 

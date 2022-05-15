@@ -3,10 +3,11 @@ package com.martingoe.cubelang.main
 import com.martingoe.cubelang.backend.StatementCompiler
 import com.martingoe.cubelang.middleend.treemodification.TreeRewriter
 import com.martingoe.cubelang.backend.instructionselection.ASTToIRService
-import com.martingoe.cubelang.middleend.validation.TypeChecker
+import com.martingoe.cubelang.frontend.semantic.TypeChecker
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.definitions.StandardLibraryFunctions
 import com.martingoe.cubelang.common.definitions.Function
+import com.martingoe.cubelang.common.definitions.Struct
 import com.martingoe.cubelang.common.errors.ErrorManager
 import com.martingoe.cubelang.frontend.lexing.Lexer
 import com.martingoe.cubelang.frontend.parser.Parser
@@ -24,10 +25,16 @@ fun main(args: Array<String>) {
 
 
 class Main(private val libraryPath: String) {
+    /**
+     * Compiles an array of files represented with their path strings
+     */
     fun compileFile(sourceFile: Array<String>) {
         SymbolTableSingleton.resetAll()
+        StandardLibraryFunctions.defineFileSymbolTables()
         val expressionsList = HashMap<String, List<Statement>>()
         val errorManagers: MutableMap<String, ErrorManager> = mutableMapOf()
+        var i = 0
+
         for (source in sourceFile) {
             val sourceCode = File(source).readText()
             val lines = sourceCode.split("\n")
@@ -35,35 +42,52 @@ class Main(private val libraryPath: String) {
             val errorManager = ErrorManager(lines, false)
             errorManagers[source] = errorManager
             val expressions = Parser(tokenSequence.tokenSequence, errorManager).parse()
-            addFunctionsToMap(source, expressions)
+
+            SymbolTableSingleton.currentIndex = source
+            SymbolTableSingleton.fileSymbolTables[source] = FileSymbolTable()
+
+            addFunctionsToMap(expressions, errorManager)
             expressionsList[source] = expressions
+            i++
         }
         errorManagers.forEach { it.value.exitIfError() }
 
-        var i = 0
+        i = 0
         val asmASTToIRService = ASTToIRService(ASMEmitter())
         for (expressions in expressionsList) {
             val file = File(expressions.key)
             val resultFile = File(file.absoluteFile.parentFile.absolutePath + "/" + file.nameWithoutExtension + ".asm")
-            SymbolTableSingleton.currentIndex = i
-            SymbolTableSingleton.fileSymbolTables.add(FileSymbolTable())
 
-            TypeChecker(expressions.value, errorManagers[expressions.key]!!, StandardLibraryFunctions.definedFunctions).checkTypes()
+            val errorManager = errorManagers[expressions.key]!!
+            SymbolTableSingleton.currentIndex = expressions.key
 
-            TreeRewriter().rewriteMultiple(expressions.value)
+            TypeChecker(expressions.value, errorManager).checkTypes()
+
+            TreeRewriter(errorManager).rewriteMultiple(expressions.value)
             asmASTToIRService.asmEmitter = ASMEmitter()
-            StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath).evaluateList(expressions.value)
+            StatementCompiler(asmASTToIRService.asmEmitter, asmASTToIRService, libraryPath, errorManager).evaluateList(expressions.value)
             resultFile.writeText(asmASTToIRService.asmEmitter.finishedString)
             println("Wrote the resulting asm file to ${resultFile.path}")
             i++
         }
     }
 
-    private fun addFunctionsToMap(fileName: String, expressions: List<Statement>) {
-        StandardLibraryFunctions.definedFunctions[fileName] = ArrayList()
+    private fun addFunctionsToMap(expressions: List<Statement>, errorManager: ErrorManager) {
         expressions.filterIsInstance<Statement.FunctionDefinition>().forEach {
             val args = mapArgumentDefinitions(it.args)
-            StandardLibraryFunctions.definedFunctions[fileName]!!.add(Function(it.name.substring, args, it.type))
+            if (SymbolTableSingleton.getCurrentSymbolTable().functions.any { inner -> inner.name == it.name.substring }) {
+                errorManager.error(it.name, "A function with this name has already been defined.")
+            } else {
+                SymbolTableSingleton.getCurrentSymbolTable().functions.add(Function(it.name.substring, args, it.type))
+            }
+        }
+        expressions.filterIsInstance<Statement.StructDefinition>().forEach { structDefinition ->
+            if (SymbolTableSingleton.getCurrentSymbolTable().structs.containsKey(structDefinition.name.substring)) {
+                errorManager.error(structDefinition.name, "A struct with this name has already been defined.")
+            } else {
+                SymbolTableSingleton.getCurrentSymbolTable().structs[structDefinition.name.substring] =
+                    Struct(structDefinition.name.substring, structDefinition.body.map { Pair(it.name.substring, it.type) })
+            }
         }
     }
 

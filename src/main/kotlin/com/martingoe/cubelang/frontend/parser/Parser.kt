@@ -1,12 +1,10 @@
 package com.martingoe.cubelang.frontend.parser
 
-import com.martingoe.cubelang.common.tokens.Token
-import com.martingoe.cubelang.common.tokens.TokenType
 import com.martingoe.cubelang.common.*
 import com.martingoe.cubelang.common.errors.ErrorManager
-import java.lang.IllegalArgumentException
+import com.martingoe.cubelang.common.tokens.Token
+import com.martingoe.cubelang.common.tokens.TokenType
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 /**
@@ -36,6 +34,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
                 TokenType.CURLYL -> blockStatement()
                 TokenType.STRUCT -> structDefinition()
                 TokenType.FUN -> functionStatement()
+                TokenType.EXTERN -> externFunctionStatement()
                 TokenType.RETURN -> returnStatement()
                 else -> {
                     if (peek(TokenType.EQUALS)) {
@@ -53,6 +52,13 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             catchException(error.message, error.token)
         }
         return Statement.Empty()
+    }
+
+    private fun externFunctionStatement(): Statement {
+        consume(TokenType.FUN, "Expected a 'fun' keyword after 'extern'")
+        val (name, args: List<Statement.ArgumentDefinition>, type) = getFunctionStatementStart()
+        consume(TokenType.SEMICOLON, "Expected a ';' after defining an extern function.")
+        return Statement.ExternFunctionDefinition(name, args, type)
     }
 
     private fun importStatement(): Statement {
@@ -76,10 +82,16 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
     }
 
     private fun functionStatement(): Statement {
+        val (name, args: List<Statement.ArgumentDefinition>, type) = getFunctionStatementStart()
+
+        return Statement.FunctionDefinition(name, args, type, statement())
+    }
+
+    private fun getFunctionStatementStart(): Triple<Token, List<Statement.ArgumentDefinition>, Type> {
         val name = consume(TokenType.IDENTIFIER, "Expected an identifier for the function name")
         consume(TokenType.BRCKTL, "Expected '(' after a function name.")
 
-        val args: MutableList<Statement> = ArrayList()
+        val args: MutableList<Statement.ArgumentDefinition> = ArrayList()
         if (!peek(TokenType.BRCKTR)) {
             while (true) {
                 val parameterName = consume(TokenType.IDENTIFIER, "Expected a parameter name")
@@ -93,8 +105,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
         }
         consume(TokenType.BRCKTR, "Expected a ')' closing the argument definitions")
         val type = getType()
-
-        return Statement.FunctionDefinition(name, args, type, statement())
+        return Triple(name, args, type)
     }
 
     private fun structDefinition(): Statement {
@@ -264,7 +275,7 @@ class Parser(private var tokens: List<Token>, private var errorManager: ErrorMan
             TokenType.POINTER -> Expression.PointerGet(Expression.VarCall(consume(TokenType.IDENTIFIER, "Expected an identifier after '&'.")))
             TokenType.STAR -> Expression.ValueFromPointer(call(), current())
             TokenType.NULLVALUE -> Expression.Literal(null, current())
-            TokenType.STRING -> Expression.Literal(current(), current())
+            TokenType.STRING -> Expression.StringLiteral(current())
             TokenType.IDENTIFIER -> {
                 lexIdentifier()
             }

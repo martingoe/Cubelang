@@ -2,13 +2,23 @@ package com.martingoe.cubelang.common
 
 import com.martingoe.cubelang.backend.instructionselection.Rule
 import com.martingoe.cubelang.common.tokens.Token
+import com.martingoe.cubelang.common.tokens.TokenType
 
 
+/**
+ * The expressions of a given program.
+ *
+ * @param state The trie state reached from the expression. This parameter is used in the instruction selection stage.
+ * @param matchedResults The results of rules that have been matched. This parameter is used in the instruction selection stage.
+ * @param cost The lowest rule cost that has been matched yet. This parameter is used in the instruction selection stage.
+ * @param ruleMatchingBytes An array of integers used to match the given rules. Used in the instruction selection stage.
+ * @param resultType The type resulting from the expression.
+ */
 abstract class Expression(
     var state: Int = 0,
-    var match: MutableMap<Char, Int> = HashMap(),
+    var matchedResults: MutableMap<Char, Int> = HashMap(),
     var cost: MutableMap<Char, Int> = HashMap(),
-    var b: Array<Int> = Array(Rule.RULE_COUNT) { 0 },
+    var ruleMatchingBytes: Array<Int> = Array(Rule.RULE_COUNT) { 0 },
     var resultType: Type = NoneType()
 ) {
     class Operation(var leftExpression: Expression, val operator: Token, var rightExpression: Expression) : Expression() {
@@ -70,7 +80,7 @@ abstract class Expression(
         }
     }
 
-    class ValueFromPointer(var expression: Expression, val star: Token) : Expression() {
+    class ValueFromPointer(var expression: Expression, val star: Token = Token("*", TokenType.STAR)) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitValueFromPointer(this)
         }
@@ -81,9 +91,14 @@ abstract class Expression(
             return visitor.visitComparison(this)
         }
     }
+    class StringLiteral(val value: Token): Expression(){
+        override fun <R> accept(visitor: ExpressionVisitor<R>): R {
+            return visitor.visitStringLiteral(this)
+        }
+    }
 
 
-    class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token) : Expression() {
+    class Assignment(var leftSide: Expression, var valueExpression: Expression, val equals: Token = Token("=", TokenType.EQUALS)) : Expression() {
         override fun <R> accept(visitor: ExpressionVisitor<R>): R {
             return visitor.visitAssignment(this)
         }
@@ -106,6 +121,7 @@ abstract class Expression(
         fun visitAssignment(assignment: Assignment): T
         fun acceptFramePointer(framePointer: FramePointer): T
         fun acceptExtendTo64Bits(extendTo64Bit: ExtendTo64Bit): T
+        fun visitStringLiteral(stringLiteral: StringLiteral): T
     }
 
     class Logical(var leftExpression: Expression, val logical: Token, var rightExpression: Expression) : Expression() {
